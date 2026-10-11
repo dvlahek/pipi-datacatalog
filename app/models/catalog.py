@@ -10,9 +10,9 @@ class CatalogSource(BaseModel):
     code: str
     name: str
     description: str | None = None
-    owner: str
-    provider: str
-    license: str
+    owner: str | None = None
+    provider: str | None = None
+    license: str | None = None
     manufacturer: str | None = None
     model: str | None = None
 
