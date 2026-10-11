@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 
+from app.catalog.service import build_catalog
 from app.clients.sensor_hub import (
     SensorHubAuthenticationError,
     SensorHubClient,
@@ -36,22 +37,62 @@ def _raise_http(exc: SensorHubError) -> None:
 
 async def _datasets() -> list[CanonicalDataset]:
     async with _client() as client:
-        harvester = SensorHubHarvester(client)
-        return await harvester.datasets()
+        return await build_catalog(client)
 
 
-async def _dataset(dataset_id: int) -> CanonicalDataset:
+def _matches_dataset_ref(dataset: CanonicalDataset, dataset_ref: str) -> bool:
+    if dataset.catalog_id == dataset_ref:
+        return True
+    if dataset.identifier == dataset_ref:
+        return True
+    if dataset.external_id == dataset_ref:
+        return True
+    if (
+        dataset_ref.isdigit()
+        and dataset.access is not None
+        and dataset.access.deployment_property_id == int(dataset_ref)
+    ):
+        return True
+    return False
+
+
+async def _dataset(dataset_ref: str) -> CanonicalDataset:
     datasets = await _datasets()
     for dataset in datasets:
-        if dataset.access.deployment_property_id == dataset_id:
+        if _matches_dataset_ref(dataset, dataset_ref):
             return dataset
     raise HTTPException(status_code=404, detail="Dataset not found.")
+
+
+def _dataset_result_id(dataset: CanonicalDataset) -> int | str:
+    if dataset.access is not None:
+        return dataset.access.deployment_property_id
+    return dataset.catalog_id
 
 
 @router.get("/health")
 async def health() -> dict[str, str]:
     settings = get_settings()
     return {"status": "ok", "service": settings.app_name}
+
+
+@router.get("/api/v1/providers")
+async def list_providers() -> dict[str, object]:
+    return {
+        "count": 2,
+        "data": [
+            {
+                "name": "sensor-hub",
+                "kind": "api",
+                "description": "PiPi Sensor Hub metadata provider",
+            },
+            {
+                "name": "static-web",
+                "kind": "external-web-resource",
+                "description": "Manually registered external web datasets",
+            },
+        ],
+    }
 
 
 @router.get("/api/v1/providers/sensor-hub/status")
@@ -118,15 +159,16 @@ async def validate_catalog_semantics() -> dict[str, object]:
             validation = validate_dataset_jsonld(dataset_to_jsonld(dataset))
             items.append(
                 {
-                    "dataset_id": dataset.access.deployment_property_id,
+                    "dataset_id": _dataset_result_id(dataset),
                     "identifier": dataset.identifier,
+                    "source_system": dataset.source_system,
                     **validation,
                 }
             )
 
         failed = [item for item in items if item["conforms"] is False]
         return {
-            "profile": "pipi-dcat-core-shacl-v1",
+            "profile": "pipi-dcat-core-shacl-v2",
             "count": len(items),
             "conforms": len(failed) == 0,
             "conforms_count": len(items) - len(failed),
@@ -137,31 +179,32 @@ async def validate_catalog_semantics() -> dict[str, object]:
         _raise_http(exc)
 
 
-@router.get("/api/v1/datasets/{dataset_id}.jsonld")
-async def get_dataset_jsonld(dataset_id: int) -> dict[str, object]:
+@router.get("/api/v1/datasets/{dataset_ref}.jsonld")
+async def get_dataset_jsonld(dataset_ref: str) -> dict[str, object]:
     try:
-        return dataset_to_jsonld(await _dataset(dataset_id))
+        return dataset_to_jsonld(await _dataset(dataset_ref))
     except SensorHubError as exc:
         _raise_http(exc)
 
 
-@router.get("/api/v1/datasets/{dataset_id}/validation")
-async def validate_dataset_semantics(dataset_id: int) -> dict[str, object]:
+@router.get("/api/v1/datasets/{dataset_ref}/validation")
+async def validate_dataset_semantics(dataset_ref: str) -> dict[str, object]:
     try:
-        dataset = await _dataset(dataset_id)
+        dataset = await _dataset(dataset_ref)
         return {
-            "dataset_id": dataset_id,
+            "dataset_id": _dataset_result_id(dataset),
             "identifier": dataset.identifier,
+            "source_system": dataset.source_system,
             **validate_dataset_jsonld(dataset_to_jsonld(dataset)),
         }
     except SensorHubError as exc:
         _raise_http(exc)
 
 
-@router.get("/api/v1/datasets/{dataset_id}")
-async def get_dataset(dataset_id: int) -> dict[str, object]:
+@router.get("/api/v1/datasets/{dataset_ref}")
+async def get_dataset(dataset_ref: str) -> dict[str, object]:
     try:
-        dataset = await _dataset(dataset_id)
+        dataset = await _dataset(dataset_ref)
         return {"data": dataset.model_dump()}
     except SensorHubError as exc:
         _raise_http(exc)
