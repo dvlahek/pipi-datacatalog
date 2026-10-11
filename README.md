@@ -20,6 +20,8 @@ The current vertical slice provides:
 - PostgreSQL-backed persistent metadata catalog with idempotent upsert
 - immutable catalog version snapshots when normalized metadata or source fingerprints change
 - explicit source provenance fields for URL, ETag, Last-Modified, content SHA-256 and provider-native version
+- versioned SQL schema migrations with checksum protection
+- automatic schema update when the persistent catalog store is initialized
 - explicit catalog synchronization from configured providers
 - DCAT/DCAT-AP-oriented JSON-LD serialization
 - QUDT links for known quantity kinds and units
@@ -53,9 +55,9 @@ For the current Sensor Hub model, each `deployment-property` is treated as one i
 
 The canonical model is no longer sensor-specific. Sensor metadata is an optional extension. Other providers can describe datasets using the common fields plus one or more distributions, for example JSON API access, CSV download, text document, audio file, HLS video stream or image snapshot.
 
-## Persistent catalog and versioning
+## Persistent catalog, initialization and schema migrations
 
-Persistence is optional so the service can still run in the earlier live-discovery mode. Enable PostgreSQL in `.env`:
+Persistence is optional so the service can still run in live-discovery mode. For a local PostgreSQL installation configure `.env`:
 
 ```env
 CATALOG_STORE_ENABLED=true
@@ -63,19 +65,39 @@ DATABASE_URL=postgresql+psycopg://pipi:pipi_dev@localhost:5432/pipi_catalog
 CATALOG_BOOTSTRAP_IF_EMPTY=true
 ```
 
-The repository includes a local development PostgreSQL service:
+If the `pipi` role or `pipi_catalog` database do not exist yet, also add a local PostgreSQL administrator connection. Keep the real administrator password only in `.env` and never commit it:
 
-```bash
-docker compose up -d postgres
+```env
+DATABASE_ADMIN_URL=postgresql+psycopg://postgres:YOUR_LOCAL_ADMIN_PASSWORD@localhost:5432/postgres
 ```
 
-The store creates three core tables for the MVP:
+Initialize the database with:
+
+```bash
+python scripts/init_database.py
+```
+
+The script first tries the configured application database. If it already exists, it only applies pending schema migrations. If the role/database are missing and `DATABASE_ADMIN_URL` is configured, the script creates the target role and database, grants the required schema access, and then applies migrations.
+
+The PostgreSQL DDL is stored in Git under `database/migrations`:
+
+```text
+001_catalog_core.sql
+002_catalog_versions.sql
+```
+
+The migration runner creates and maintains `catalog_schema_migrations`. Each applied migration stores its version, file name and SHA-256 checksum. Applied migration files must never be edited. A later schema change is added as a new sequential SQL file such as `003_add_language.sql`. On initialization only pending migrations are applied. If an already-applied SQL file is modified, initialization stops on a checksum mismatch instead of silently rewriting database history.
+
+The current schema contains:
 
 - `catalog_datasets` - current provider-neutral dataset metadata and provenance
 - `catalog_distributions` - current API/file/image/audio/video access representations
 - `catalog_dataset_versions` - immutable historical snapshots with SHA-256 fingerprints
+- `catalog_schema_migrations` - applied database schema migrations
 
-`POST /api/v1/catalog/sync` discovers all configured providers and performs a version-aware idempotent upsert. If the canonical snapshot is unchanged, no new version is created. If metadata, distributions or source-version signals change, the current row is updated and a new immutable version snapshot is appended.
+The same migration runner is used whenever the PostgreSQL-backed catalog store is initialized, so deploying newer code automatically updates an existing database by applying any new migration files before catalog access.
+
+`POST /api/v1/catalog/sync` discovers all configured providers and performs a version-aware idempotent upsert. If the canonical snapshot is unchanged, no new dataset version is created. If metadata, distributions or source-version signals change, the current row is updated and a new immutable version snapshot is appended.
 
 For file-like providers such as CSV, text or audio, the provider should compute a SHA-256 of the source bytes and put it into `provenance.content_sha256`. Therefore a CSV can keep the same URL, filename and title while changed rows still produce a new catalog version at the next sync. HTTP providers can additionally preserve `ETag` and `Last-Modified`; provider-native version ids can be stored in `provenance.source_version`.
 
@@ -103,6 +125,7 @@ python -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 cp .env.example .env
+python scripts/init_database.py
 uvicorn app.main:app --reload
 ```
 
