@@ -8,6 +8,8 @@ from app.clients.sensor_hub import (
 )
 from app.config import get_settings
 from app.harvesters.sensor_hub import SensorHubHarvester
+from app.models.catalog import CanonicalDataset
+from app.semantic.dcat import dataset_to_jsonld
 
 router = APIRouter()
 
@@ -28,6 +30,20 @@ def _raise_http(exc: SensorHubError) -> None:
     if isinstance(exc, SensorHubAuthenticationError):
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+async def _datasets() -> list[CanonicalDataset]:
+    async with _client() as client:
+        harvester = SensorHubHarvester(client)
+        return await harvester.datasets()
+
+
+async def _dataset(dataset_id: int) -> CanonicalDataset:
+    datasets = await _datasets()
+    for dataset in datasets:
+        if dataset.access.deployment_property_id == dataset_id:
+            return dataset
+    raise HTTPException(status_code=404, detail="Dataset not found.")
 
 
 @router.get("/health")
@@ -62,5 +78,34 @@ async def sensor_hub_harvest_preview() -> dict[str, object]:
         async with _client() as client:
             harvester = SensorHubHarvester(client)
             return await harvester.preview()
+    except SensorHubError as exc:
+        _raise_http(exc)
+
+
+@router.get("/api/v1/datasets")
+async def list_datasets() -> dict[str, object]:
+    try:
+        datasets = await _datasets()
+        return {
+            "count": len(datasets),
+            "data": [dataset.model_dump() for dataset in datasets],
+        }
+    except SensorHubError as exc:
+        _raise_http(exc)
+
+
+@router.get("/api/v1/datasets/{dataset_id}.jsonld")
+async def get_dataset_jsonld(dataset_id: int) -> dict[str, object]:
+    try:
+        return dataset_to_jsonld(await _dataset(dataset_id))
+    except SensorHubError as exc:
+        _raise_http(exc)
+
+
+@router.get("/api/v1/datasets/{dataset_id}")
+async def get_dataset(dataset_id: int) -> dict[str, object]:
+    try:
+        dataset = await _dataset(dataset_id)
+        return {"data": dataset.model_dump()}
     except SensorHubError as exc:
         _raise_http(exc)

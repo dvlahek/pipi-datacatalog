@@ -132,6 +132,35 @@ class SensorHubClient:
 
         return payload
 
+    async def get_detail(self, resource: str, resource_id: int) -> dict[str, Any]:
+        token = await self.authenticate()
+        path = f"{resource.strip('/')}/{resource_id}"
+
+        response = await self._get_with_token(path, {}, token)
+        if response.status_code == 401:
+            token = await self.authenticate(force=True)
+            response = await self._get_with_token(path, {}, token)
+
+        if response.is_error:
+            raise SensorHubUpstreamError(
+                f"Sensor Hub {path} returned HTTP {response.status_code}."
+            )
+
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise SensorHubUpstreamError(
+                f"Sensor Hub {path} did not return valid JSON."
+            ) from exc
+
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(data, dict):
+            raise SensorHubUpstreamError(
+                f"Sensor Hub {path} response did not contain a data object."
+            )
+
+        return data
+
     async def get_all(
         self,
         resource: str,
