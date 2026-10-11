@@ -1,0 +1,28 @@
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    app_name: str = "PiPi Data Catalog"
+    app_environment: str = "development"
+
+    sensor_hub_base_url: str = "http://webtesting.foi.unizg.hr:3000/api/v1"
+    sensor_hub_username: str | None = None
+    sensor_hub_password: str | None = None
+    sensor_hub_timeout_seconds: float = 15.0
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    @property
+    def sensor_hub_configured(self) -> bool:
+        return bool(self.sensor_hub_username and self.sensor_hub_password)
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
