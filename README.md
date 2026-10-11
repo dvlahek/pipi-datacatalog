@@ -21,7 +21,7 @@ The current vertical slice provides:
 - RDFLib + pySHACL validation against a local PiPi DCAT core profile
 - tests that do not require the remote FOI test service
 
-The local `pipi-dcat-core-shacl-v1` profile checks the structural semantic contract used by this catalog, including Dataset, Distribution and DataService links. It is intentionally a baseline profile and is not yet a claim of full official DCAT-AP conformance. Full DCAT-AP profile validation and controlled-vocabulary checks remain a later semantic milestone.
+The local `pipi-dcat-core-shacl-v1` profile checks the structural semantic contract used by this catalog, including Dataset, Distribution and DataService links. It is intentionally a baseline profile. Passing this local profile must not be reported as full DCAT-AP conformance. Validation against the official DCAT-AP profile and its controlled-vocabulary requirements remains a later semantic milestone.
 
 ## Architecture
 
