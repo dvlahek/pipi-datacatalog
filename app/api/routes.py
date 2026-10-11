@@ -11,6 +11,7 @@ from app.harvesters.sensor_hub import SensorHubHarvester
 from app.models.catalog import CanonicalDataset
 from app.search.catalog import search_datasets
 from app.semantic.dcat import dataset_to_jsonld
+from app.semantic.shacl import validate_dataset_jsonld
 
 router = APIRouter()
 
@@ -107,10 +108,52 @@ async def search_catalog(
         _raise_http(exc)
 
 
+@router.get("/api/v1/semantic/validation")
+async def validate_catalog_semantics() -> dict[str, object]:
+    try:
+        datasets = await _datasets()
+        items: list[dict[str, object]] = []
+
+        for dataset in datasets:
+            validation = validate_dataset_jsonld(dataset_to_jsonld(dataset))
+            items.append(
+                {
+                    "dataset_id": dataset.access.deployment_property_id,
+                    "identifier": dataset.identifier,
+                    **validation,
+                }
+            )
+
+        failed = [item for item in items if item["conforms"] is False]
+        return {
+            "profile": "pipi-dcat-core-shacl-v1",
+            "count": len(items),
+            "conforms": len(failed) == 0,
+            "conforms_count": len(items) - len(failed),
+            "failed_count": len(failed),
+            "data": items,
+        }
+    except SensorHubError as exc:
+        _raise_http(exc)
+
+
 @router.get("/api/v1/datasets/{dataset_id}.jsonld")
 async def get_dataset_jsonld(dataset_id: int) -> dict[str, object]:
     try:
         return dataset_to_jsonld(await _dataset(dataset_id))
+    except SensorHubError as exc:
+        _raise_http(exc)
+
+
+@router.get("/api/v1/datasets/{dataset_id}/validation")
+async def validate_dataset_semantics(dataset_id: int) -> dict[str, object]:
+    try:
+        dataset = await _dataset(dataset_id)
+        return {
+            "dataset_id": dataset_id,
+            "identifier": dataset.identifier,
+            **validate_dataset_jsonld(dataset_to_jsonld(dataset)),
+        }
     except SensorHubError as exc:
         _raise_http(exc)
 
