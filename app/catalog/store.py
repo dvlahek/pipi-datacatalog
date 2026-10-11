@@ -5,7 +5,17 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, create_engine, select
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    create_engine,
+    select,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
 from app.catalog.database import initialize_postgres_database
@@ -66,6 +76,33 @@ class DatasetVersionRow(Base):
     fingerprint: Mapped[str] = mapped_column(String(64), index=True)
     snapshot: Mapped[dict[str, Any]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class ResourceRow(Base):
+    __tablename__ = "catalog_resources"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str | None] = mapped_column(String, nullable=True)
+    source_url: Mapped[str] = mapped_column(String, unique=True)
+    requested_type: Mapped[str] = mapped_column(String, default="auto")
+    detected_type: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    refresh_policy: Mapped[str] = mapped_column(String, default="manual")
+    dataset_identifier: Mapped[str | None] = mapped_column(
+        ForeignKey("catalog_datasets.identifier", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    last_media_type: Mapped[str | None] = mapped_column(String, nullable=True)
+    last_etag: Mapped[str | None] = mapped_column(String, nullable=True)
+    last_modified: Mapped[str | None] = mapped_column(String, nullable=True)
+    last_content_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column("metadata", JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class CatalogStore:
@@ -238,6 +275,124 @@ class CatalogStore:
             if row is None:
                 return None
             return CanonicalDataset.model_validate(row.snapshot)
+
+    def create_resource(
+        self,
+        *,
+        source_url: str,
+        name: str | None,
+        requested_type: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        with Session(self.engine) as session:
+            existing = session.scalars(
+                select(ResourceRow).where(ResourceRow.source_url == source_url)
+            ).first()
+            if existing is not None:
+                raise ValueError("Resource URL is already registered.")
+            row = ResourceRow(
+                name=name,
+                source_url=source_url,
+                requested_type=requested_type,
+                enabled=True,
+                refresh_policy="manual",
+                metadata_json=metadata or {},
+                created_at=now,
+                updated_at=now,
+            )
+            session.add(row)
+            session.commit()
+            session.refresh(row)
+            return self._resource_dict(row)
+
+    def list_resources(self) -> list[dict[str, Any]]:
+        with Session(self.engine) as session:
+            rows = session.scalars(select(ResourceRow).order_by(ResourceRow.id)).all()
+            return [self._resource_dict(row) for row in rows]
+
+    def get_resource(self, resource_id: int) -> dict[str, Any] | None:
+        with Session(self.engine) as session:
+            row = session.get(ResourceRow, resource_id)
+            return None if row is None else self._resource_dict(row)
+
+    def mark_resource_success(
+        self,
+        resource_id: int,
+        *,
+        detected_type: str,
+        dataset_identifier: str,
+        media_type: str,
+        etag: str | None,
+        last_modified: str | None,
+        content_sha256: str | None,
+    ) -> dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        with Session(self.engine) as session:
+            row = session.get(ResourceRow, resource_id)
+            if row is None:
+                raise KeyError(resource_id)
+            row.detected_type = detected_type
+            row.dataset_identifier = dataset_identifier
+            row.last_media_type = media_type
+            row.last_etag = etag
+            row.last_modified = last_modified
+            row.last_content_sha256 = content_sha256
+            row.last_checked_at = now
+            row.last_success_at = now
+            row.last_error = None
+            row.updated_at = now
+            session.commit()
+            session.refresh(row)
+            return self._resource_dict(row)
+
+    def mark_resource_error(self, resource_id: int, error: str) -> dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        with Session(self.engine) as session:
+            row = session.get(ResourceRow, resource_id)
+            if row is None:
+                raise KeyError(resource_id)
+            row.last_checked_at = now
+            row.last_error = error[:4000]
+            row.updated_at = now
+            session.commit()
+            session.refresh(row)
+            return self._resource_dict(row)
+
+    def set_resource_enabled(self, resource_id: int, enabled: bool) -> dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        with Session(self.engine) as session:
+            row = session.get(ResourceRow, resource_id)
+            if row is None:
+                raise KeyError(resource_id)
+            row.enabled = enabled
+            row.updated_at = now
+            session.commit()
+            session.refresh(row)
+            return self._resource_dict(row)
+
+    @staticmethod
+    def _resource_dict(row: ResourceRow) -> dict[str, Any]:
+        return {
+            "id": row.id,
+            "name": row.name,
+            "source_url": row.source_url,
+            "requested_type": row.requested_type,
+            "detected_type": row.detected_type,
+            "enabled": row.enabled,
+            "refresh_policy": row.refresh_policy,
+            "dataset_identifier": row.dataset_identifier,
+            "last_media_type": row.last_media_type,
+            "last_etag": row.last_etag,
+            "last_modified": row.last_modified,
+            "last_content_sha256": row.last_content_sha256,
+            "metadata": dict(row.metadata_json or {}),
+            "created_at": row.created_at,
+            "updated_at": row.updated_at,
+            "last_checked_at": row.last_checked_at,
+            "last_success_at": row.last_success_at,
+            "last_error": row.last_error,
+        }
 
     @staticmethod
     def _to_dataset(row: DatasetRow) -> CanonicalDataset:
