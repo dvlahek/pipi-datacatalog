@@ -53,14 +53,16 @@ def _location(dataset: CanonicalDataset) -> dict[str, Any]:
     return result
 
 
-def _temporal(dataset: CanonicalDataset) -> dict[str, Any]:
-    result: dict[str, Any] = {
-        "@type": "dct:PeriodOfTime",
-        "dcat:startDate": {
+def _temporal(dataset: CanonicalDataset) -> dict[str, Any] | None:
+    if not dataset.temporal.start and not dataset.temporal.end:
+        return None
+
+    result: dict[str, Any] = {"@type": "dct:PeriodOfTime"}
+    if dataset.temporal.start:
+        result["dcat:startDate"] = {
             "@value": dataset.temporal.start,
             "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
-        },
-    }
+        }
     if dataset.temporal.end:
         result["dcat:endDate"] = {
             "@value": dataset.temporal.end,
@@ -110,7 +112,7 @@ def _distribution(dataset: CanonicalDataset) -> dict[str, Any]:
     unit = dataset.observed_property
     if unit.unit_uri:
         distribution["qudt:hasUnit"] = _as_id(unit.unit_uri)
-    else:
+    elif unit.unit_code:
         distribution["pipi:unitCode"] = unit.unit_code
 
     return distribution
@@ -132,17 +134,28 @@ def dataset_to_jsonld(dataset: CanonicalDataset) -> dict[str, Any]:
         },
         "dct:license": _license_value(dataset.license),
         "dct:spatial": _location(dataset),
-        "dct:temporal": _temporal(dataset),
         "dct:subject": _subject(dataset),
         "dcat:distribution": _distribution(dataset),
         "pipi:sourceCode": dataset.source.code,
-        "pipi:observationTarget": dataset.observation_target,
-        "pipi:samplingIntervalSeconds": dataset.sampling_interval_seconds,
-        "pipi:uncertainty": dataset.uncertainty,
-        "pipi:resolution": dataset.resolution,
-        "pipi:isActive": dataset.is_active,
     }
 
+    temporal = _temporal(dataset)
+    if temporal:
+        doc["dct:temporal"] = temporal
+    if dataset.observation_target:
+        doc["pipi:observationTarget"] = dataset.observation_target
+    if dataset.sampling_interval_seconds is not None:
+        doc["pipi:samplingIntervalSeconds"] = dataset.sampling_interval_seconds
+    if dataset.uncertainty:
+        doc["pipi:uncertainty"] = dataset.uncertainty
+    if dataset.resolution is not None:
+        doc["pipi:resolution"] = dataset.resolution
+    if dataset.is_active is not None:
+        doc["pipi:isActive"] = dataset.is_active
+    if dataset.min_value is not None:
+        doc["pipi:minValue"] = dataset.min_value
+    if dataset.max_value is not None:
+        doc["pipi:maxValue"] = dataset.max_value
     if dataset.observed_property.semantic_uri:
         doc["qudt:hasQuantityKind"] = _as_id(
             dataset.observed_property.semantic_uri
