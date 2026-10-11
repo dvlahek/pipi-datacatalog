@@ -1,0 +1,76 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix pipi: <urn:pipi:vocab:> .
+
+pipi:DatasetShape
+    a sh:NodeShape ;
+    sh:targetClass dcat:Dataset ;
+    sh:property [
+        sh:path dct:identifier ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path dct:title ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path dct:description ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path dct:publisher ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path dct:license ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path dct:spatial ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path dct:subject ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path dcat:distribution ;
+        sh:minCount 1 ;
+        sh:class dcat:Distribution
+    ] .
+
+pipi:DistributionShape
+    a sh:NodeShape ;
+    sh:targetClass dcat:Distribution ;
+    sh:property [
+        sh:path dcat:accessURL ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path dcat:accessService ;
+        sh:minCount 1 ;
+        sh:class dcat:DataService
+    ] ;
+    sh:property [
+        sh:path pipi:deploymentPropertyId ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] .
+
+pipi:DataServiceShape
+    a sh:NodeShape ;
+    sh:targetClass dcat:DataService ;
+    sh:property [
+        sh:path dcat:endpointURL ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path dcat:endpointDescription ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path dcat:servesDataset ;
+        sh:minCount 1
+    ] .
