@@ -24,6 +24,25 @@ _QUDT_UNIT_URIS = {
 }
 
 
+def _optional_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    return int(value)
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    return float(value)
+
+
 class SensorHubHarvester:
     """Harvest descriptive Sensor Hub metadata without copying readings."""
 
@@ -144,9 +163,9 @@ class SensorHubHarvester:
         title = f"{property_label} — {location['name']} — {source['name']}"
 
         description_parts = [
-            str(prop.get("description") or "").strip(),
-            str(deployment.get("purpose") or "").strip(),
-            str(deployment_property.get("observation_target") or "").strip(),
+            _optional_text(prop.get("description")),
+            _optional_text(deployment.get("purpose")),
+            _optional_text(deployment_property.get("observation_target")),
         ]
         description = " ".join(part for part in description_parts if part)
         if not description:
@@ -155,9 +174,15 @@ class SensorHubHarvester:
                 f"at {location['name']}."
             )
 
-        unit_code = str(deployment_property["unit"])
+        unit_code = _optional_text(deployment_property.get("unit")) or _optional_text(
+            prop.get("default_unit")
+        )
         base_url = self.client.base_url.rstrip("/")
         service_root = base_url.rsplit("/api/v1", 1)[0]
+
+        active_from = _optional_text(deployment.get("active_from"))
+        active_to = _optional_text(deployment.get("active_to"))
+        is_active_raw = deployment_property.get("is_active")
 
         return CanonicalDataset(
             catalog_id=f"sensor-hub:deployment-property:{deployment_property_id}",
@@ -168,31 +193,28 @@ class SensorHubHarvester:
             license=str(source.get("license") or "unknown"),
             source=CatalogSource.model_validate(source),
             location=CatalogLocation.model_validate(location),
-            temporal=CatalogTemporalCoverage(
-                start=str(deployment["active_from"]),
-                end=(
-                    str(deployment["active_to"])
-                    if deployment.get("active_to") is not None
-                    else None
-                ),
-            ),
+            temporal=CatalogTemporalCoverage(start=active_from, end=active_to),
             observed_property=CatalogObservedProperty(
                 id=int(prop["id"]),
                 name=str(prop["name"]),
-                description=prop.get("description"),
-                quantity_kind=str(prop["quantity_kind"]),
-                semantic_uri=prop.get("semantic_uri"),
-                data_type=str(prop["data_type"]),
+                description=_optional_text(prop.get("description")),
+                quantity_kind=_optional_text(prop.get("quantity_kind")),
+                semantic_uri=_optional_text(prop.get("semantic_uri")),
+                data_type=_optional_text(prop.get("data_type")),
                 unit_code=unit_code,
-                unit_uri=_QUDT_UNIT_URIS.get(unit_code),
+                unit_uri=_QUDT_UNIT_URIS.get(unit_code) if unit_code else None,
             ),
-            sampling_interval_seconds=int(deployment_property["sampling_interval"]),
-            resolution=float(deployment_property["resolution"]),
-            uncertainty=str(deployment_property["uncertainty"]),
-            min_value=float(deployment_property["min_value"]),
-            max_value=float(deployment_property["max_value"]),
-            is_active=bool(deployment_property["is_active"]),
-            observation_target=str(deployment_property["observation_target"]),
+            sampling_interval_seconds=_optional_int(
+                deployment_property.get("sampling_interval")
+            ),
+            resolution=_optional_float(deployment_property.get("resolution")),
+            uncertainty=_optional_text(deployment_property.get("uncertainty")),
+            min_value=_optional_float(deployment_property.get("min_value")),
+            max_value=_optional_float(deployment_property.get("max_value")),
+            is_active=(bool(is_active_raw) if is_active_raw is not None else None),
+            observation_target=_optional_text(
+                deployment_property.get("observation_target")
+            ),
             access=CatalogAccess(
                 provider="sensor-hub",
                 data_service_identifier="urn:pipi:dataservice:sensor-hub",
