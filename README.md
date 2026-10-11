@@ -18,6 +18,8 @@ The current vertical slice provides:
 - explicit `Distribution` objects for API, file, image, audio, video and future access modes
 - stable dataset identifiers such as `urn:pipi:dataset:sensor-hub:deployment-property:51`
 - PostgreSQL-backed persistent metadata catalog with idempotent upsert
+- immutable catalog version snapshots when normalized metadata or source fingerprints change
+- explicit source provenance fields for URL, ETag, Last-Modified, content SHA-256 and provider-native version
 - explicit catalog synchronization from configured providers
 - DCAT/DCAT-AP-oriented JSON-LD serialization
 - QUDT links for known quantity kinds and units
@@ -33,25 +35,25 @@ The local `pipi-dcat-core-shacl-v2` profile checks the provider-neutral structur
 ```text
 Sensor Hub API ---------\
 REST/JSON APIs ----------\
-CSV/files ----------------> provider adapters --> CanonicalDataset --> catalog sync/upsert
-Text/document sources ---/                                           |
-Audio/video streams ----/                                            v
-Static web resources ---/                                       PostgreSQL
-                                                                    |
-                                         +--------------------------+------------------+
-                                         |                          |                  |
-                                      catalog API                 search            DCAT/SHACL
-                                                                                        |
-                                                                                    later RAG
+CSV/files ----------------> provider adapters --> CanonicalDataset --> version-aware sync/upsert
+Text/document sources ---/                                                   |
+Audio/video streams ----/                                                    v
+Static web resources ---/                                               PostgreSQL
+                                                                            |
+                                                 +--------------------------+------------------+
+                                                 |                          |                  |
+                                              catalog API                 search            DCAT/SHACL
+                                                                                                |
+                                                                                            later RAG
 ```
 
-Operational content is not copied into the metadata catalog by default. PostgreSQL stores normalized metadata and distribution descriptors. Sensor readings remain in Sensor Hub, HLS video remains on the external CDN, and future CSV/audio/text payloads can remain at their source unless a provider explicitly implements content ingestion.
+Operational content is not copied into the metadata catalog by default. PostgreSQL stores normalized metadata, provenance, version snapshots and distribution descriptors. Sensor readings remain in Sensor Hub, HLS video remains on the external CDN, and future CSV/audio/text payloads can remain at their source unless a provider explicitly implements content ingestion.
 
 For the current Sensor Hub model, each `deployment-property` is treated as one initial dataset candidate because it binds a deployment to one measured property and carries the measurement configuration.
 
 The canonical model is no longer sensor-specific. Sensor metadata is an optional extension. Other providers can describe datasets using the common fields plus one or more distributions, for example JSON API access, CSV download, text document, audio file, HLS video stream or image snapshot.
 
-## Persistent catalog
+## Persistent catalog and versioning
 
 Persistence is optional so the service can still run in the earlier live-discovery mode. Enable PostgreSQL in `.env`:
 
@@ -67,12 +69,17 @@ The repository includes a local development PostgreSQL service:
 docker compose up -d postgres
 ```
 
-The store currently creates two core tables automatically for the MVP:
+The store creates three core tables for the MVP:
 
-- `catalog_datasets` - provider-neutral dataset metadata and provenance
-- `catalog_distributions` - one or more API/file/image/audio/video access representations per dataset
+- `catalog_datasets` - current provider-neutral dataset metadata and provenance
+- `catalog_distributions` - current API/file/image/audio/video access representations
+- `catalog_dataset_versions` - immutable historical snapshots with SHA-256 fingerprints
 
-`POST /api/v1/catalog/sync` discovers all configured providers and performs an idempotent upsert. This is the merge point between upstream APIs/resources and the local dataspace catalog. Normal catalog reads then come from PostgreSQL rather than repeatedly harvesting every source.
+`POST /api/v1/catalog/sync` discovers all configured providers and performs a version-aware idempotent upsert. If the canonical snapshot is unchanged, no new version is created. If metadata, distributions or source-version signals change, the current row is updated and a new immutable version snapshot is appended.
+
+For file-like providers such as CSV, text or audio, the provider should compute a SHA-256 of the source bytes and put it into `provenance.content_sha256`. Therefore a CSV can keep the same URL, filename and title while changed rows still produce a new catalog version at the next sync. HTTP providers can additionally preserve `ETag` and `Last-Modified`; provider-native version ids can be stored in `provenance.source_version`.
+
+For continuously changing resources such as an HLS live camera, the stream bytes are deliberately not hashed. Versioning tracks the stable catalog metadata and access configuration instead of creating a new version for every video segment.
 
 If persistence is enabled and the database is empty, `CATALOG_BOOTSTRAP_IF_EMPTY=true` allows the first read to bootstrap the store once. Later refreshes should use the explicit sync endpoint.
 
@@ -137,11 +144,13 @@ GET  /api/v1/semantic/validation
 GET  /api/v1/datasets/{dataset_ref}
 GET  /api/v1/datasets/{dataset_ref}.jsonld
 GET  /api/v1/datasets/{dataset_ref}/validation
+GET  /api/v1/datasets/{dataset_ref}/versions
+GET  /api/v1/datasets/{dataset_ref}/versions/{version}
 ```
 
 `dataset_ref` can be a Sensor Hub deployment-property id such as `1`, an external id such as `hr_varazdin1`, or a catalog id such as `webcam:whatsupcams:hr_varazdin1`.
 
-When PostgreSQL is enabled, `/datasets`, `/search`, `/semantic/validation` and individual dataset endpoints read the persisted catalog. `POST /api/v1/catalog/sync` is what refreshes that catalog from Sensor Hub plus registered external providers.
+When PostgreSQL is enabled, `/datasets`, `/search`, `/semantic/validation` and individual dataset endpoints read the persisted catalog. `POST /api/v1/catalog/sync` refreshes that catalog from Sensor Hub plus registered external providers. Version endpoints expose the immutable history retained by the store.
 
 The search endpoint performs a small transparent weighted search over title, keywords, observed property, location, source, provider, dataset type, media type and description. It can later be moved to PostgreSQL full-text/trigram indexing without changing the public API.
 
