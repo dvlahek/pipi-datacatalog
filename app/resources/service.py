@@ -114,7 +114,7 @@ def dataset_from_registered_resource(
                 "final_url": probe.final_url,
                 "requested_type": resource["requested_type"],
                 "detected_type": probe.detected_type,
-                "byte_size": probe.byte_size,
+                "byte_size": None if live_hls else probe.byte_size,
             }
         },
     )
