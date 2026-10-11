@@ -8,6 +8,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.catalog.database import DatabaseBootstrapError, initialize_postgres_database
+from app.catalog.migrations import MigrationError
 from app.config import get_settings
 
 
@@ -22,7 +23,7 @@ def main() -> int:
             settings.database_url,
             admin_url=settings.database_admin_url,
         )
-    except DatabaseBootstrapError as exc:
+    except (DatabaseBootstrapError, MigrationError) as exc:
         print(f"DATABASE_INIT_FAILED: {exc}")
         return 1
 
