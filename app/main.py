@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.auth import router as auth_router
@@ -18,6 +19,7 @@ from app.security.auth import (
 settings = get_settings()
 repository_root = Path(__file__).resolve().parents[1]
 data_directory = repository_root / "data"
+web_directory = repository_root / "web"
 
 
 @asynccontextmanager
@@ -50,8 +52,20 @@ app.include_router(auth_router)
 app.include_router(resources_router)
 app.include_router(router)
 
+
+@app.get("/", include_in_schema=False)
+async def root() -> RedirectResponse:
+    return RedirectResponse(url="/portal/")
+
+
+if web_directory.is_dir():
+    # The HTML/JS shell is public, but all catalog/resource API calls are protected
+    # by bearer authentication when AUTH_ENABLED=true. No catalog data is embedded
+    # in the static portal itself.
+    app.mount("/portal", StaticFiles(directory=web_directory, html=True), name="portal")
+
 if data_directory.is_dir():
     # Current repository-hosted files are synthetic demo assets. User-registered
-    # resources will remain at their source and be fetched through the safe resource
+    # resources remain at their source and are fetched through the safe resource
     # ingestion path instead of becoming an unrestricted local file server.
     app.mount("/files", StaticFiles(directory=data_directory), name="files")
