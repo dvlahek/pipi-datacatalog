@@ -7,6 +7,7 @@ from app.clients.sensor_hub import SensorHubClient
 from app.config import Settings
 from app.models.catalog import CanonicalDataset
 from app.providers.base import CatalogProvider
+from app.providers.csv_file import CsvFileProvider
 from app.providers.registry import ProviderStatus, discover_from_providers
 from app.providers.sensor_hub import SensorHubProvider
 from app.providers.static_web import StaticWebProvider
@@ -23,6 +24,13 @@ def configured_providers(
         providers.append(SensorHubProvider(client))
     if settings.provider_static_web_enabled:
         providers.append(StaticWebProvider())
+    if settings.provider_csv_enabled:
+        providers.append(
+            CsvFileProvider(
+                settings.csv_datasets_config,
+                settings.catalog_public_base_url,
+            )
+        )
 
     if not providers:
         raise RuntimeError("No catalog providers are enabled.")
