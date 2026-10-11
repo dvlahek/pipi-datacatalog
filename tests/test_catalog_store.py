@@ -1,6 +1,7 @@
 import asyncio
 
 from app.catalog.store import CatalogStore
+from app.models.catalog import CatalogProvenance
 from app.providers.static_web import StaticWebProvider
 
 
@@ -57,3 +58,42 @@ def test_catalog_store_persists_versions_and_upserts_provider_dataset(tmp_path) 
     assert [item["version"] for item in versions] == [2, 1]
     assert store.get_version(datasets[0].identifier, 1).title == datasets[0].title
     assert store.get_version(datasets[0].identifier, 2).title == "Updated Varaždin webcam"
+
+
+def test_source_content_hash_creates_new_version_even_if_metadata_is_same(tmp_path) -> None:
+    database_url = f"sqlite:///{tmp_path / 'catalog-content.db'}"
+    store = CatalogStore(database_url)
+    store.initialize()
+
+    base = asyncio.run(StaticWebProvider().datasets())[0]
+    csv_v1 = base.model_copy(
+        update={
+            "catalog_id": "file:test:example-csv",
+            "identifier": "urn:pipi:dataset:file:test:example-csv",
+            "dataset_type": "tabular-data",
+            "source_system": "test-csv",
+            "external_id": "example.csv",
+            "provenance": CatalogProvenance(
+                source_url="https://example.test/example.csv",
+                content_sha256="a" * 64,
+            ),
+        }
+    )
+    store.upsert_datasets([csv_v1])
+
+    csv_v2 = csv_v1.model_copy(
+        update={
+            "provenance": CatalogProvenance(
+                source_url="https://example.test/example.csv",
+                content_sha256="b" * 64,
+            )
+        }
+    )
+    result = store.upsert_datasets([csv_v2])
+
+    assert result["versions_created"] == 1
+    assert result["updated"] == 1
+    assert [
+        item["version"]
+        for item in store.list_versions(csv_v1.identifier)
+    ] == [2, 1]
