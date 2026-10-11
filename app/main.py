@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.api.auth import router as auth_router
+from app.api.resources import router as resources_router
 from app.api.routes import router
 from app.catalog.service import catalog_store
 from app.config import get_settings
@@ -46,6 +47,7 @@ app.add_middleware(BearerAuthMiddleware, settings=settings)
 app.add_middleware(SecurityHeadersMiddleware, settings=settings)
 
 app.include_router(auth_router)
+app.include_router(resources_router)
 app.include_router(router)
 
 if data_directory.is_dir():
