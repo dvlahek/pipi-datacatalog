@@ -76,6 +76,21 @@ def _dataset_result_id(dataset: CanonicalDataset) -> int | str:
     return dataset.catalog_id
 
 
+def _persistent_store():
+    settings = get_settings()
+    if not settings.catalog_store_enabled:
+        raise HTTPException(
+            status_code=409,
+            detail="Dataset version history requires CATALOG_STORE_ENABLED=true.",
+        )
+    try:
+        store = catalog_store(settings)
+        assert store is not None
+        return store
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_store_http(exc)
+
+
 @router.get("/health")
 async def health() -> dict[str, str]:
     settings = get_settings()
@@ -119,6 +134,7 @@ async def catalog_status() -> dict[str, object]:
             "persistent": True,
             "stored_datasets": store.count_datasets(),
             "database": "postgresql" if settings.database_url and settings.database_url.startswith("postgresql") else "sqlalchemy",
+            "versioning": "immutable-snapshot-history",
         }
     except (RuntimeError, SQLAlchemyError) as exc:
         _raise_store_http(exc)
@@ -126,7 +142,7 @@ async def catalog_status() -> dict[str, object]:
 
 @router.post("/api/v1/catalog/sync")
 async def sync_catalog_metadata() -> dict[str, object]:
-    """Merge normalized provider metadata into the persistent catalog store."""
+    """Merge provider metadata into the catalog and create versions on changes."""
 
     settings = get_settings()
     if not settings.catalog_store_enabled:
@@ -140,7 +156,7 @@ async def sync_catalog_metadata() -> dict[str, object]:
             stats = await sync_catalog(client, settings)
         return {
             "status": "ok",
-            "mode": "upsert",
+            "mode": "version-aware-upsert",
             **stats,
         }
     except SensorHubError as exc:
@@ -258,6 +274,41 @@ async def validate_dataset_semantics(dataset_ref: str) -> dict[str, object]:
             "identifier": dataset.identifier,
             "source_system": dataset.source_system,
             **validate_dataset_jsonld(dataset_to_jsonld(dataset)),
+        }
+    except SensorHubError as exc:
+        _raise_http(exc)
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_store_http(exc)
+
+
+@router.get("/api/v1/datasets/{dataset_ref}/versions")
+async def list_dataset_versions(dataset_ref: str) -> dict[str, object]:
+    try:
+        dataset = await _dataset(dataset_ref)
+        store = _persistent_store()
+        versions = store.list_versions(dataset.identifier)
+        return {
+            "identifier": dataset.identifier,
+            "count": len(versions),
+            "data": versions,
+        }
+    except SensorHubError as exc:
+        _raise_http(exc)
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_store_http(exc)
+
+
+@router.get("/api/v1/datasets/{dataset_ref}/versions/{version}")
+async def get_dataset_version(dataset_ref: str, version: int) -> dict[str, object]:
+    try:
+        current = await _dataset(dataset_ref)
+        store = _persistent_store()
+        historical = store.get_version(current.identifier, version)
+        if historical is None:
+            raise HTTPException(status_code=404, detail="Dataset version not found.")
+        return {
+            "version": version,
+            "data": historical.model_dump(),
         }
     except SensorHubError as exc:
         _raise_http(exc)
