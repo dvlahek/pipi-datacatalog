@@ -6,16 +6,20 @@ The catalog is intentionally separated from source systems. Sensor Hub and futur
 
 ## Current scope
 
-The first vertical slice provides:
+The current vertical slice provides:
 
 - FastAPI service with a health endpoint
 - configurable Sensor Hub client
 - Bearer-token authentication against `POST /auth/tokens`
 - paginated metadata retrieval from locations, sources, deployments, properties, and deployment-properties
-- a harvest preview endpoint that reports discovered metadata without copying sensor readings
-- unit tests that do not require the remote FOI test service
+- metadata-only harvest preview without copying sensor readings
+- one canonical catalog dataset per Sensor Hub deployment-property
+- stable dataset identifiers such as `urn:pipi:dataset:sensor-hub:deployment-property:51`
+- DCAT/DCAT-AP-oriented JSON-LD serialization
+- QUDT links for known quantity kinds and units
+- tests that do not require the remote FOI test service
 
-The semantic layer (DCAT-AP, SOSA/SSN, QUDT and JSON-LD serialization) will be added on top of this provider-neutral harvesting boundary.
+The JSON-LD mapping is an initial semantic representation, not yet a claim of full DCAT-AP conformance. Formal SHACL validation and controlled-vocabulary checks are a later milestone.
 
 ## Architecture
 
@@ -30,14 +34,17 @@ SensorHubClient
 SensorHubHarvester
         |
         v
-canonical catalog model
+CanonicalDataset
         |
-        +--> DCAT-AP / JSON-LD
-        +--> catalog search
+        +--> DCAT / DCAT-AP-oriented JSON-LD
+        +--> catalog API
+        +--> later catalog persistence/search
         +--> later RAG retrieval/routing
 ```
 
 Operational measurements are not copied into the metadata catalog. The catalog stores and indexes descriptions of available datasets and how to access them.
+
+For the current Sensor Hub model, each `deployment-property` is treated as one initial dataset candidate because it binds a deployment to one measured property and carries the measurement configuration.
 
 ## Development setup
 
@@ -46,7 +53,7 @@ Python 3.11+ is recommended.
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 cp .env.example .env
 uvicorn app.main:app --reload
 ```
@@ -79,9 +86,14 @@ GET  /health
 GET  /api/v1/providers/sensor-hub/status
 GET  /api/v1/providers/sensor-hub/sources
 POST /api/v1/harvest/sensor-hub/preview
+GET  /api/v1/datasets
+GET  /api/v1/datasets/{deployment_property_id}
+GET  /api/v1/datasets/{deployment_property_id}.jsonld
 ```
 
-The preview endpoint authenticates to Sensor Hub and reads all pages of metadata resources. It deliberately does not retrieve `/readings`.
+The dataset endpoints currently generate catalog records from live Sensor Hub metadata. They fetch detailed source, location, deployment, property, and deployment-property records and join them into the canonical catalog model.
+
+The current Sensor Hub `GET /readings` endpoint supports pagination but not dataset-scoped filtering. The JSON-LD therefore records the relevant `deploymentPropertyId` and explicitly marks `datasetScopedFilteringAvailable` as `false`. Adding reading filters to Sensor Hub remains an important access-layer follow-up.
 
 ## Tests
 
@@ -95,6 +107,6 @@ Remote connectivity can be checked after creating `.env` with valid test credent
 python scripts/check_sensor_hub.py
 ```
 
-## Next milestone
+## Next milestones
 
-Transform harvested Sensor Hub metadata into a provider-neutral catalog model and serialize the first datasets as DCAT-AP-compatible JSON-LD, with SOSA/SSN links for sensing concepts and QUDT URIs for quantity kinds and units.
+The next steps are persistence and search for harvested datasets, dataset-scoped Sensor Hub reading access, SHACL validation against DCAT-AP, and then a semantic retrieval layer for RAG routing.
