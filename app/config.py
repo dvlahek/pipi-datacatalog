@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     csv_datasets_config: str = "config/csv_datasets.json"
     catalog_public_base_url: str = "http://127.0.0.1:8000"
 
-    # Authentication. Keep disabled only for isolated local development/tests.
-    auth_enabled: bool = False
+    # Authentication is secure-by-default. Disable only for isolated local tests.
+    auth_enabled: bool = True
     auth_username: str | None = None
     auth_password_hash: str | None = None
     auth_jwt_secret: str | None = None
