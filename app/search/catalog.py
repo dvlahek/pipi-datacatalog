@@ -10,11 +10,16 @@ from app.models.catalog import CanonicalDataset
 _FIELD_WEIGHTS: tuple[tuple[str, int], ...] = (
     ("title", 6),
     ("observed_property.name", 5),
+    ("keywords", 4),
     ("location.name", 4),
     ("source.name", 3),
     ("source.code", 3),
+    ("dataset_type", 3),
+    ("source_system", 2),
     ("publisher", 2),
     ("observed_property.semantic_uri", 2),
+    ("distributions.media_type", 2),
+    ("distributions.format", 2),
     ("description", 1),
 )
 
@@ -27,25 +32,29 @@ def _normalize(value: str) -> str:
     return " ".join(value.split())
 
 
+def _walk(value: Any, parts: list[str]) -> str:
+    if value is None:
+        return ""
+
+    if isinstance(value, list):
+        return " ".join(_walk(item, parts) for item in value)
+
+    if not parts:
+        return str(value)
+
+    next_value = getattr(value, parts[0], None)
+    return _walk(next_value, parts[1:])
+
+
 def _get_field(dataset: CanonicalDataset, path: str) -> str:
-    value: Any = dataset
-    for part in path.split("."):
-        value = getattr(value, part, None)
-        if value is None:
-            return ""
-    return str(value)
+    return _walk(dataset, path.split("."))
 
 
 def search_datasets(
     datasets: list[CanonicalDataset],
     query: str,
 ) -> list[dict[str, object]]:
-    """Search canonical datasets using a transparent weighted text match.
-
-    All query terms must occur somewhere in the indexed metadata. Results are
-    ranked by weighted field matches. This is intentionally small and
-    dependency-free for the first catalog MVP.
-    """
+    """Search heterogeneous catalog datasets using transparent weighted matching."""
 
     normalized_query = _normalize(query)
     terms = [term for term in normalized_query.split() if term]
