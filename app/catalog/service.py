@@ -5,22 +5,47 @@ from functools import lru_cache
 from app.catalog.store import CatalogStore
 from app.clients.sensor_hub import SensorHubClient
 from app.config import Settings
-from app.harvesters.sensor_hub import SensorHubHarvester
 from app.models.catalog import CanonicalDataset
+from app.providers.base import CatalogProvider
+from app.providers.registry import ProviderStatus, discover_from_providers
+from app.providers.sensor_hub import SensorHubProvider
 from app.providers.static_web import StaticWebProvider
 
 
-async def build_catalog(client: SensorHubClient) -> list[CanonicalDataset]:
-    """Discover and normalize datasets from all currently configured providers."""
+def configured_providers(
+    client: SensorHubClient,
+    settings: Settings,
+) -> list[CatalogProvider]:
+    """Build the enabled provider set from application configuration."""
 
-    sensor_hub = SensorHubHarvester(client)
-    static_web = StaticWebProvider()
+    providers: list[CatalogProvider] = []
+    if settings.provider_sensor_hub_enabled:
+        providers.append(SensorHubProvider(client))
+    if settings.provider_static_web_enabled:
+        providers.append(StaticWebProvider())
 
-    sensor_datasets = await sensor_hub.datasets()
-    external_datasets = await static_web.datasets()
+    if not providers:
+        raise RuntimeError("No catalog providers are enabled.")
+    return providers
 
-    datasets = [*sensor_datasets, *external_datasets]
-    datasets.sort(key=lambda dataset: dataset.catalog_id)
+
+async def discover_catalog(
+    client: SensorHubClient,
+    settings: Settings,
+) -> tuple[list[CanonicalDataset], list[ProviderStatus]]:
+    """Discover normalized datasets and per-provider status."""
+
+    return await discover_from_providers(configured_providers(client, settings))
+
+
+async def build_catalog(
+    client: SensorHubClient,
+    settings: Settings | None = None,
+) -> list[CanonicalDataset]:
+    """Compatibility helper returning only discovered datasets."""
+
+    active_settings = settings or Settings()
+    datasets, _ = await discover_catalog(client, active_settings)
     return datasets
 
 
@@ -44,16 +69,20 @@ def catalog_store(settings: Settings) -> CatalogStore | None:
 async def sync_catalog(
     client: SensorHubClient,
     settings: Settings,
-) -> dict[str, int]:
-    """Discover provider metadata and idempotently upsert it into the catalog DB."""
+) -> dict[str, object]:
+    """Discover healthy providers and version-aware upsert their metadata."""
 
     store = catalog_store(settings)
     if store is None:
         raise RuntimeError("Persistent catalog store is disabled.")
 
-    datasets = await build_catalog(client)
-    stats = store.upsert_datasets(datasets)
+    datasets, provider_statuses = await discover_catalog(client, settings)
+    stats: dict[str, object] = store.upsert_datasets(datasets)
     stats["stored"] = store.count_datasets()
+    stats["providers"] = [status.model_dump() for status in provider_statuses]
+    stats["provider_errors"] = sum(
+        1 for status in provider_statuses if status.status == "error"
+    )
     return stats
 
 
@@ -61,7 +90,7 @@ async def load_catalog(
     client: SensorHubClient,
     settings: Settings,
 ) -> list[CanonicalDataset]:
-    """Read the API catalog from PostgreSQL when enabled, otherwise discover live.
+    """Read PostgreSQL when enabled, otherwise discover providers live.
 
     When persistence is enabled and the store is empty, the first read may bootstrap
     it from configured providers. Later provider refreshes are explicit via the sync
@@ -70,7 +99,7 @@ async def load_catalog(
 
     store = catalog_store(settings)
     if store is None:
-        return await build_catalog(client)
+        return await build_catalog(client, settings)
 
     datasets = store.list_datasets()
     if datasets or not settings.catalog_bootstrap_if_empty:
