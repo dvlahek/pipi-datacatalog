@@ -16,11 +16,17 @@ from app.models.catalog import (
 
 _QUDT_UNIT_URIS = {
     "Cel": "http://qudt.org/vocab/unit/DEG_C",
+    "DEG_C": "http://qudt.org/vocab/unit/DEG_C",
     "%": "http://qudt.org/vocab/unit/PERCENT",
+    "PERCENT": "http://qudt.org/vocab/unit/PERCENT",
     "Pa": "http://qudt.org/vocab/unit/PA",
+    "PA": "http://qudt.org/vocab/unit/PA",
     "hPa": "http://qudt.org/vocab/unit/HectoPA",
+    "HectoPA": "http://qudt.org/vocab/unit/HectoPA",
     "m": "http://qudt.org/vocab/unit/M",
+    "M": "http://qudt.org/vocab/unit/M",
     "m/s": "http://qudt.org/vocab/unit/M-PER-SEC",
+    "M-PER-SEC": "http://qudt.org/vocab/unit/M-PER-SEC",
 }
 
 
@@ -160,7 +166,7 @@ class SensorHubHarvester:
             f"{deployment_property_id}"
         )
         property_label = str(prop["name"]).replace("_", " ")
-        title = f"{property_label} — {location['name']} — {source['name']}"
+        title = f"{property_label} - {location['name']} - {source['name']}"
 
         description_parts = [
             _optional_text(prop.get("description")),
