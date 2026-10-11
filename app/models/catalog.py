@@ -77,6 +77,22 @@ class CatalogDistribution(BaseModel):
     is_live: bool | None = None
 
 
+class CatalogProvenance(BaseModel):
+    """Source-side version signals captured by a provider.
+
+    File providers should prefer `content_sha256` when source bytes are available.
+    HTTP providers can also preserve ETag and Last-Modified. These values become
+    part of the persisted catalog snapshot, so a source change creates a new
+    catalog version even when descriptive metadata did not change.
+    """
+
+    source_url: str | None = None
+    etag: str | None = None
+    last_modified: str | None = None
+    content_sha256: str | None = None
+    source_version: str | None = None
+
+
 class CanonicalDataset(BaseModel):
     """Provider-neutral catalog dataset with optional domain extensions.
 
@@ -96,6 +112,7 @@ class CanonicalDataset(BaseModel):
     source_system: str = "unknown"
     external_id: str | None = None
     keywords: list[str] = Field(default_factory=list)
+    provenance: CatalogProvenance | None = None
 
     source: CatalogSource | None = None
     location: CatalogLocation | None = None
