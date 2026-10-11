@@ -28,14 +28,6 @@ pipi:DatasetShape
         sh:minCount 1
     ] ;
     sh:property [
-        sh:path dct:spatial ;
-        sh:minCount 1
-    ] ;
-    sh:property [
-        sh:path dct:subject ;
-        sh:minCount 1
-    ] ;
-    sh:property [
         sh:path dcat:distribution ;
         sh:minCount 1 ;
         sh:class dcat:Distribution
@@ -49,14 +41,12 @@ pipi:DistributionShape
         sh:minCount 1
     ] ;
     sh:property [
-        sh:path dcat:accessService ;
-        sh:minCount 1 ;
-        sh:class dcat:DataService
+        sh:path dcat:mediaType ;
+        sh:minCount 1
     ] ;
     sh:property [
-        sh:path pipi:deploymentPropertyId ;
-        sh:minCount 1 ;
-        sh:maxCount 1
+        sh:path dcat:accessService ;
+        sh:class dcat:DataService
     ] .
 
 pipi:DataServiceShape
@@ -64,10 +54,6 @@ pipi:DataServiceShape
     sh:targetClass dcat:DataService ;
     sh:property [
         sh:path dcat:endpointURL ;
-        sh:minCount 1
-    ] ;
-    sh:property [
-        sh:path dcat:endpointDescription ;
         sh:minCount 1
     ] ;
     sh:property [
