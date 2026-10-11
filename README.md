@@ -89,10 +89,10 @@ The preview endpoint authenticates to Sensor Hub and reads all pages of metadata
 pytest
 ```
 
-Remote smoke testing can be done after creating `.env` with valid test credentials:
+Remote connectivity can be checked after creating `.env` with valid test credentials:
 
 ```bash
-python scripts/smoke_sensor_hub.py
+python scripts/check_sensor_hub.py
 ```
 
 ## Next milestone
