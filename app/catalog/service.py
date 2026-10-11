@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import lru_cache
+
 from app.catalog.store import CatalogStore
 from app.clients.sensor_hub import SensorHubClient
 from app.config import Settings
@@ -22,6 +24,13 @@ async def build_catalog(client: SensorHubClient) -> list[CanonicalDataset]:
     return datasets
 
 
+@lru_cache(maxsize=4)
+def _initialized_store(database_url: str, admin_url: str | None) -> CatalogStore:
+    store = CatalogStore(database_url, admin_url=admin_url)
+    store.initialize()
+    return store
+
+
 def catalog_store(settings: Settings) -> CatalogStore | None:
     if not settings.catalog_store_enabled:
         return None
@@ -29,12 +38,7 @@ def catalog_store(settings: Settings) -> CatalogStore | None:
         raise RuntimeError(
             "CATALOG_STORE_ENABLED is true but DATABASE_URL is not configured."
         )
-    store = CatalogStore(
-        settings.database_url,
-        admin_url=settings.database_admin_url,
-    )
-    store.initialize()
-    return store
+    return _initialized_store(settings.database_url, settings.database_admin_url)
 
 
 async def sync_catalog(
