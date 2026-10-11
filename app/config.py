@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     # Provider registration. Providers can be disabled independently.
     provider_sensor_hub_enabled: bool = True
     provider_static_web_enabled: bool = True
+    provider_csv_enabled: bool = True
+    csv_datasets_config: str = "config/csv_datasets.json"
+    catalog_public_base_url: str = "http://127.0.0.1:8000"
 
     # Persistent catalog metadata store. Source payloads/readings are not copied.
     catalog_store_enabled: bool = False
