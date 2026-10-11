@@ -82,3 +82,70 @@ def test_sensor_hub_metadata_maps_to_canonical_dataset_and_jsonld() -> None:
     )
     assert jsonld["dcat:distribution"]["pipi:deploymentPropertyId"] == 51
     assert jsonld["qudt:hasQuantityKind"]["@id"].endswith("/Temperature")
+
+
+def test_nullable_source_provider_uses_owner_as_publisher() -> None:
+    harvester = SensorHubHarvester(StubClient())  # type: ignore[arg-type]
+
+    dataset = harvester._to_dataset(
+        deployment_property={
+            "id": 52,
+            "deployment_id": 32,
+            "property_id": 42,
+            "unit": "%",
+            "resolution": 0.1,
+            "uncertainty": "unknown",
+            "min_value": 0,
+            "max_value": 100,
+            "sampling_interval": 60,
+            "is_active": True,
+            "observation_target": "Zrak",
+        },
+        deployment={
+            "id": 32,
+            "source_id": 12,
+            "location_id": 22,
+            "platform_name": "Legacy station",
+            "platform_type": "station",
+            "mounting": "pole",
+            "active_from": "2026-04-01T00:00:00Z",
+            "active_to": None,
+            "purpose": None,
+        },
+        prop={
+            "id": 42,
+            "name": "relative_humidity",
+            "description": None,
+            "quantity_kind": "relative_humidity",
+            "default_unit": "%",
+            "data_type": "float",
+            "semantic_uri": None,
+            "is_derived": False,
+        },
+        source={
+            "id": 12,
+            "type": "sensor",
+            "code": "legacy-12",
+            "name": "Legacy sensor",
+            "description": None,
+            "owner": "FOI",
+            "provider": None,
+            "license": None,
+            "manufacturer": None,
+            "model": None,
+        },
+        location={
+            "id": 22,
+            "name": "FOI",
+            "latitude": None,
+            "longitude": None,
+            "elevation": None,
+            "address": None,
+            "geometry_wkt": None,
+            "environment": None,
+        },
+    )
+
+    assert dataset.source.provider is None
+    assert dataset.publisher == "FOI"
+    assert dataset.license == "unknown"
