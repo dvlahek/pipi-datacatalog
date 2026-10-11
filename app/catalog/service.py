@@ -29,7 +29,10 @@ def catalog_store(settings: Settings) -> CatalogStore | None:
         raise RuntimeError(
             "CATALOG_STORE_ENABLED is true but DATABASE_URL is not configured."
         )
-    store = CatalogStore(settings.database_url)
+    store = CatalogStore(
+        settings.database_url,
+        admin_url=settings.database_admin_url,
+    )
     store.initialize()
     return store
 
