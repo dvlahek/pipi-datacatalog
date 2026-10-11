@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from app.clients.sensor_hub import (
     SensorHubAuthenticationError,
@@ -9,6 +9,7 @@ from app.clients.sensor_hub import (
 from app.config import get_settings
 from app.harvesters.sensor_hub import SensorHubHarvester
 from app.models.catalog import CanonicalDataset
+from app.search.catalog import search_datasets
 from app.semantic.dcat import dataset_to_jsonld
 
 router = APIRouter()
@@ -90,6 +91,18 @@ async def list_datasets() -> dict[str, object]:
             "count": len(datasets),
             "data": [dataset.model_dump() for dataset in datasets],
         }
+    except SensorHubError as exc:
+        _raise_http(exc)
+
+
+@router.get("/api/v1/search")
+async def search_catalog(
+    q: str = Query(min_length=1, max_length=200),
+) -> dict[str, object]:
+    try:
+        datasets = await _datasets()
+        results = search_datasets(datasets, q)
+        return {"query": q, "count": len(results), "data": results}
     except SensorHubError as exc:
         _raise_http(exc)
 
