@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
+from app.catalog.database import initialize_postgres_database
 from app.models.catalog import CanonicalDataset, CatalogDistribution
 
 
@@ -70,18 +71,29 @@ class DatasetVersionRow(Base):
 class CatalogStore:
     """Persistent provider-neutral catalog metadata store with version history.
 
-    The current dataset row is mutable and optimized for reads. Every meaningful
-    change creates an immutable version snapshot. Source payloads such as Sensor
-    Hub readings, HLS segments, CSV files or audio remain in their source systems
-    unless a provider explicitly ingests them.
+    PostgreSQL schema changes are applied from versioned SQL migrations. SQLite is
+    retained only for isolated unit tests and uses SQLAlchemy create_all().
     """
 
-    def __init__(self, database_url: str) -> None:
+    def __init__(self, database_url: str, *, admin_url: str | None = None) -> None:
         self.database_url = database_url
+        self.admin_url = admin_url
         self.engine = create_engine(database_url, future=True, pool_pre_ping=True)
 
-    def initialize(self) -> None:
+    def initialize(self) -> dict[str, object]:
+        if self.engine.dialect.name == "postgresql":
+            return initialize_postgres_database(
+                self.database_url,
+                admin_url=self.admin_url,
+            )
+
         Base.metadata.create_all(self.engine)
+        return {
+            "current_version": 0,
+            "applied_now": [],
+            "migration_count": 0,
+            "mode": "sqlalchemy-test-schema",
+        }
 
     @staticmethod
     def _snapshot(dataset: CanonicalDataset) -> dict[str, Any]:
