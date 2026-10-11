@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
+from sqlalchemy.exc import SQLAlchemyError
 
-from app.catalog.service import build_catalog
+from app.catalog.service import catalog_store, load_catalog, sync_catalog
 from app.clients.sensor_hub import (
     SensorHubAuthenticationError,
     SensorHubClient,
@@ -35,9 +36,14 @@ def _raise_http(exc: SensorHubError) -> None:
     raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
+def _raise_store_http(exc: Exception) -> None:
+    raise HTTPException(status_code=503, detail=f"Catalog store unavailable: {exc}") from exc
+
+
 async def _datasets() -> list[CanonicalDataset]:
+    settings = get_settings()
     async with _client() as client:
-        return await build_catalog(client)
+        return await load_catalog(client, settings)
 
 
 def _matches_dataset_ref(dataset: CanonicalDataset, dataset_ref: str) -> bool:
@@ -95,6 +101,54 @@ async def list_providers() -> dict[str, object]:
     }
 
 
+@router.get("/api/v1/catalog/status")
+async def catalog_status() -> dict[str, object]:
+    settings = get_settings()
+    if not settings.catalog_store_enabled:
+        return {
+            "mode": "live",
+            "persistent": False,
+            "stored_datasets": None,
+        }
+
+    try:
+        store = catalog_store(settings)
+        assert store is not None
+        return {
+            "mode": "persistent",
+            "persistent": True,
+            "stored_datasets": store.count_datasets(),
+            "database": "postgresql" if settings.database_url and settings.database_url.startswith("postgresql") else "sqlalchemy",
+        }
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_store_http(exc)
+
+
+@router.post("/api/v1/catalog/sync")
+async def sync_catalog_metadata() -> dict[str, object]:
+    """Merge normalized provider metadata into the persistent catalog store."""
+
+    settings = get_settings()
+    if not settings.catalog_store_enabled:
+        raise HTTPException(
+            status_code=409,
+            detail="Persistent catalog store is disabled. Set CATALOG_STORE_ENABLED=true.",
+        )
+
+    try:
+        async with _client() as client:
+            stats = await sync_catalog(client, settings)
+        return {
+            "status": "ok",
+            "mode": "upsert",
+            **stats,
+        }
+    except SensorHubError as exc:
+        _raise_http(exc)
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_store_http(exc)
+
+
 @router.get("/api/v1/providers/sensor-hub/status")
 async def sensor_hub_status() -> dict[str, object]:
     settings = get_settings()
@@ -135,6 +189,8 @@ async def list_datasets() -> dict[str, object]:
         }
     except SensorHubError as exc:
         _raise_http(exc)
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_store_http(exc)
 
 
 @router.get("/api/v1/search")
@@ -147,6 +203,8 @@ async def search_catalog(
         return {"query": q, "count": len(results), "data": results}
     except SensorHubError as exc:
         _raise_http(exc)
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_store_http(exc)
 
 
 @router.get("/api/v1/semantic/validation")
@@ -177,6 +235,8 @@ async def validate_catalog_semantics() -> dict[str, object]:
         }
     except SensorHubError as exc:
         _raise_http(exc)
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_store_http(exc)
 
 
 @router.get("/api/v1/datasets/{dataset_ref}.jsonld")
@@ -185,6 +245,8 @@ async def get_dataset_jsonld(dataset_ref: str) -> dict[str, object]:
         return dataset_to_jsonld(await _dataset(dataset_ref))
     except SensorHubError as exc:
         _raise_http(exc)
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_store_http(exc)
 
 
 @router.get("/api/v1/datasets/{dataset_ref}/validation")
@@ -199,6 +261,8 @@ async def validate_dataset_semantics(dataset_ref: str) -> dict[str, object]:
         }
     except SensorHubError as exc:
         _raise_http(exc)
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_store_http(exc)
 
 
 @router.get("/api/v1/datasets/{dataset_ref}")
@@ -208,3 +272,5 @@ async def get_dataset(dataset_ref: str) -> dict[str, object]:
         return {"data": dataset.model_dump()}
     except SensorHubError as exc:
         _raise_http(exc)
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_store_http(exc)
