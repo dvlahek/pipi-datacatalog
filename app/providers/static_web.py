@@ -68,7 +68,6 @@ class StaticWebProvider:
                     format="HLS",
                     access_service_identifier=service_id,
                     endpoint_url=stream_url,
-                    endpoint_description=discovery_url,
                     kind="live-stream",
                     is_live=True,
                 ),
