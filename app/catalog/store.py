@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, create_engine, select
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
 from app.models.catalog import CanonicalDataset, CatalogDistribution
@@ -52,12 +54,26 @@ class DistributionRow(Base):
     dataset: Mapped[DatasetRow] = relationship(back_populates="distributions")
 
 
-class CatalogStore:
-    """Persistent provider-neutral catalog metadata store.
+class DatasetVersionRow(Base):
+    __tablename__ = "catalog_dataset_versions"
 
-    The store persists catalog metadata and distribution descriptors only. Source
-    content such as Sensor Hub readings, HLS video segments, CSV files or audio
-    remains in the source system unless a future provider explicitly ingests it.
+    dataset_identifier: Mapped[str] = mapped_column(
+        ForeignKey("catalog_datasets.identifier", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    version: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fingerprint: Mapped[str] = mapped_column(String(64), index=True)
+    snapshot: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class CatalogStore:
+    """Persistent provider-neutral catalog metadata store with version history.
+
+    The current dataset row is mutable and optimized for reads. Every meaningful
+    change creates an immutable version snapshot. Source payloads such as Sensor
+    Hub readings, HLS segments, CSV files or audio remain in their source systems
+    unless a provider explicitly ingests them.
     """
 
     def __init__(self, database_url: str) -> None:
@@ -67,16 +83,43 @@ class CatalogStore:
     def initialize(self) -> None:
         Base.metadata.create_all(self.engine)
 
+    @staticmethod
+    def _snapshot(dataset: CanonicalDataset) -> dict[str, Any]:
+        return dataset.model_dump(mode="json")
+
+    @staticmethod
+    def _fingerprint(snapshot: dict[str, Any]) -> str:
+        canonical = json.dumps(
+            snapshot,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        return hashlib.sha256(canonical).hexdigest()
+
     def upsert_datasets(self, datasets: list[CanonicalDataset]) -> dict[str, int]:
         now = datetime.now(timezone.utc)
         inserted = 0
         updated = 0
+        unchanged = 0
+        versions_created = 0
 
         with Session(self.engine) as session:
             for dataset in datasets:
+                snapshot = self._snapshot(dataset)
+                fingerprint = self._fingerprint(snapshot)
                 row = session.get(DatasetRow, dataset.identifier)
-                payload = dataset.model_dump(exclude={"distributions"})
 
+                latest_version = session.scalars(
+                    select(DatasetVersionRow)
+                    .where(DatasetVersionRow.dataset_identifier == dataset.identifier)
+                    .order_by(DatasetVersionRow.version.desc())
+                    .limit(1)
+                ).first()
+
+                changed = latest_version is None or latest_version.fingerprint != fingerprint
+
+                payload = dataset.model_dump(mode="json", exclude={"distributions"})
                 if row is None:
                     row = DatasetRow(
                         identifier=dataset.identifier,
@@ -99,24 +142,39 @@ class CatalogStore:
                     row.dataset_type = dataset.dataset_type
                     row.payload = payload
                     row.harvested_at = now
-                    row.updated_at = now
+                    if changed:
+                        row.updated_at = now
+                        updated += 1
+                    else:
+                        unchanged += 1
                     row.distributions.clear()
-                    updated += 1
 
                 row.distributions = [
                     DistributionRow(
                         identifier=distribution.identifier,
-                        dataset_identifier=dataset.identifier,
                         title=distribution.title,
                         access_url=distribution.access_url,
                         media_type=distribution.media_type,
                         format=distribution.format,
                         kind=distribution.kind,
                         is_live=distribution.is_live,
-                        payload=distribution.model_dump(),
+                        payload=distribution.model_dump(mode="json"),
                     )
                     for distribution in dataset.distributions
                 ]
+
+                if changed:
+                    next_version = 1 if latest_version is None else latest_version.version + 1
+                    session.add(
+                        DatasetVersionRow(
+                            dataset_identifier=dataset.identifier,
+                            version=next_version,
+                            fingerprint=fingerprint,
+                            snapshot=snapshot,
+                            created_at=now,
+                        )
+                    )
+                    versions_created += 1
 
             session.commit()
 
@@ -124,6 +182,8 @@ class CatalogStore:
             "discovered": len(datasets),
             "inserted": inserted,
             "updated": updated,
+            "unchanged": unchanged,
+            "versions_created": versions_created,
         }
 
     def list_datasets(self) -> list[CanonicalDataset]:
@@ -136,6 +196,36 @@ class CatalogStore:
     def count_datasets(self) -> int:
         with Session(self.engine) as session:
             return len(session.scalars(select(DatasetRow.identifier)).all())
+
+    def list_versions(self, dataset_identifier: str) -> list[dict[str, Any]]:
+        with Session(self.engine) as session:
+            versions = session.scalars(
+                select(DatasetVersionRow)
+                .where(DatasetVersionRow.dataset_identifier == dataset_identifier)
+                .order_by(DatasetVersionRow.version.desc())
+            ).all()
+            return [
+                {
+                    "version": item.version,
+                    "fingerprint": item.fingerprint,
+                    "created_at": item.created_at.isoformat(),
+                }
+                for item in versions
+            ]
+
+    def get_version(
+        self,
+        dataset_identifier: str,
+        version: int,
+    ) -> CanonicalDataset | None:
+        with Session(self.engine) as session:
+            row = session.get(
+                DatasetVersionRow,
+                {"dataset_identifier": dataset_identifier, "version": version},
+            )
+            if row is None:
+                return None
+            return CanonicalDataset.model_validate(row.snapshot)
 
     @staticmethod
     def _to_dataset(row: DatasetRow) -> CanonicalDataset:
