@@ -2,7 +2,7 @@
 
 Semantic metadata catalog for the PiPi project (*Podatkovna Infrastruktura i Proširena Inteligencija za održivi razvoj*).
 
-The catalog is intentionally separated from source systems. Sensor Hub and future providers keep their operational data, while this service harvests descriptive metadata and exposes a common catalog layer. The first provider is the PiPi Sensor Hub REST API.
+The catalog is separated from source systems. Sensor Hub and future providers keep their operational data, while this service harvests or registers descriptive metadata and exposes a common catalog layer.
 
 ## Current scope
 
@@ -12,42 +12,47 @@ The current vertical slice provides:
 - configurable Sensor Hub client
 - Bearer-token authentication against `POST /auth/tokens`
 - paginated metadata retrieval from locations, sources, deployments, properties, and deployment-properties
-- metadata-only harvest preview without copying sensor readings
-- one canonical catalog dataset per Sensor Hub deployment-property
+- metadata-only harvesting without copying sensor readings
+- one initial Sensor Hub dataset per deployment-property
+- a provider-neutral canonical dataset core with optional domain extensions
+- explicit `Distribution` objects for API, file, image, audio, video and future access modes
 - stable dataset identifiers such as `urn:pipi:dataset:sensor-hub:deployment-property:51`
 - DCAT/DCAT-AP-oriented JSON-LD serialization
 - QUDT links for known quantity kinds and units
-- lightweight text search across canonical dataset metadata
+- lightweight text search across heterogeneous catalog metadata
 - RDFLib + pySHACL validation against a local PiPi DCAT core profile
+- a manually registered external live webcam dataset for Varaždin
 - tests that do not require the remote FOI test service
 
-The local `pipi-dcat-core-shacl-v1` profile checks the structural semantic contract used by this catalog, including Dataset, Distribution and DataService links. It is intentionally a baseline profile. Passing this local profile must not be reported as full DCAT-AP conformance. Validation against the official DCAT-AP profile and its controlled-vocabulary requirements remains a later semantic milestone.
+The local `pipi-dcat-core-shacl-v2` profile checks the provider-neutral structural contract used by this catalog, including Dataset, Distribution and optional DataService links. It is a baseline profile. Passing this local profile must not be reported as full DCAT-AP conformance. Validation against the official DCAT-AP profile and controlled-vocabulary requirements remains a later semantic milestone.
 
 ## Architecture
 
 ```text
-PiPi Sensor Hub (GitLab / FOI)
-        |
-        | REST API
-        v
-SensorHubClient
-        |
-        v
-SensorHubHarvester
-        |
-        v
-CanonicalDataset
-        |
-        +--> DCAT / DCAT-AP-oriented JSON-LD
-        +--> SHACL baseline validation
-        +--> catalog API
-        +--> lightweight catalog search
-        +--> later RAG retrieval/routing
+Sensor Hub API ---------\
+REST/JSON APIs ----------\
+CSV/files ----------------> provider adapters --> CanonicalDataset --> DCAT/JSON-LD
+Text/document sources ---/                          |              --> search
+Audio/video streams ----/                           |              --> SHACL
+Static web resources ---/                           \-------------> later RAG routing
 ```
 
-Operational measurements are not copied into the metadata catalog. The catalog stores and searches descriptions of available datasets and how to access them.
+Operational content is not copied into the metadata catalog by default. The catalog stores and searches descriptions of available datasets, provenance and ways to access them.
 
 For the current Sensor Hub model, each `deployment-property` is treated as one initial dataset candidate because it binds a deployment to one measured property and carries the measurement configuration.
+
+The canonical model is no longer sensor-specific. Sensor metadata is an optional extension. Other providers can describe datasets using the common fields plus one or more distributions, for example JSON API access, CSV download, text document, audio file, HLS video stream or image snapshot.
+
+## Registered external webcam
+
+The first non-Sensor-Hub provider is a manually registered WhatsUpCams Varaždin webcam. It is represented as one dataset with two distributions:
+
+- live HLS stream: `application/vnd.apple.mpegurl`
+- current snapshot: `image/jpeg`
+
+The original player declares the HLS source as `application/x-mpegURL`. The catalog preserves that original media-type declaration as provider metadata while using the standardized HLS media type in the DCAT distribution.
+
+The catalog does not proxy or archive the video. It stores metadata and external access URLs only. The license is currently recorded as `unknown` until usage terms are explicitly established.
 
 ## Development setup
 
@@ -86,26 +91,28 @@ The `.env` file is ignored by Git.
 
 ```text
 GET  /health
+GET  /api/v1/providers
 GET  /api/v1/providers/sensor-hub/status
 GET  /api/v1/providers/sensor-hub/sources
 POST /api/v1/harvest/sensor-hub/preview
 GET  /api/v1/datasets
 GET  /api/v1/search?q=temperature
+GET  /api/v1/search?q=camera
 GET  /api/v1/semantic/validation
-GET  /api/v1/datasets/{deployment_property_id}
-GET  /api/v1/datasets/{deployment_property_id}.jsonld
-GET  /api/v1/datasets/{deployment_property_id}/validation
+GET  /api/v1/datasets/{dataset_ref}
+GET  /api/v1/datasets/{dataset_ref}.jsonld
+GET  /api/v1/datasets/{dataset_ref}/validation
 ```
 
-The dataset endpoints currently generate catalog records from live Sensor Hub metadata. They fetch detailed source, location, deployment, property, and deployment-property records and join them into the canonical catalog model.
+`dataset_ref` can be a Sensor Hub deployment-property id such as `1`, an external id such as `hr_varazdin1`, or a catalog id such as `webcam:whatsupcams:hr_varazdin1`.
 
-The search endpoint performs a small transparent weighted search over dataset title, observed property, location, source, publisher, semantic URI, and description. It is intentionally dependency-light for the current small catalog and can later be replaced by PostgreSQL full-text/trigram search if persistence becomes necessary.
+The search endpoint performs a small transparent weighted search over title, keywords, observed property, location, source, provider, dataset type, media type and description. It remains intentionally dependency-light for the current small catalog and can later be replaced by PostgreSQL full-text/trigram search if persistence becomes necessary.
 
-Live search validation against the current FOI test catalog returned 6 matches for `temperature`, 5 for `humidity`, 16 for `FOI`, and 2 for `ucionica`. The `ucionica` result confirms that normalization handles diacritics for the current search use case.
+Live search validation against the original 25 Sensor Hub datasets returned 6 matches for `temperature`, 5 for `humidity`, 16 for `FOI`, and 2 for `ucionica`. The external webcam adds a new heterogeneous dataset without changing the Sensor Hub source system.
 
-The semantic validation endpoints serialize canonical datasets to JSON-LD, parse them into RDF, and validate them with SHACL. `/api/v1/semantic/validation` checks all current catalog datasets and returns a compact per-dataset conformance report. The dataset-specific validation endpoint returns the detailed result for one deployment-property dataset.
+The semantic validation endpoints serialize canonical datasets to JSON-LD, parse them into RDF, and validate them with SHACL. `/api/v1/semantic/validation` checks the complete current multi-provider catalog.
 
-The Sensor Hub `GET /readings` endpoint remains paginated as provided by the source system. Dataset-scoped reading filters are not required for the current catalog milestone. The JSON-LD records the Sensor Hub readings service as the access service and keeps `datasetScopedFilteringAvailable` as `false` so that the catalog does not advertise functionality that the source API does not provide.
+The Sensor Hub `GET /readings` endpoint remains paginated as provided by the source system. Dataset-scoped reading filters are not required for the current catalog milestone. The JSON-LD keeps `datasetScopedFilteringAvailable=false` for those distributions so the catalog does not advertise functionality the source API does not provide.
 
 ## Tests
 
@@ -113,7 +120,7 @@ The Sensor Hub `GET /readings` endpoint remains paginated as provided by the sou
 pytest
 ```
 
-Remote connectivity can be checked after creating `.env` with valid test credentials:
+Remote Sensor Hub connectivity can be checked after creating `.env` with valid test credentials:
 
 ```bash
 python scripts/check_sensor_hub.py
@@ -121,4 +128,4 @@ python scripts/check_sensor_hub.py
 
 ## Next milestones
 
-The current live search over the 25 Sensor Hub dataset candidates has been validated for representative queries. The next live check is the SHACL baseline report across all current datasets. After that, the main semantic step is validation against the official DCAT-AP profile and controlled vocabularies. Persistence can be introduced later if the catalog size or deployment model requires it. RAG routing comes after the catalog and search interfaces are stable.
+The next architectural step is to make provider registration configuration-driven instead of hard-coded and to isolate provider failures so one unavailable external API does not take down the whole catalog. After that, add concrete providers for CSV/files, generic REST/JSON, text/document sources and audio. Official DCAT-AP validation and controlled vocabularies remain the main semantic milestone. Persistence can be introduced later if catalog size or deployment requirements justify it. RAG routing comes after the provider-neutral catalog and search interfaces are stable.
