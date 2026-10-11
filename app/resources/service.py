@@ -133,6 +133,13 @@ async def refresh_registered_resource(
 
     try:
         probe = await fetch_resource_probe(str(resource["source_url"]), settings)
+        requested_type = str(resource["requested_type"])
+        if requested_type != "auto" and requested_type != probe.detected_type:
+            raise ResourceFetchError(
+                f"Resource was declared as {requested_type!r} but was detected as "
+                f"{probe.detected_type!r}. Use auto-detect or correct the resource type."
+            )
+
         dataset = dataset_from_registered_resource(resource, probe)
         sync_stats = store.upsert_datasets([dataset])
         updated_resource = store.mark_resource_success(
