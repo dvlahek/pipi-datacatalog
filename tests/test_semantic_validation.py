@@ -23,6 +23,12 @@ def _valid_document() -> dict[str, object]:
             "@id": "urn:test:distribution:1",
             "@type": "dcat:Distribution",
             "dcat:accessURL": {"@id": "https://example.test/readings"},
+            "dcat:mediaType": {
+                "@id": (
+                    "https://www.iana.org/assignments/media-types/"
+                    "application/json"
+                )
+            },
             "dcat:accessService": {
                 "@id": "urn:test:service",
                 "@type": "dcat:DataService",
@@ -38,7 +44,7 @@ def _valid_document() -> dict[str, object]:
 def test_valid_catalog_document_conforms_to_pipi_dcat_core_shape() -> None:
     result = validate_dataset_jsonld(_valid_document())
 
-    assert result["profile"] == "pipi-dcat-core-shacl-v1"
+    assert result["profile"] == "pipi-dcat-core-shacl-v2"
     assert result["conforms"] is True
     assert result["result_count"] == 0
 
