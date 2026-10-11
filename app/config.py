@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     sensor_hub_password: str | None = None
     sensor_hub_timeout_seconds: float = 15.0
 
+    # Provider registration. Providers can be disabled independently.
+    provider_sensor_hub_enabled: bool = True
+    provider_static_web_enabled: bool = True
+
     # Persistent catalog metadata store. Source payloads/readings are not copied.
     catalog_store_enabled: bool = False
     database_url: str | None = None
