@@ -21,16 +21,16 @@ def test_unsafe_resource_urls_are_rejected(url: str) -> None:
         validate_external_resource_url(url, allowed_ports={80, 443})
 
 
-def test_public_https_url_is_accepted() -> None:
+def test_public_https_ip_is_accepted_without_dns_dependency() -> None:
     assert (
         validate_external_resource_url(
-            "https://example.com/data.csv", allowed_ports={80, 443}
+            "https://1.1.1.1/data.csv", allowed_ports={80, 443}
         )
-        == "https://example.com/data.csv"
+        == "https://1.1.1.1/data.csv"
     )
 
 
-def test_unapproved_port_is_rejected() -> None:
+def test_unapproved_port_is_rejected_before_dns_lookup() -> None:
     with pytest.raises(UnsafeResourceURL):
         validate_external_resource_url(
             "https://example.com:8443/data.csv", allowed_ports={80, 443}
