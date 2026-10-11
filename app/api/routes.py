@@ -99,21 +99,35 @@ async def health() -> dict[str, str]:
 
 @router.get("/api/v1/providers")
 async def list_providers() -> dict[str, object]:
-    return {
-        "count": 2,
-        "data": [
+    settings = get_settings()
+    providers: list[dict[str, object]] = []
+
+    if settings.provider_sensor_hub_enabled:
+        providers.append(
             {
                 "name": "sensor-hub",
                 "kind": "api",
                 "description": "PiPi Sensor Hub metadata provider",
-            },
+            }
+        )
+    if settings.provider_static_web_enabled:
+        providers.append(
             {
                 "name": "static-web",
                 "kind": "external-web-resource",
                 "description": "Manually registered external web datasets",
-            },
-        ],
-    }
+            }
+        )
+    if settings.provider_csv_enabled:
+        providers.append(
+            {
+                "name": "csv-files",
+                "kind": "file",
+                "description": "Version-aware CSV file metadata provider",
+            }
+        )
+
+    return {"count": len(providers), "data": providers}
 
 
 @router.get("/api/v1/catalog/status")
