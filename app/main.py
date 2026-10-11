@@ -1,12 +1,16 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router
 from app.catalog.service import catalog_store
 from app.config import get_settings
 
 settings = get_settings()
+repository_root = Path(__file__).resolve().parents[1]
+data_directory = repository_root / "data"
 
 
 @asynccontextmanager
@@ -29,3 +33,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(router)
+
+if data_directory.is_dir():
+    app.mount("/files", StaticFiles(directory=data_directory), name="files")
