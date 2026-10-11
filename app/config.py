@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     sensor_hub_password: str | None = None
     sensor_hub_timeout_seconds: float = 15.0
 
+    # Persistent catalog metadata store. Source payloads/readings are not copied.
+    catalog_store_enabled: bool = False
+    database_url: str | None = None
+    catalog_bootstrap_if_empty: bool = True
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -21,6 +26,10 @@ class Settings(BaseSettings):
     @property
     def sensor_hub_configured(self) -> bool:
         return bool(self.sensor_hub_username and self.sensor_hub_password)
+
+    @property
+    def catalog_store_configured(self) -> bool:
+        return bool(self.catalog_store_enabled and self.database_url)
 
 
 @lru_cache
