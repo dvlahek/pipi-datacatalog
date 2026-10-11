@@ -101,6 +101,8 @@ The dataset endpoints currently generate catalog records from live Sensor Hub me
 
 The search endpoint performs a small transparent weighted search over dataset title, observed property, location, source, publisher, semantic URI, and description. It is intentionally dependency-light for the current small catalog and can later be replaced by PostgreSQL full-text/trigram search if persistence becomes necessary.
 
+Live search validation against the current FOI test catalog returned 6 matches for `temperature`, 5 for `humidity`, 16 for `FOI`, and 2 for `ucionica`. The `ucionica` result confirms that normalization handles diacritics for the current search use case.
+
 The semantic validation endpoints serialize canonical datasets to JSON-LD, parse them into RDF, and validate them with SHACL. `/api/v1/semantic/validation` checks all current catalog datasets and returns a compact per-dataset conformance report. The dataset-specific validation endpoint returns the detailed result for one deployment-property dataset.
 
 The Sensor Hub `GET /readings` endpoint remains paginated as provided by the source system. Dataset-scoped reading filters are not required for the current catalog milestone. The JSON-LD records the Sensor Hub readings service as the access service and keeps `datasetScopedFilteringAvailable` as `false` so that the catalog does not advertise functionality that the source API does not provide.
@@ -119,4 +121,4 @@ python scripts/check_sensor_hub.py
 
 ## Next milestones
 
-The current live search over the 25 Sensor Hub dataset candidates has been validated for representative queries such as `temperature`, `humidity`, `FOI`, and `ucionica`. The next live check is the SHACL baseline report across all current datasets. After that, the main semantic step is validation against the official DCAT-AP profile and controlled vocabularies. Persistence can be introduced later if the catalog size or deployment model requires it. RAG routing comes after the catalog and search interfaces are stable.
+The current live search over the 25 Sensor Hub dataset candidates has been validated for representative queries. The next live check is the SHACL baseline report across all current datasets. After that, the main semantic step is validation against the official DCAT-AP profile and controlled vocabularies. Persistence can be introduced later if the catalog size or deployment model requires it. RAG routing comes after the catalog and search interfaces are stable.
