@@ -17,6 +17,7 @@ The current vertical slice provides:
 - stable dataset identifiers such as `urn:pipi:dataset:sensor-hub:deployment-property:51`
 - DCAT/DCAT-AP-oriented JSON-LD serialization
 - QUDT links for known quantity kinds and units
+- lightweight text search across canonical dataset metadata
 - tests that do not require the remote FOI test service
 
 The JSON-LD mapping is an initial semantic representation, not yet a claim of full DCAT-AP conformance. Formal SHACL validation and controlled-vocabulary checks are a later milestone.
@@ -38,11 +39,11 @@ CanonicalDataset
         |
         +--> DCAT / DCAT-AP-oriented JSON-LD
         +--> catalog API
-        +--> later catalog persistence/search
+        +--> lightweight catalog search
         +--> later RAG retrieval/routing
 ```
 
-Operational measurements are not copied into the metadata catalog. The catalog stores and indexes descriptions of available datasets and how to access them.
+Operational measurements are not copied into the metadata catalog. The catalog stores and searches descriptions of available datasets and how to access them.
 
 For the current Sensor Hub model, each `deployment-property` is treated as one initial dataset candidate because it binds a deployment to one measured property and carries the measurement configuration.
 
@@ -87,13 +88,16 @@ GET  /api/v1/providers/sensor-hub/status
 GET  /api/v1/providers/sensor-hub/sources
 POST /api/v1/harvest/sensor-hub/preview
 GET  /api/v1/datasets
+GET  /api/v1/search?q=temperature
 GET  /api/v1/datasets/{deployment_property_id}
 GET  /api/v1/datasets/{deployment_property_id}.jsonld
 ```
 
 The dataset endpoints currently generate catalog records from live Sensor Hub metadata. They fetch detailed source, location, deployment, property, and deployment-property records and join them into the canonical catalog model.
 
-The current Sensor Hub `GET /readings` endpoint supports pagination but not dataset-scoped filtering. The JSON-LD therefore records the relevant `deploymentPropertyId` and explicitly marks `datasetScopedFilteringAvailable` as `false`. Adding reading filters to Sensor Hub remains an important access-layer follow-up.
+The search endpoint performs a small transparent weighted search over dataset title, observed property, location, source, publisher, semantic URI, and description. It is intentionally dependency-free for the current small catalog and can later be replaced by PostgreSQL full-text/trigram search if persistence becomes necessary.
+
+The Sensor Hub `GET /readings` endpoint remains paginated as provided by the source system. Dataset-scoped reading filters are not required for the current catalog milestone. The JSON-LD records the Sensor Hub readings service as the access service and keeps `datasetScopedFilteringAvailable` as `false` so that the catalog does not advertise functionality that the source API does not provide.
 
 ## Tests
 
@@ -109,4 +113,4 @@ python scripts/check_sensor_hub.py
 
 ## Next milestones
 
-The next steps are persistence and search for harvested datasets, dataset-scoped Sensor Hub reading access, SHACL validation against DCAT-AP, and then a semantic retrieval layer for RAG routing.
+The immediate next steps are live validation of catalog search across the current 25 dataset candidates and semantic validation of representative JSON-LD records. After that, SHACL/DCAT-AP validation is the main semantic milestone. Persistence can be introduced later if the catalog size or deployment model requires it. RAG routing comes after the catalog and search interfaces are stable.
