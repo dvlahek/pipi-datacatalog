@@ -10,14 +10,14 @@ from rdflib.namespace import RDF
 
 SH = Namespace("http://www.w3.org/ns/shacl#")
 _SHAPES_PATH = Path(__file__).with_name("shapes") / "pipi-dcat-core.ttl"
-_PROFILE = "pipi-dcat-core-shacl-v1"
+_PROFILE = "pipi-dcat-core-shacl-v2"
 
 
 def validate_dataset_jsonld(document: dict[str, Any]) -> dict[str, Any]:
-    """Validate one catalog JSON-LD document against the PiPi DCAT core SHACL profile.
+    """Validate one catalog JSON-LD document against the PiPi DCAT core profile.
 
-    This profile checks the structural contract used by the PiPi catalog. It is not
-    a claim of full DCAT-AP conformance.
+    The local profile checks provider-neutral structural requirements used by
+    the PiPi catalog. It is not a claim of full DCAT-AP conformance.
     """
 
     data_graph = Graph()
