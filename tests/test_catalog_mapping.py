@@ -149,3 +149,62 @@ def test_nullable_source_provider_uses_owner_as_publisher() -> None:
     assert dataset.source.provider is None
     assert dataset.publisher == "FOI"
     assert dataset.license == "unknown"
+
+
+def test_sparse_optional_metadata_does_not_break_dataset_mapping() -> None:
+    harvester = SensorHubHarvester(StubClient())  # type: ignore[arg-type]
+
+    dataset = harvester._to_dataset(
+        deployment_property={
+            "id": 53,
+            "deployment_id": 33,
+            "property_id": 43,
+            "unit": None,
+            "resolution": None,
+            "uncertainty": None,
+            "min_value": None,
+            "max_value": None,
+            "sampling_interval": None,
+            "is_active": None,
+            "observation_target": None,
+        },
+        deployment={
+            "id": 33,
+            "source_id": 13,
+            "location_id": 23,
+            "active_from": None,
+            "active_to": None,
+            "purpose": None,
+        },
+        prop={
+            "id": 43,
+            "name": "custom_value",
+            "description": None,
+            "quantity_kind": None,
+            "default_unit": None,
+            "data_type": None,
+            "semantic_uri": None,
+        },
+        source={
+            "id": 13,
+            "code": "legacy-13",
+            "name": "Legacy source",
+            "owner": None,
+            "provider": None,
+            "license": None,
+        },
+        location={
+            "id": 23,
+            "name": "Unknown location",
+        },
+    )
+
+    assert dataset.publisher == "Unknown"
+    assert dataset.sampling_interval_seconds is None
+    assert dataset.resolution is None
+    assert dataset.observed_property.unit_code is None
+
+    jsonld = dataset_to_jsonld(dataset)
+    assert "dct:temporal" not in jsonld
+    assert "pipi:resolution" not in jsonld
+    assert "pipi:unitCode" not in jsonld["dcat:distribution"]
