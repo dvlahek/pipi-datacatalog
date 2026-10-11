@@ -6,6 +6,7 @@ from typing import Any
 from app.clients.sensor_hub import SensorHubClient
 from app.models.catalog import (
     CatalogAccess,
+    CatalogDistribution,
     CatalogLocation,
     CatalogObservedProperty,
     CatalogSource,
@@ -185,10 +186,32 @@ class SensorHubHarvester:
         )
         base_url = self.client.base_url.rstrip("/")
         service_root = base_url.rsplit("/api/v1", 1)[0]
+        readings_url = f"{base_url}/readings"
+        data_service_identifier = "urn:pipi:dataservice:sensor-hub"
 
         active_from = _optional_text(deployment.get("active_from"))
         active_to = _optional_text(deployment.get("active_to"))
         is_active_raw = deployment_property.get("is_active")
+
+        property_name = str(prop["name"])
+        keywords = [
+            "sensor",
+            property_label,
+            str(location["name"]),
+            str(source["name"]),
+        ]
+
+        distribution = CatalogDistribution(
+            identifier=f"{identifier}:distribution:api",
+            title="Sensor Hub API access",
+            access_url=readings_url,
+            media_type="application/json",
+            format="JSON",
+            access_service_identifier=data_service_identifier,
+            endpoint_url=base_url,
+            endpoint_description=f"{service_root}/docs/",
+            kind="api",
+        )
 
         return CanonicalDataset(
             catalog_id=f"sensor-hub:deployment-property:{deployment_property_id}",
@@ -197,12 +220,17 @@ class SensorHubHarvester:
             description=description,
             publisher=str(source.get("provider") or source.get("owner") or "Unknown"),
             license=str(source.get("license") or "unknown"),
+            dataset_type="sensor-observation",
+            source_system="sensor-hub",
+            external_id=str(deployment_property_id),
+            keywords=keywords,
             source=CatalogSource.model_validate(source),
             location=CatalogLocation.model_validate(location),
             temporal=CatalogTemporalCoverage(start=active_from, end=active_to),
+            distributions=[distribution],
             observed_property=CatalogObservedProperty(
                 id=int(prop["id"]),
-                name=str(prop["name"]),
+                name=property_name,
                 description=_optional_text(prop.get("description")),
                 quantity_kind=_optional_text(prop.get("quantity_kind")),
                 semantic_uri=_optional_text(prop.get("semantic_uri")),
@@ -223,11 +251,17 @@ class SensorHubHarvester:
             ),
             access=CatalogAccess(
                 provider="sensor-hub",
-                data_service_identifier="urn:pipi:dataservice:sensor-hub",
+                data_service_identifier=data_service_identifier,
                 endpoint_url=base_url,
                 endpoint_description=f"{service_root}/docs/",
-                readings_url=f"{base_url}/readings",
+                readings_url=readings_url,
                 deployment_property_id=deployment_property_id,
                 dataset_scoped_filtering_available=False,
             ),
+            extensions={
+                "sensor_hub": {
+                    "deployment_id": deployment.get("id"),
+                    "property_id": prop.get("id"),
+                }
+            },
         )
