@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     # Persistent catalog metadata store. Source payloads/readings are not copied.
     catalog_store_enabled: bool = False
     database_url: str | None = None
+    database_admin_url: str | None = None
     catalog_bootstrap_if_empty: bool = True
 
     model_config = SettingsConfigDict(
