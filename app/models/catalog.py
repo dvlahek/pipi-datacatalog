@@ -31,7 +31,7 @@ class CatalogLocation(BaseModel):
 
 
 class CatalogTemporalCoverage(BaseModel):
-    start: str
+    start: str | None = None
     end: str | None = None
 
 
@@ -39,10 +39,10 @@ class CatalogObservedProperty(BaseModel):
     id: int
     name: str
     description: str | None = None
-    quantity_kind: str
+    quantity_kind: str | None = None
     semantic_uri: str | None = None
-    data_type: str
-    unit_code: str
+    data_type: str | None = None
+    unit_code: str | None = None
     unit_uri: str | None = None
 
 
@@ -67,11 +67,11 @@ class CanonicalDataset(BaseModel):
     location: CatalogLocation
     temporal: CatalogTemporalCoverage
     observed_property: CatalogObservedProperty
-    sampling_interval_seconds: int
-    resolution: float
-    uncertainty: str
-    min_value: float
-    max_value: float
-    is_active: bool
-    observation_target: str
+    sampling_interval_seconds: int | None = None
+    resolution: float | None = None
+    uncertainty: str | None = None
+    min_value: float | None = None
+    max_value: float | None = None
+    is_active: bool | None = None
+    observation_target: str | None = None
     access: CatalogAccess
