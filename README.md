@@ -17,6 +17,8 @@ The current vertical slice provides:
 - a provider-neutral canonical dataset core with optional domain extensions
 - explicit `Distribution` objects for API, file, image, audio, video and future access modes
 - stable dataset identifiers such as `urn:pipi:dataset:sensor-hub:deployment-property:51`
+- PostgreSQL-backed persistent metadata catalog with idempotent upsert
+- explicit catalog synchronization from configured providers
 - DCAT/DCAT-AP-oriented JSON-LD serialization
 - QUDT links for known quantity kinds and units
 - lightweight text search across heterogeneous catalog metadata
@@ -31,17 +33,48 @@ The local `pipi-dcat-core-shacl-v2` profile checks the provider-neutral structur
 ```text
 Sensor Hub API ---------\
 REST/JSON APIs ----------\
-CSV/files ----------------> provider adapters --> CanonicalDataset --> DCAT/JSON-LD
-Text/document sources ---/                          |              --> search
-Audio/video streams ----/                           |              --> SHACL
-Static web resources ---/                           \-------------> later RAG routing
+CSV/files ----------------> provider adapters --> CanonicalDataset --> catalog sync/upsert
+Text/document sources ---/                                           |
+Audio/video streams ----/                                            v
+Static web resources ---/                                       PostgreSQL
+                                                                    |
+                                         +--------------------------+------------------+
+                                         |                          |                  |
+                                      catalog API                 search            DCAT/SHACL
+                                                                                        |
+                                                                                    later RAG
 ```
 
-Operational content is not copied into the metadata catalog by default. The catalog stores and searches descriptions of available datasets, provenance and ways to access them.
+Operational content is not copied into the metadata catalog by default. PostgreSQL stores normalized metadata and distribution descriptors. Sensor readings remain in Sensor Hub, HLS video remains on the external CDN, and future CSV/audio/text payloads can remain at their source unless a provider explicitly implements content ingestion.
 
 For the current Sensor Hub model, each `deployment-property` is treated as one initial dataset candidate because it binds a deployment to one measured property and carries the measurement configuration.
 
 The canonical model is no longer sensor-specific. Sensor metadata is an optional extension. Other providers can describe datasets using the common fields plus one or more distributions, for example JSON API access, CSV download, text document, audio file, HLS video stream or image snapshot.
+
+## Persistent catalog
+
+Persistence is optional so the service can still run in the earlier live-discovery mode. Enable PostgreSQL in `.env`:
+
+```env
+CATALOG_STORE_ENABLED=true
+DATABASE_URL=postgresql+psycopg://pipi:pipi_dev@localhost:5432/pipi_catalog
+CATALOG_BOOTSTRAP_IF_EMPTY=true
+```
+
+The repository includes a local development PostgreSQL service:
+
+```bash
+docker compose up -d postgres
+```
+
+The store currently creates two core tables automatically for the MVP:
+
+- `catalog_datasets` - provider-neutral dataset metadata and provenance
+- `catalog_distributions` - one or more API/file/image/audio/video access representations per dataset
+
+`POST /api/v1/catalog/sync` discovers all configured providers and performs an idempotent upsert. This is the merge point between upstream APIs/resources and the local dataspace catalog. Normal catalog reads then come from PostgreSQL rather than repeatedly harvesting every source.
+
+If persistence is enabled and the database is empty, `CATALOG_BOOTSTRAP_IF_EMPTY=true` allows the first read to bootstrap the store once. Later refreshes should use the explicit sync endpoint.
 
 ## Registered external webcam
 
@@ -52,7 +85,7 @@ The first non-Sensor-Hub provider is a manually registered WhatsUpCams Varaždin
 
 The original player declares the HLS source as `application/x-mpegURL`. The catalog preserves that original media-type declaration as provider metadata while using the standardized HLS media type in the DCAT distribution.
 
-The catalog does not proxy or archive the video. It stores metadata and external access URLs only. The license is currently recorded as `unknown` until usage terms are explicitly established.
+The catalog does not proxy or archive the video. PostgreSQL stores only the normalized webcam metadata and the external access URLs. The license is currently recorded as `unknown` until usage terms are explicitly established.
 
 ## Development setup
 
@@ -92,6 +125,8 @@ The `.env` file is ignored by Git.
 ```text
 GET  /health
 GET  /api/v1/providers
+GET  /api/v1/catalog/status
+POST /api/v1/catalog/sync
 GET  /api/v1/providers/sensor-hub/status
 GET  /api/v1/providers/sensor-hub/sources
 POST /api/v1/harvest/sensor-hub/preview
@@ -106,7 +141,9 @@ GET  /api/v1/datasets/{dataset_ref}/validation
 
 `dataset_ref` can be a Sensor Hub deployment-property id such as `1`, an external id such as `hr_varazdin1`, or a catalog id such as `webcam:whatsupcams:hr_varazdin1`.
 
-The search endpoint performs a small transparent weighted search over title, keywords, observed property, location, source, provider, dataset type, media type and description. It remains intentionally dependency-light for the current small catalog and can later be replaced by PostgreSQL full-text/trigram search if persistence becomes necessary.
+When PostgreSQL is enabled, `/datasets`, `/search`, `/semantic/validation` and individual dataset endpoints read the persisted catalog. `POST /api/v1/catalog/sync` is what refreshes that catalog from Sensor Hub plus registered external providers.
+
+The search endpoint performs a small transparent weighted search over title, keywords, observed property, location, source, provider, dataset type, media type and description. It can later be moved to PostgreSQL full-text/trigram indexing without changing the public API.
 
 Live search validation against the original 25 Sensor Hub datasets returned 6 matches for `temperature`, 5 for `humidity`, 16 for `FOI`, and 2 for `ucionica`. The external webcam adds a new heterogeneous dataset without changing the Sensor Hub source system.
 
@@ -128,4 +165,4 @@ python scripts/check_sensor_hub.py
 
 ## Next milestones
 
-The next architectural step is to make provider registration configuration-driven instead of hard-coded and to isolate provider failures so one unavailable external API does not take down the whole catalog. After that, add concrete providers for CSV/files, generic REST/JSON, text/document sources and audio. Official DCAT-AP validation and controlled vocabularies remain the main semantic milestone. Persistence can be introduced later if catalog size or deployment requirements justify it. RAG routing comes after the provider-neutral catalog and search interfaces are stable.
+The next architectural step is configuration-driven provider registration and provider-failure isolation so one unavailable external API does not take down catalog synchronization. After that, add concrete providers for CSV/files, generic REST/JSON, text/document sources and audio. Search can move into PostgreSQL full-text/trigram indexing when catalog size justifies it. Official DCAT-AP validation and controlled vocabularies remain the main semantic milestone. RAG routing comes after the provider-neutral catalog and sync interfaces are stable.
