@@ -19,6 +19,21 @@ class Settings(BaseSettings):
     csv_datasets_config: str = "config/csv_datasets.json"
     catalog_public_base_url: str = "http://127.0.0.1:8000"
 
+    # Authentication. Keep disabled only for isolated local development/tests.
+    auth_enabled: bool = False
+    auth_username: str | None = None
+    auth_password_hash: str | None = None
+    auth_jwt_secret: str | None = None
+    auth_token_ttl_minutes: int = 480
+    auth_rate_limit_attempts: int = 5
+    auth_rate_limit_window_seconds: int = 900
+
+    # Web/API hardening.
+    security_hsts_enabled: bool = False
+    resource_fetch_max_bytes: int = 25 * 1024 * 1024
+    resource_fetch_timeout_seconds: float = 20.0
+    resource_fetch_allowed_ports: str = "80,443"
+
     # Persistent catalog metadata store. Source payloads/readings are not copied.
     catalog_store_enabled: bool = False
     database_url: str | None = None
@@ -38,6 +53,15 @@ class Settings(BaseSettings):
     @property
     def catalog_store_configured(self) -> bool:
         return bool(self.catalog_store_enabled and self.database_url)
+
+    @property
+    def allowed_resource_ports(self) -> set[int]:
+        ports: set[int] = set()
+        for value in self.resource_fetch_allowed_ports.split(","):
+            value = value.strip()
+            if value:
+                ports.add(int(value))
+        return ports
 
 
 @lru_cache
