@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from urllib.parse import unquote, urljoin, urlparse, urlunparse
 
 import httpx
@@ -13,13 +14,26 @@ from app.models.catalog import (
 )
 
 
+class FoiDocumentResolutionError(RuntimeError):
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class FoiDocumentDetail:
+    detail_url: str
+    download_url: str
+    download_id: str
+    page_title: str | None = None
+
+
 class FoiDocumentsProvider:
     """Discover public FOI documents without downloading every source file.
 
-    Phase 1 intentionally reads only the public document listing. Each document is
-    registered as a stable catalog dataset that points to its public detail page.
-    Download-file discovery and content hashing are resolved later, on demand, so a
-    normal catalog sync does not fetch hundreds of PDFs/XLS files.
+    Normal provider discovery reads only the public listing and creates one stable
+    catalog dataset per public document. A document detail page is resolved only on
+    demand. This avoids fetching hundreds of detail pages or source PDFs/XLS files on
+    every catalog sync while still giving the RAG/indexing layer a way to resolve the
+    actual source file when needed.
     """
 
     name = "foi-documents"
@@ -32,16 +46,106 @@ class FoiDocumentsProvider:
         self.base_url = base_url.rstrip("/") + "/"
         self.timeout_seconds = timeout_seconds
 
-    async def datasets(self) -> list[CanonicalDataset]:
-        timeout = httpx.Timeout(self.timeout_seconds)
-        headers = {
+    @property
+    def _headers(self) -> dict[str, str]:
+        return {
             "User-Agent": "PiPi-Data-Catalog/0.1 foi-documents-provider",
             "Accept": "text/html,application/xhtml+xml",
         }
+
+    async def datasets(self) -> list[CanonicalDataset]:
+        timeout = httpx.Timeout(self.timeout_seconds)
         async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-            response = await client.get(self.base_url, headers=headers)
+            response = await client.get(self.base_url, headers=self._headers)
             response.raise_for_status()
         return self.parse_listing(response.text, self.base_url)
+
+    async def resolve_detail(self, detail_url: str) -> FoiDocumentDetail:
+        """Resolve one public detail page to its source-download URL.
+
+        This call fetches only the selected detail page. It does not download the
+        source document body. The caller can decide whether/when the actual PDF/XLS
+        file should be fetched and hashed.
+        """
+
+        self._validate_detail_url(detail_url)
+        timeout = httpx.Timeout(self.timeout_seconds)
+        try:
+            async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+                response = await client.get(detail_url, headers=self._headers)
+                response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise FoiDocumentResolutionError(
+                f"FOI document detail request failed: {exc}"
+            ) from exc
+
+        return self.parse_detail(response.text, detail_url, self.base_url)
+
+    def _validate_detail_url(self, detail_url: str) -> None:
+        base = urlparse(self.base_url)
+        parsed = urlparse(detail_url)
+        if parsed.scheme not in {"http", "https"}:
+            raise FoiDocumentResolutionError("FOI detail URL must use HTTP or HTTPS.")
+        if parsed.netloc.lower() != base.netloc.lower():
+            raise FoiDocumentResolutionError("FOI detail URL points outside the configured host.")
+        segments = [part for part in parsed.path.split("/") if part]
+        if len(segments) != 2 or segments[0] != "document":
+            raise FoiDocumentResolutionError("FOI detail URL has an unexpected path.")
+
+    @staticmethod
+    def parse_detail(
+        html: str,
+        detail_url: str,
+        base_url: str,
+    ) -> FoiDocumentDetail:
+        """Parse the canonical download link from one FOI document detail page."""
+
+        soup = BeautifulSoup(html, "html.parser")
+        base = urlparse(base_url)
+
+        page_title: str | None = None
+        heading = soup.find(["h1", "h2"])
+        if heading is not None:
+            value = " ".join(heading.stripped_strings).strip()
+            page_title = value or None
+        if page_title is None and soup.title is not None:
+            value = " ".join(soup.title.stripped_strings).strip()
+            page_title = value or None
+
+        candidates: list[tuple[str, str]] = []
+        for anchor in soup.find_all("a", href=True):
+            href = str(anchor.get("href") or "").strip()
+            if not href:
+                continue
+            absolute = urljoin(detail_url, href)
+            parsed = urlparse(absolute)
+            if parsed.netloc.lower() != base.netloc.lower():
+                continue
+            segments = [part for part in parsed.path.split("/") if part]
+            if len(segments) != 3 or segments[0] != "document" or segments[1] != "download":
+                continue
+            download_id = unquote(segments[2]).strip()
+            if not download_id:
+                continue
+            download_url = urlunparse(
+                (parsed.scheme, parsed.netloc, parsed.path, "", "", "")
+            )
+            candidates.append((download_id, download_url))
+
+        if not candidates:
+            raise FoiDocumentResolutionError(
+                "FOI document detail page does not expose a /document/download/{id} link."
+            )
+
+        # Detail pages are expected to expose one source download. Keeping this
+        # deterministic prevents harmless duplicate anchors from changing results.
+        download_id, download_url = candidates[0]
+        return FoiDocumentDetail(
+            detail_url=detail_url,
+            download_url=download_url,
+            download_id=download_id,
+            page_title=page_title,
+        )
 
     @staticmethod
     def parse_listing(html: str, base_url: str) -> list[CanonicalDataset]:
