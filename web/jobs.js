@@ -166,15 +166,17 @@
     }
   }
 
-  async function startEmbeddingBackfill(profileId = null) {
+  async function startEmbeddingBackfill(profileId = "") {
     const messageNode = byId("ragSearchMessage");
-    setMessage(messageNode, "Queueing vector build for current RAG chunks…");
-    const suffix = profileId ? `?profile=${encodeURIComponent(profileId)}` : "";
+    setMessage(messageNode, `Queueing vector build${profileId ? ` for ${profileId}` : ""}…`);
     try {
+      const suffix = profileId ? `?profile=${encodeURIComponent(profileId)}` : "";
       const payload = await apiFetch(`/api/v1/rag/embeddings/jobs/backfill${suffix}`, { method: "POST" });
       return await monitorJob(payload.job, {
         title: "Building vector index",
-        message: "Creating pgvector embeddings for the selected retrieval profile. Existing profile vectors remain intact.",
+        message: profileId
+          ? `Creating pgvector embeddings for retrieval profile ${profileId}. Existing profile vectors remain intact.`
+          : "Creating pgvector embeddings for current indexed chunks. Existing text retrieval remains intact.",
         messageNode,
       });
     } catch (error) {
@@ -275,9 +277,11 @@
     }
   }
 
+  // The retrieval-profile UI is a separately versioned bundle. Cache-bust the
+  // dynamic URL so fresh portal HTML cannot be paired with a stale vector script.
   if (!document.querySelector('script[data-pipi-vector]')) {
     const script = document.createElement("script");
-    script.src = "/portal/vector.js";
+    script.src = "/portal/vector.js?v=retrieval-profiles-v1";
     script.dataset.pipiVector = "true";
     document.body.append(script);
   }
