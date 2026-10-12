@@ -70,10 +70,94 @@ function button(label, onClick, className = "secondary") {
   return node;
 }
 
+function linkButton(label, url) {
+  const node = document.createElement("a");
+  node.className = "button-link secondary";
+  node.textContent = label;
+  node.href = url;
+  node.target = "_blank";
+  node.rel = "noopener noreferrer";
+  return node;
+}
+
 function accessLabel(dataset) {
   const distributions = dataset.distributions || [];
   if (!distributions.length) return "—";
   return distributions.map((item) => item.format || item.media_type || item.kind || "access").join(", ");
+}
+
+function resourceIsRagIndexable(resource) {
+  return ["csv", "json", "document", "text"].includes(resource.detected_type || resource.requested_type);
+}
+
+function datasetIsRagIndexable(dataset) {
+  if (["sensor-observation", "live-video-stream"].includes(dataset.dataset_type)) return false;
+  const distributions = dataset.distributions || [];
+  return distributions.some((item) => {
+    const media = String(item.media_type || "").toLowerCase();
+    const format = String(item.format || "").toUpperCase();
+    return media.startsWith("text/")
+      || media === "application/json"
+      || media.endsWith("+json")
+      || media === "application/pdf"
+      || ["CSV", "JSON", "PDF", "TXT", "TEXT", "HTML"].includes(format);
+  });
+}
+
+async function indexDatasetForRag(dataset) {
+  setMessage(el("datasetMessage"), `Indexing ${dataset.title}...`);
+  try {
+    const payload = await apiFetch(
+      `/api/v1/rag/datasets/${encodeURIComponent(dataset.identifier)}/index`,
+      { method: "POST" },
+    );
+    setMessage(
+      el("datasetMessage"),
+      `Indexed ${dataset.title}: version ${payload.dataset_version}, ${payload.chunk_count} chunk(s).`,
+      "success",
+    );
+  } catch (error) {
+    setMessage(el("datasetMessage"), error.message, "error");
+  }
+}
+
+async function indexResourceForRag(resource) {
+  try {
+    const payload = await apiFetch(`/api/v1/rag/resources/${resource.id}/index`, { method: "POST" });
+    window.alert(`RAG indexing complete: dataset version ${payload.dataset_version}, ${payload.chunk_count} chunk(s).`);
+    await Promise.all([loadResources(), loadDatasets()]);
+  } catch (error) {
+    window.alert(error.message);
+  }
+}
+
+function appendDatasetActions(dataset, actions) {
+  let added = false;
+  const distributions = dataset.distributions || [];
+
+  const snapshot = distributions.find((item) => item.kind === "snapshot" || String(item.format || "").toUpperCase() === "JPEG");
+  if (snapshot) {
+    actions.append(linkButton("Snapshot", snapshot.access_url));
+    added = true;
+  }
+
+  const liveStream = distributions.find((item) => item.kind === "live-stream" || String(item.format || "").toUpperCase() === "HLS");
+  if (liveStream) {
+    actions.append(linkButton("Open HLS", liveStream.access_url));
+    added = true;
+  }
+
+  if (datasetIsRagIndexable(dataset)) {
+    actions.append(button("Index for RAG", () => indexDatasetForRag(dataset)));
+    added = true;
+  }
+
+  if (!added) {
+    const note = document.createElement("span");
+    note.className = "muted compact-note";
+    note.textContent = dataset.dataset_type === "sensor-observation" ? "Metadata-first" : "Metadata only";
+    actions.append(note);
+  }
 }
 
 async function loadDatasets() {
@@ -96,6 +180,14 @@ async function loadDatasets() {
     row.append(td(dataset.dataset_type));
     row.append(td(dataset.source_system));
     row.append(td(accessLabel(dataset)));
+
+    const actionsCell = document.createElement("td");
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    appendDatasetActions(dataset, actions);
+    actionsCell.append(actions);
+    row.append(actionsCell);
+
     rows.append(row);
   }
 }
@@ -143,6 +235,9 @@ async function loadResources() {
         await Promise.all([loadResources(), loadDatasets()]);
       } catch (error) { window.alert(error.message); }
     }));
+    if (resource.enabled && resourceIsRagIndexable(resource)) {
+      actions.append(button("Index RAG", () => indexResourceForRag(resource)));
+    }
     if (resource.enabled) {
       actions.append(button("Disable", async () => {
         try {
