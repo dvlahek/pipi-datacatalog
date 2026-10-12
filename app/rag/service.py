@@ -44,6 +44,10 @@ def select_text_distribution(dataset: CanonicalDataset) -> CatalogDistribution |
         return None
 
     for distribution in dataset.distributions:
+        # A metadata/detail page is discoverable catalog metadata, not yet the
+        # source document body. Providers can later add a PDF/XLS/text distribution.
+        if distribution.kind == "metadata-page":
+            continue
         media_type = distribution.media_type.lower()
         format_value = (distribution.format or "").upper()
         if media_type.startswith("text/"):
@@ -192,7 +196,7 @@ async def index_catalog_dataset(
     distribution = select_text_distribution(dataset)
     if distribution is None:
         raise RagIndexError(
-            "Dataset has no text-indexable distribution. Its catalog metadata remains searchable."
+            "Dataset has no text-indexable source distribution yet. Its catalog metadata remains searchable."
         )
 
     try:
