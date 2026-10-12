@@ -125,6 +125,76 @@ class RagStore:
             ).first()
             return None if row is None else self._document_dict(row)
 
+    def index_status(self, dataset_identifier: str) -> dict[str, Any]:
+        """Compare the latest catalog version with the latest indexed RAG version."""
+
+        catalog_version = self.latest_dataset_version(dataset_identifier)
+        document = self.document_status(dataset_identifier)
+        indexed_version = None if document is None else int(document["dataset_version"])
+
+        if document is None:
+            status = "not_indexed"
+        elif catalog_version is not None and indexed_version == catalog_version:
+            status = "indexed"
+        else:
+            status = "stale"
+
+        return {
+            "dataset_identifier": dataset_identifier,
+            "status": status,
+            "catalog_version": catalog_version,
+            "indexed_version": indexed_version,
+            "document": document,
+        }
+
+    def list_index_statuses(self) -> list[dict[str, Any]]:
+        """Return freshness status for all versioned catalog datasets in two queries."""
+
+        with Session(self.engine) as session:
+            version_rows = session.scalars(
+                select(DatasetVersionRow).order_by(
+                    DatasetVersionRow.dataset_identifier,
+                    DatasetVersionRow.version.desc(),
+                )
+            ).all()
+            document_rows = session.scalars(
+                select(RagDocumentRow).order_by(
+                    RagDocumentRow.dataset_identifier,
+                    RagDocumentRow.dataset_version.desc(),
+                )
+            ).all()
+
+        latest_versions: dict[str, int] = {}
+        for row in version_rows:
+            latest_versions.setdefault(row.dataset_identifier, row.version)
+
+        latest_documents: dict[str, RagDocumentRow] = {}
+        for row in document_rows:
+            latest_documents.setdefault(row.dataset_identifier, row)
+
+        statuses: list[dict[str, Any]] = []
+        for dataset_identifier, catalog_version in latest_versions.items():
+            document = latest_documents.get(dataset_identifier)
+            indexed_version = None if document is None else document.dataset_version
+            if document is None:
+                status = "not_indexed"
+            elif indexed_version == catalog_version:
+                status = "indexed"
+            else:
+                status = "stale"
+
+            statuses.append(
+                {
+                    "dataset_identifier": dataset_identifier,
+                    "status": status,
+                    "catalog_version": catalog_version,
+                    "indexed_version": indexed_version,
+                    "document": None if document is None else self._document_dict(document),
+                }
+            )
+
+        return statuses
+
     def list_chunks(
         self,
         dataset_identifier: str,
@@ -167,10 +237,12 @@ class RagStore:
             ]
 
     def search_chunks(self, query: str, *, limit: int = 10) -> list[dict[str, Any]]:
-        """Search chunks from the latest indexed version of each active dataset.
+        """Search only chunks whose index matches the current catalog version.
 
         Disabled user-registered resources remain preserved in catalog/version history,
-        but their previously indexed chunks are excluded from retrieval.
+        but their previously indexed chunks are excluded from retrieval. A RAG index
+        also becomes ineligible as soon as a newer catalog version exists. This avoids
+        silently answering from stale content while a re-index is pending.
         """
         with Session(self.engine) as session:
             disabled_resource_datasets = set(
@@ -182,6 +254,19 @@ class RagStore:
                 ).all()
             )
 
+            version_rows = session.scalars(
+                select(DatasetVersionRow).order_by(
+                    DatasetVersionRow.dataset_identifier,
+                    DatasetVersionRow.version.desc(),
+                )
+            ).all()
+            latest_catalog_versions: dict[str, int] = {}
+            for version_row in version_rows:
+                latest_catalog_versions.setdefault(
+                    version_row.dataset_identifier,
+                    version_row.version,
+                )
+
             documents = session.scalars(
                 select(RagDocumentRow).order_by(
                     RagDocumentRow.dataset_identifier,
@@ -192,6 +277,8 @@ class RagStore:
             latest_documents: dict[str, RagDocumentRow] = {}
             for document in documents:
                 if document.dataset_identifier in disabled_resource_datasets:
+                    continue
+                if latest_catalog_versions.get(document.dataset_identifier) != document.dataset_version:
                     continue
                 latest_documents.setdefault(document.dataset_identifier, document)
 
