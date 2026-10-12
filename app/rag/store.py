@@ -124,7 +124,14 @@ class RagStore:
             ).first()
             return None if row is None else self._document_dict(row)
 
-    def list_chunks(self, dataset_identifier: str, dataset_version: int | None = None) -> list[dict[str, Any]]:
+    def list_chunks(
+        self,
+        dataset_identifier: str,
+        dataset_version: int | None = None,
+        *,
+        offset: int = 0,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
         with Session(self.engine) as session:
             document_query = select(RagDocumentRow).where(
                 RagDocumentRow.dataset_identifier == dataset_identifier
@@ -143,6 +150,8 @@ class RagStore:
                 select(RagChunkRow)
                 .where(RagChunkRow.document_id == document.id)
                 .order_by(RagChunkRow.chunk_index)
+                .offset(offset)
+                .limit(limit)
             ).all()
             return [
                 {
