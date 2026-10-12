@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.catalog.service import catalog_store
 from app.config import get_settings
+from app.rag.maintenance import reindex_stale_datasets
 from app.rag.service import RagIndexError, index_catalog_dataset, index_registered_resource
 from app.rag.store import RagStore
 
@@ -67,6 +68,14 @@ async def rag_status() -> dict[str, object]:
         "counts": counts,
         "data": data,
     }
+
+
+@router.post("/reindex-stale")
+async def reindex_stale(
+    limit: int | None = Query(default=None, ge=1, le=100),
+) -> dict[str, object]:
+    settings = get_settings()
+    return await reindex_stale_datasets(_store(), settings, limit=limit)
 
 
 @router.post("/datasets/{dataset_identifier:path}/index")
