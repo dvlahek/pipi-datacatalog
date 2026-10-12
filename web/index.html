@@ -86,13 +86,23 @@
         <div class="section-head">
           <div>
             <h2>Search indexed content</h2>
-            <p class="muted">Search RAG chunks from the current indexed version of each dataset. Stale indexes are excluded until re-indexed.</p>
+            <p class="muted">Search current RAG chunks with lexical, vector or hybrid retrieval. Stale indexes are excluded until re-indexed.</p>
+          </div>
+          <div class="vector-actions">
+            <span id="embeddingStatus" class="muted">Vectors: checking…</span>
+            <button id="buildEmbeddings" class="secondary" type="button">Build/update vectors</button>
           </div>
         </div>
-        <form id="ragSearchForm" class="inline-form">
+        <form id="ragSearchForm" class="inline-form rag-search-form">
           <input id="ragSearchQuery" placeholder="temperature demo-site-b" required minlength="2">
+          <select id="ragSearchMode" aria-label="Retrieval mode">
+            <option value="hybrid">Hybrid</option>
+            <option value="lexical">Lexical</option>
+            <option value="vector">Vector</option>
+          </select>
           <button type="submit">Search indexed content</button>
         </form>
+        <p class="muted retrieval-note">Hybrid uses reciprocal-rank fusion of the lexical baseline and pgvector cosine retrieval. The current feature-hash vectors validate vector plumbing and are not yet a neural semantic model.</p>
         <p id="ragSearchMessage" class="message"></p>
         <div id="ragSearchResults" class="results"></div>
       </section>
