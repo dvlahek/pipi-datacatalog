@@ -79,7 +79,7 @@ _TEXT_FILENAMES = {
 }
 _IGNORED_PARTS = {
     ".git", ".idea", ".next", ".nuxt", ".tox", ".venv", ".vscode", "__pycache__",
-    "build", "coverage", "dist", "node_modules", "target", "vendor",
+    "build", "coverage", "dist", "licenses", "node_modules", "target", "vendor",
 }
 _IGNORED_FILENAMES = {
     "bun.lock", "composer.lock", "package-lock.json", "pnpm-lock.yaml", "poetry.lock",
