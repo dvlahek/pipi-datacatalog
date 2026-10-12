@@ -1,4 +1,9 @@
-from app.providers.foi_documents import FoiDocumentsProvider
+import pytest
+
+from app.providers.foi_documents import (
+    FoiDocumentResolutionError,
+    FoiDocumentsProvider,
+)
 
 
 HTML = """
@@ -15,6 +20,17 @@ HTML = """
   <a href="/document/download/567">Preuzmi</a>
   <a href="https://example.org/document/External">External</a>
 </body></html>
+"""
+
+DETAIL_HTML = """
+<html>
+  <head><title>Odluka o testu - FOI Dokumenti</title></head>
+  <body>
+    <h1>Odluka o testu</h1>
+    <a href="/document/download/567">Preuzmi dokument</a>
+    <a href="/document/download/567?tracking=1">Preuzmi ponovno</a>
+  </body>
+</html>
 """
 
 
@@ -44,3 +60,25 @@ def test_listing_discovers_unique_foi_document_detail_pages() -> None:
     assert rulebook.distributions[0].access_url == (
         "https://dokumenti.foi.hr/document/Pravilnik_o_testu"
     )
+
+
+def test_detail_page_resolves_download_without_downloading_source_file() -> None:
+    detail = FoiDocumentsProvider.parse_detail(
+        DETAIL_HTML,
+        "https://dokumenti.foi.hr/document/Odluka_o_testu",
+        "https://dokumenti.foi.hr/document/",
+    )
+
+    assert detail.detail_url == "https://dokumenti.foi.hr/document/Odluka_o_testu"
+    assert detail.download_id == "567"
+    assert detail.download_url == "https://dokumenti.foi.hr/document/download/567"
+    assert detail.page_title == "Odluka o testu"
+
+
+def test_detail_page_without_download_link_is_rejected() -> None:
+    with pytest.raises(FoiDocumentResolutionError, match="download"):
+        FoiDocumentsProvider.parse_detail(
+            "<html><body><h1>Metadata only</h1></body></html>",
+            "https://dokumenti.foi.hr/document/Test",
+            "https://dokumenti.foi.hr/document/",
+        )
