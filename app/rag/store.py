@@ -330,14 +330,15 @@ class RagStore:
              AND v.version = d.dataset_version
             LEFT JOIN catalog_resources r ON r.dataset_identifier = d.dataset_identifier
             WHERE (r.id IS NULL OR r.enabled = TRUE)
-              AND (:dataset_identifier IS NULL OR d.dataset_identifier = :dataset_identifier)
+        """
+        params: dict[str, Any] = {"model": model}
+        if dataset_identifier is not None:
+            query += " AND d.dataset_identifier = :dataset_identifier"
+            params["dataset_identifier"] = dataset_identifier
+        query += """
               AND (c.embedding IS NULL OR c.embedding_model IS DISTINCT FROM :model)
             ORDER BY d.dataset_identifier, d.dataset_version, c.chunk_index
         """
-        params: dict[str, Any] = {
-            "model": model,
-            "dataset_identifier": dataset_identifier,
-        }
         if limit is not None:
             query += " LIMIT :limit"
             params["limit"] = max(1, int(limit))
