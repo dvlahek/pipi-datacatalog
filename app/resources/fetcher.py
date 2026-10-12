@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 from urllib.parse import urljoin, urlparse
 
@@ -25,6 +25,9 @@ class ResourceProbe:
     etag: str | None
     last_modified: str | None
     title_hint: str | None
+    # Kept only in memory for bounded ingestion/indexing. It is never serialized
+    # into catalog metadata or persisted as an operational source payload.
+    content: bytes = field(default=b"", repr=False)
 
 
 def detect_resource_type(url: str, media_type: str, content: bytes) -> str:
@@ -121,6 +124,7 @@ async def fetch_resource_probe(url: str, settings: Settings) -> ResourceProbe:
                         etag=response.headers.get("etag"),
                         last_modified=response.headers.get("last-modified"),
                         title_hint=_title_hint(current_url),
+                        content=payload,
                     )
             except httpx.HTTPStatusError as exc:
                 raise ResourceFetchError(
