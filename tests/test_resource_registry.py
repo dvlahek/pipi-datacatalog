@@ -1,4 +1,8 @@
+import pytest
+from pydantic import ValidationError
+
 from app.catalog.store import CatalogStore
+from app.models.resource import ResourceCreate
 from app.resources.fetcher import ResourceProbe, detect_resource_type
 from app.resources.service import dataset_from_registered_resource
 
@@ -12,7 +16,15 @@ def test_resource_registry_persists_and_links_dataset(tmp_path) -> None:
         source_url="https://example.com/data.csv",
         name="Example CSV",
         requested_type="auto",
-        metadata={"publisher": "Example", "license": "unknown", "keywords": ["demo"]},
+        metadata={
+            "publisher": "Example",
+            "license": "unknown",
+            "keywords": ["demo"],
+            "access_level": "approval-required",
+            "commercial_model": "paid",
+            "price_amount": 25.0,
+            "price_currency": "EUR",
+        },
     )
 
     probe = ResourceProbe(
@@ -37,11 +49,41 @@ def test_resource_registry_persists_and_links_dataset(tmp_path) -> None:
         content_sha256=probe.content_sha256,
     )
 
+    policy = dataset.extensions["resource_registry"]
+    assert policy["access_level"] == "approval-required"
+    assert policy["commercial_model"] == "paid"
+    assert policy["price_amount"] == 25.0
+    assert policy["price_currency"] == "EUR"
     assert stats["inserted"] == 1
     assert updated["dataset_identifier"] == dataset.identifier
     assert updated["detected_type"] == "csv"
     assert updated["last_content_sha256"] == "a" * 64
     assert len(store.list_resources()) == 1
+
+
+def test_paid_resource_requires_price_and_currency() -> None:
+    with pytest.raises(ValidationError, match="price_amount"):
+        ResourceCreate(
+            source_url="https://example.com/data.csv",
+            commercial_model="paid",
+        )
+
+    payload = ResourceCreate(
+        source_url="https://example.com/data.csv",
+        commercial_model="paid",
+        price_amount=12.5,
+        price_currency="eur",
+    )
+    assert payload.price_currency == "EUR"
+
+
+def test_non_paid_resource_rejects_price() -> None:
+    with pytest.raises(ValidationError, match="only valid"):
+        ResourceCreate(
+            source_url="https://example.com/data.csv",
+            commercial_model="free",
+            price_amount=12.5,
+        )
 
 
 def test_live_hls_playlist_churn_does_not_change_catalog_snapshot(tmp_path) -> None:
