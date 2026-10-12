@@ -86,23 +86,21 @@
         <div class="section-head">
           <div>
             <h2>Search indexed content</h2>
-            <p class="muted">Search current RAG chunks with lexical, vector or hybrid retrieval. Stale indexes are excluded until re-indexed.</p>
+            <p class="muted">Choose a frozen retrieval profile. Each profile keeps its own configuration and vector representation so experiments do not overwrite earlier baselines.</p>
           </div>
           <div class="vector-actions">
             <span id="embeddingStatus" class="muted">Vectors: checking…</span>
-            <button id="buildEmbeddings" class="secondary" type="button">Build/update vectors</button>
+            <button id="buildEmbeddings" class="secondary" type="button">Build/update selected vectors</button>
           </div>
         </div>
         <form id="ragSearchForm" class="inline-form rag-search-form">
           <input id="ragSearchQuery" placeholder="temperature demo-site-b" required minlength="2">
-          <select id="ragSearchMode" aria-label="Retrieval mode">
-            <option value="hybrid">Hybrid</option>
-            <option value="lexical">Lexical</option>
-            <option value="vector">Vector</option>
+          <select id="ragRetrievalProfile" aria-label="Retrieval profile">
+            <option value="">Loading retrieval profiles…</option>
           </select>
           <button type="submit">Search indexed content</button>
         </form>
-        <p class="muted retrieval-note">Hybrid uses reciprocal-rank fusion of lexical retrieval and pgvector cosine retrieval. The active embedding model is shown above; feature-hash remains a plumbing baseline, while multilingual E5 provides neural semantic retrieval.</p>
+        <p id="retrievalProfileNote" class="muted retrieval-note">Profiles freeze embedding input, fusion and diversity settings. The stable content-v1 hybrid profile remains the default baseline.</p>
         <p id="ragSearchMessage" class="message"></p>
         <div id="ragSearchResults" class="results"></div>
       </section>
