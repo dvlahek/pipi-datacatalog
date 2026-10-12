@@ -107,7 +107,12 @@ function datasetIsRagIndexable(dataset) {
 }
 
 async function indexDatasetForRag(dataset) {
-  setMessage(el("datasetMessage"), `Indexing ${dataset.title}...`);
+  const resolvingFoi = dataset.source_system === "foi-documents"
+    && !(dataset.distributions || []).some((item) => item.kind === "source-document");
+  setMessage(
+    el("datasetMessage"),
+    resolvingFoi ? `Resolving source and indexing ${dataset.title}...` : `Indexing ${dataset.title}...`,
+  );
   try {
     const payload = await apiFetch(
       `/api/v1/rag/datasets/${encodeURIComponent(dataset.identifier)}/index`,
@@ -118,6 +123,7 @@ async function indexDatasetForRag(dataset) {
       `Indexed ${dataset.title}: version ${payload.dataset_version}, ${payload.chunk_count} chunk(s).`,
       "success",
     );
+    await loadDatasets();
   } catch (error) {
     setMessage(el("datasetMessage"), error.message, "error");
   }
@@ -155,7 +161,16 @@ function appendDatasetActions(dataset, actions) {
     added = true;
   }
 
-  if (datasetIsRagIndexable(dataset)) {
+  const sourceDocument = distributions.find((item) => item.kind === "source-document");
+  if (sourceDocument) {
+    actions.append(linkButton("Open source", sourceDocument.download_url || sourceDocument.access_url));
+    added = true;
+  }
+
+  if (dataset.source_system === "foi-documents" && !sourceDocument) {
+    actions.append(button("Resolve & index", () => indexDatasetForRag(dataset)));
+    added = true;
+  } else if (datasetIsRagIndexable(dataset)) {
     actions.append(button("Index for RAG", () => indexDatasetForRag(dataset)));
     added = true;
   }
