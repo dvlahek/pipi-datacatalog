@@ -9,6 +9,7 @@ from app.clients.sensor_hub import (
     SensorHubError,
 )
 from app.config import get_settings
+from app.harvest.history import HarvestHistoryStore
 from app.harvesters.sensor_hub import SensorHubHarvester
 from app.models.catalog import CanonicalDataset
 from app.search.catalog import search_datasets
@@ -162,6 +163,15 @@ async def catalog_status() -> dict[str, object]:
         _raise_store_http(exc)
 
 
+@router.get("/api/v1/harvest/runs")
+async def list_harvest_runs(
+    limit: int = Query(default=20, ge=1, le=100),
+) -> dict[str, object]:
+    store = _persistent_store()
+    runs = HarvestHistoryStore(store).list(limit=limit)
+    return {"count": len(runs), "data": runs}
+
+
 @router.post("/api/v1/catalog/sync")
 async def sync_catalog_metadata() -> dict[str, object]:
     """Merge provider metadata into the catalog and create versions on changes."""
@@ -173,17 +183,26 @@ async def sync_catalog_metadata() -> dict[str, object]:
             detail="Persistent catalog store is disabled. Set CATALOG_STORE_ENABLED=true.",
         )
 
+    store = _persistent_store()
+    history = HarvestHistoryStore(store)
+    run_id = history.start("provider-sync", trigger="manual")
+
     try:
         async with _client() as client:
             stats = await sync_catalog(client, settings)
+        run_status = "partial" if int(stats.get("provider_errors", 0)) else "ok"
+        history.finish(run_id, status=run_status, summary=stats)
         return {
-            "status": "ok",
+            "status": run_status,
             "mode": "version-aware-upsert",
+            "harvest_run_id": run_id,
             **stats,
         }
     except SensorHubError as exc:
+        history.finish(run_id, status="error", error=str(exc))
         _raise_http(exc)
     except (RuntimeError, SQLAlchemyError) as exc:
+        history.finish(run_id, status="error", error=str(exc))
         _raise_store_http(exc)
 
 
