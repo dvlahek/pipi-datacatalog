@@ -64,11 +64,21 @@
   }
 
   function jobSummary(result) {
-    const github = result?.github_index;
-    if (github) {
-      return `${github.files_indexed} repository file(s), ${result.chunk_count} chunk(s), dataset version ${result.dataset_version}.`;
+    const backfill = result?.embedding_backfill;
+    if (backfill) {
+      return `${backfill.embedded ?? 0} chunk vector(s) built with ${backfill.model || "configured model"}.`;
     }
-    return `${result?.chunk_count ?? 0} chunk(s), dataset version ${result?.dataset_version ?? "?"}.`;
+    const github = result?.github_index;
+    const embedding = result?.embedding;
+    const vectorInfo = embedding && embedding.status !== "error"
+      ? ` ${embedding.embedded ?? 0} chunk vector(s).`
+      : embedding?.status === "error"
+        ? " Vector build reported an error; lexical index remains available."
+        : "";
+    if (github) {
+      return `${github.files_indexed} repository file(s), ${result.chunk_count} chunk(s), dataset version ${result.dataset_version}.${vectorInfo}`;
+    }
+    return `${result?.chunk_count ?? 0} chunk(s), dataset version ${result?.dataset_version ?? "?"}.${vectorInfo}`;
   }
 
   async function monitorJob(job, options = {}) {
@@ -84,18 +94,20 @@
 
       if (currentJob.status === "success") {
         hideBusy();
-        const text = `Indexing complete: ${jobSummary(currentJob.result || {})}`;
+        const text = `Operation complete: ${jobSummary(currentJob.result || {})}`;
         if (options.messageNode) setMessage(options.messageNode, text, "success");
         await Promise.all([loadResources(), loadDatasets()]);
         await loadActivityLog();
+        if (window.loadEmbeddingStatus) await window.loadEmbeddingStatus();
         return currentJob;
       }
 
       if (currentJob.status === "error") {
         hideBusy();
-        const error = currentJob.error || currentJob.message || "Background indexing failed.";
+        const error = currentJob.error || currentJob.message || "Background operation failed.";
         if (options.messageNode) setMessage(options.messageNode, error, "error");
         await loadActivityLog();
+        if (window.loadEmbeddingStatus) await window.loadEmbeddingStatus();
         throw new Error(error);
       }
 
@@ -149,6 +161,24 @@
     } catch (error) {
       hideBusy();
       setMessage(byId("resourceListMessage"), error.message, "error");
+      await loadActivityLog();
+      return null;
+    }
+  }
+
+  async function startEmbeddingBackfill() {
+    const messageNode = byId("ragSearchMessage");
+    setMessage(messageNode, "Queueing vector build for current RAG chunks…");
+    try {
+      const payload = await apiFetch("/api/v1/rag/embeddings/jobs/backfill", { method: "POST" });
+      return await monitorJob(payload.job, {
+        title: "Building vector index",
+        message: "Creating pgvector embeddings for current indexed chunks. Existing text retrieval remains intact.",
+        messageNode,
+      });
+    } catch (error) {
+      hideBusy();
+      setMessage(messageNode, error.message, "error");
       await loadActivityLog();
       return null;
     }
@@ -209,10 +239,11 @@
       const payload = await apiFetch("/api/v1/rag/jobs?limit=10");
       const active = (payload.data || []).find((job) => ["queued", "running"].includes(job.status));
       if (!active) return;
+      const embedding = active.target_kind === "embedding-backfill";
       await monitorJob(active, {
-        title: "Indexing in progress",
-        message: active.label ? `Continuing ${active.label}.` : "A background indexing job is still running.",
-        messageNode: byId("resourceListMessage"),
+        title: embedding ? "Building vector index" : "Indexing in progress",
+        message: active.label ? `Continuing ${active.label}.` : "A background job is still running.",
+        messageNode: embedding ? byId("ragSearchMessage") : byId("resourceListMessage"),
       });
     } catch (error) {
       hideBusy();
@@ -220,9 +251,9 @@
     }
   }
 
-  // Replace the synchronous portal handlers. Script/API compatibility endpoints remain available.
   window.indexDatasetForRag = startDatasetJob;
   window.indexResourceForRag = startResourceJob;
+  window.startEmbeddingBackfill = startEmbeddingBackfill;
   window.loadActivityLog = loadActivityLog;
 
   const reload = byId("reloadActivity");
@@ -241,5 +272,12 @@
       loadActivityLog();
       resumeActiveJob();
     }
+  }
+
+  if (!document.querySelector('script[data-pipi-vector]')) {
+    const script = document.createElement("script");
+    script.src = "/portal/vector.js";
+    script.dataset.pipiVector = "true";
+    document.body.append(script);
   }
 })();
