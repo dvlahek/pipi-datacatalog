@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.activity.store import ActivityStore, RagJobStore
 from app.catalog.service import catalog_store
 from app.config import get_settings
+from app.rag.jobs import run_dataset_index_job, run_resource_index_job
 from app.rag.maintenance import reindex_stale_datasets
 from app.rag.service import RagIndexError, index_catalog_dataset, index_registered_resource
 from app.rag.store import RagStore
@@ -78,6 +80,95 @@ async def reindex_stale(
     return await reindex_stale_datasets(_store(), settings, limit=limit)
 
 
+@router.post("/jobs/datasets/{dataset_identifier:path}", status_code=status.HTTP_202_ACCEPTED)
+async def queue_dataset_index(
+    dataset_identifier: str,
+    background_tasks: BackgroundTasks,
+) -> dict[str, object]:
+    settings = get_settings()
+    store = _store()
+    dataset = next((item for item in store.list_datasets() if item.identifier == dataset_identifier), None)
+    if dataset is None:
+        raise HTTPException(status_code=404, detail="Catalog dataset not found.")
+
+    jobs = RagJobStore(store)
+    active = jobs.active_for_target("dataset", dataset_identifier)
+    if active is not None:
+        return {"accepted": False, "reason": "already-running", "job": active}
+
+    job = jobs.create(target_kind="dataset", target_identifier=dataset_identifier, label=dataset.title)
+    ActivityStore(store).log(
+        "info",
+        "rag",
+        "index-queued",
+        f"Queued background indexing for {dataset.title}.",
+        details={"job_id": job["id"], "dataset_identifier": dataset_identifier},
+    )
+    background_tasks.add_task(
+        run_dataset_index_job,
+        store,
+        settings,
+        int(job["id"]),
+        dataset_identifier,
+        dataset.title,
+    )
+    return {"accepted": True, "job": job}
+
+
+@router.post("/jobs/resources/{resource_id}", status_code=status.HTTP_202_ACCEPTED)
+async def queue_resource_index(
+    resource_id: int,
+    background_tasks: BackgroundTasks,
+) -> dict[str, object]:
+    settings = get_settings()
+    store, resource = _resource_or_404(resource_id)
+    if not bool(resource.get("enabled")):
+        raise HTTPException(status_code=422, detail="Disabled resources cannot be indexed.")
+
+    target_identifier = str(resource_id)
+    label = str(resource.get("name") or resource.get("source_url") or f"Resource {resource_id}")
+    jobs = RagJobStore(store)
+    active = jobs.active_for_target("resource", target_identifier)
+    if active is not None:
+        return {"accepted": False, "reason": "already-running", "job": active}
+
+    job = jobs.create(target_kind="resource", target_identifier=target_identifier, label=label)
+    ActivityStore(store).log(
+        "info",
+        "rag",
+        "index-queued",
+        f"Queued background indexing for {label}.",
+        details={"job_id": job["id"], "resource_id": resource_id},
+    )
+    background_tasks.add_task(
+        run_resource_index_job,
+        store,
+        settings,
+        int(job["id"]),
+        resource_id,
+        label,
+    )
+    return {"accepted": True, "job": job}
+
+
+@router.get("/jobs")
+async def list_index_jobs(
+    limit: int = Query(default=30, ge=1, le=100),
+) -> dict[str, object]:
+    data = RagJobStore(_store()).list(limit=limit)
+    return {"count": len(data), "data": data}
+
+
+@router.get("/jobs/{job_id}")
+async def index_job(job_id: int) -> dict[str, object]:
+    job = RagJobStore(_store()).get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Indexing job not found.")
+    return job
+
+
+# Synchronous indexing endpoints are kept for scripts/backward compatibility.
+# The web portal uses the background job endpoints above.
 @router.post("/datasets/{dataset_identifier:path}/index")
 async def index_dataset(dataset_identifier: str) -> dict[str, object]:
     settings = get_settings()
