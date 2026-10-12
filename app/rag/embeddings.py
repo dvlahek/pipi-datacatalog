@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import math
 import re
 from dataclasses import dataclass
-from typing import Callable, Iterable
+from functools import lru_cache
+from typing import Any, Callable, Iterable
 
 from app.catalog.store import CatalogStore
 from app.config import Settings
@@ -25,6 +27,12 @@ class EmbeddingProvider:
 
     def embed_texts(self, texts: Iterable[str]) -> list[list[float]]:
         raise NotImplementedError
+
+    def embed_documents(self, texts: Iterable[str]) -> list[list[float]]:
+        return self.embed_texts(texts)
+
+    def embed_query(self, text: str) -> list[float]:
+        return self.embed_texts([text])[0]
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,12 +72,110 @@ class FeatureHashEmbeddingProvider(EmbeddingProvider):
         return [self._embed_one(text) for text in texts]
 
 
+@lru_cache(maxsize=4)
+def _load_sentence_transformer(
+    model_id: str,
+    revision: str | None,
+    device: str,
+) -> Any:
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError as exc:
+        raise EmbeddingError(
+            "Neural embeddings require the optional sentence-transformers dependency. "
+            "Install it with: python -m pip install -r requirements-embeddings.txt"
+        ) from exc
+
+    kwargs: dict[str, Any] = {}
+    if revision:
+        kwargs["revision"] = revision
+    if device.strip().lower() not in {"", "auto"}:
+        kwargs["device"] = device
+
+    try:
+        return SentenceTransformer(model_id, **kwargs)
+    except Exception as exc:
+        raise EmbeddingError(f"Could not load embedding model {model_id!r}: {exc}") from exc
+
+
+@dataclass(frozen=True, slots=True)
+class MultilingualE5EmbeddingProvider(EmbeddingProvider):
+    """Multilingual neural retrieval using a Sentence Transformers E5 model.
+
+    E5 models are trained with asymmetric retrieval prefixes. Catalog chunks are
+    encoded as passages and user searches as queries. Vectors are normalized so
+    pgvector cosine distance is directly usable for ranking.
+    """
+
+    model_id: str
+    revision: str | None = None
+    device: str = "auto"
+
+    def _encode(self, texts: Iterable[str], *, prefix: str) -> list[list[float]]:
+        values = [f"{prefix}: {text}" for text in texts]
+        if not values:
+            return []
+
+        model = _load_sentence_transformer(self.model_id, self.revision, self.device)
+        try:
+            encoded = model.encode(
+                values,
+                normalize_embeddings=True,
+                convert_to_numpy=True,
+                show_progress_bar=False,
+            )
+        except Exception as exc:
+            raise EmbeddingError(f"Embedding with {self.model_id!r} failed: {exc}") from exc
+
+        rows = encoded.tolist() if hasattr(encoded, "tolist") else list(encoded)
+        if rows and isinstance(rows[0], (int, float)):
+            rows = [rows]
+
+        vectors: list[list[float]] = []
+        for row in rows:
+            vector = [float(value) for value in row]
+            if len(vector) != self.dimensions:
+                raise EmbeddingError(
+                    f"Embedding model {self.model_id!r} returned {len(vector)} dimensions; "
+                    f"configured RAG_EMBEDDING_DIMENSIONS={self.dimensions}."
+                )
+            vectors.append(vector)
+        return vectors
+
+    def embed_texts(self, texts: Iterable[str]) -> list[list[float]]:
+        return self.embed_documents(texts)
+
+    def embed_documents(self, texts: Iterable[str]) -> list[list[float]]:
+        return self._encode(texts, prefix="passage")
+
+    def embed_query(self, text: str) -> list[float]:
+        return self._encode([text], prefix="query")[0]
+
+
 def get_embedding_provider(settings: Settings) -> EmbeddingProvider:
     provider = settings.rag_embedding_provider.strip().lower()
     if provider == "feature-hash":
         return FeatureHashEmbeddingProvider(
             name=settings.rag_embedding_model,
             dimensions=settings.rag_embedding_dimensions,
+        )
+    if provider in {"multilingual-e5", "sentence-transformers-e5", "e5"}:
+        if importlib.util.find_spec("sentence_transformers") is None:
+            raise EmbeddingError(
+                "RAG_EMBEDDING_PROVIDER is configured for multilingual E5, but "
+                "sentence-transformers is not installed. Run: "
+                "python -m pip install -r requirements-embeddings.txt"
+            )
+        revision = settings.rag_embedding_revision or None
+        identity = settings.rag_embedding_model
+        if revision:
+            identity = f"{identity}@{revision}"
+        return MultilingualE5EmbeddingProvider(
+            name=identity,
+            dimensions=settings.rag_embedding_dimensions,
+            model_id=settings.rag_embedding_model,
+            revision=revision,
+            device=settings.rag_embedding_device,
         )
     raise EmbeddingError(
         f"Unsupported RAG embedding provider {settings.rag_embedding_provider!r}."
@@ -95,7 +201,7 @@ def embed_dataset_chunks(
 
     for start in range(0, total, batch_size):
         batch = rows[start : start + batch_size]
-        vectors = provider.embed_texts(item["text"] for item in batch)
+        vectors = provider.embed_documents(item["text"] for item in batch)
         rag_store.write_chunk_embeddings(
             [
                 {
@@ -135,10 +241,6 @@ def backfill_current_embeddings(
         else max(1, int(settings.rag_embedding_backfill_limit))
     )
 
-    # Do not pass a NULL dataset identifier into PostgreSQL. Psycopg cannot infer
-    # a type for a bind used in ``:dataset_identifier IS NULL`` and PostgreSQL
-    # raises AmbiguousParameter. Enumerating current indexed datasets also keeps
-    # the backfill bounded to content that is actually eligible for retrieval.
     current_identifiers = sorted(
         str(item["dataset_identifier"])
         for item in rag_store.list_index_statuses()
@@ -163,7 +265,7 @@ def backfill_current_embeddings(
 
     for start in range(0, total, batch_size):
         batch = rows[start : start + batch_size]
-        vectors = provider.embed_texts(item["text"] for item in batch)
+        vectors = provider.embed_documents(item["text"] for item in batch)
         rag_store.write_chunk_embeddings(
             [
                 {
