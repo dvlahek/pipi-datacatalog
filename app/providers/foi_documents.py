@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 from urllib.parse import unquote, urljoin, urlparse, urlunparse
 
 import httpx
@@ -12,6 +13,7 @@ from app.models.catalog import (
     CatalogSource,
     CanonicalDataset,
 )
+from app.resources.fetcher import ResourceProbe
 
 
 class FoiDocumentResolutionError(RuntimeError):
@@ -24,6 +26,129 @@ class FoiDocumentDetail:
     download_url: str
     download_id: str
     page_title: str | None = None
+
+
+def _source_format(dataset: CanonicalDataset, probe: ResourceProbe) -> str | None:
+    media_type = probe.media_type.lower()
+    media_formats = {
+        "application/pdf": "PDF",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
+        "application/vnd.ms-excel": "XLS",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+        "application/msword": "DOC",
+        "text/csv": "CSV",
+        "text/plain": "TXT",
+    }
+    if media_type in media_formats:
+        return media_formats[media_type]
+
+    suffix = PurePosixPath(urlparse(probe.final_url).path).suffix.lstrip(".")
+    if suffix:
+        return suffix.upper()
+
+    external_id = (dataset.external_id or "").lower()
+    for candidate in ("xlsx", "xls", "docx", "doc", "pdf", "csv", "txt"):
+        if external_id.endswith(f"_{candidate}") or external_id.endswith(f".{candidate}"):
+            return candidate.upper()
+    return None
+
+
+def enrich_foi_document_dataset(
+    dataset: CanonicalDataset,
+    detail: FoiDocumentDetail,
+    probe: ResourceProbe,
+) -> CanonicalDataset:
+    """Attach one resolved source file and its provenance to a FOI catalog dataset.
+
+    The source bytes remain at FOI. PiPi persists only normalized metadata, HTTP
+    provenance and the content SHA-256 that was computed during the bounded fetch.
+    """
+
+    if dataset.source_system != "foi-documents":
+        raise ValueError("FOI document enrichment requires a foi-documents dataset.")
+
+    enriched = dataset.model_copy(deep=True)
+    source_distribution = CatalogDistribution(
+        identifier=f"{dataset.identifier}:distribution:source-document",
+        title="FOI Dokumenti source document",
+        access_url=probe.final_url,
+        download_url=probe.final_url,
+        media_type=probe.media_type,
+        format=_source_format(dataset, probe),
+        kind="source-document",
+        is_live=False,
+    )
+    enriched.distributions = [
+        distribution
+        for distribution in enriched.distributions
+        if distribution.kind != "source-document"
+    ] + [source_distribution]
+    enriched.provenance = CatalogProvenance(
+        source_url=probe.final_url,
+        etag=probe.etag,
+        last_modified=probe.last_modified,
+        content_sha256=probe.content_sha256,
+    )
+
+    extensions = dict(enriched.extensions)
+    foi = dict(extensions.get("foi_documents") or {})
+    foi.update(
+        {
+            "detail_url": detail.detail_url,
+            "download_resolved": True,
+            "download_id": detail.download_id,
+            "download_url": probe.final_url,
+            "media_type": probe.media_type,
+            "format": source_distribution.format,
+            "byte_size": probe.byte_size,
+            "content_sha256": probe.content_sha256,
+        }
+    )
+    extensions["foi_documents"] = foi
+    enriched.extensions = extensions
+    return enriched
+
+
+def preserve_foi_document_enrichment(
+    discovered: CanonicalDataset,
+    current: CanonicalDataset | None,
+) -> CanonicalDataset:
+    """Keep on-demand source resolution when a lightweight listing sync runs again.
+
+    Listing discovery intentionally does not fetch source files. Once a dataset has
+    been resolved on demand, later provider syncs may update listing metadata such as
+    the title without reverting the dataset to its earlier listing-only state.
+    """
+
+    if current is None or discovered.source_system != "foi-documents":
+        return discovered
+
+    current_foi = dict(current.extensions.get("foi_documents") or {})
+    if not current_foi.get("download_resolved"):
+        return discovered
+
+    source_distributions = [
+        distribution.model_copy(deep=True)
+        for distribution in current.distributions
+        if distribution.kind == "source-document"
+    ]
+    if not source_distributions:
+        return discovered
+
+    merged = discovered.model_copy(deep=True)
+    merged.distributions = [
+        distribution
+        for distribution in merged.distributions
+        if distribution.kind != "source-document"
+    ] + source_distributions
+    merged.provenance = current.provenance.model_copy(deep=True) if current.provenance else None
+
+    extensions = dict(merged.extensions)
+    merged_foi = dict(extensions.get("foi_documents") or {})
+    merged_foi.update(current_foi)
+    extensions["foi_documents"] = merged_foi
+    merged.extensions = extensions
+    return merged
 
 
 class FoiDocumentsProvider:
@@ -137,8 +262,6 @@ class FoiDocumentsProvider:
                 "FOI document detail page does not expose a /document/download/{id} link."
             )
 
-        # Detail pages are expected to expose one source download. Keeping this
-        # deterministic prevents harmless duplicate anchors from changing results.
         download_id, download_url = candidates[0]
         return FoiDocumentDetail(
             detail_url=detail_url,
@@ -176,7 +299,6 @@ class FoiDocumentsProvider:
                 continue
 
             external_id = unquote(segments[1])
-            # Remove query/fragment so provider fingerprints stay stable.
             detail_url = urlunparse(
                 (parsed.scheme, parsed.netloc, parsed.path, "", "", "")
             )
