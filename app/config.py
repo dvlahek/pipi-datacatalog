@@ -37,9 +37,12 @@ class Settings(BaseSettings):
     resource_fetch_timeout_seconds: float = 20.0
     resource_fetch_allowed_ports: str = "80,443"
 
-    # First RAG ingestion stage. Embeddings are intentionally added later.
+    # RAG ingestion and maintenance. Automatic re-indexing touches only datasets
+    # that were indexed previously and became stale after a new catalog version.
     rag_chunk_size_chars: int = 1200
     rag_chunk_overlap_chars: int = 200
+    rag_auto_reindex_enabled: bool = True
+    rag_auto_reindex_limit: int = 10
 
     # Persistent catalog metadata store. Source payloads/readings are not copied.
     catalog_store_enabled: bool = False
