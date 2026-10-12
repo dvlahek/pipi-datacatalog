@@ -4,7 +4,7 @@ from app.catalog.migrations import discover_migrations
 def test_catalog_sql_migrations_are_ordered_and_unique() -> None:
     migrations = discover_migrations()
 
-    assert [migration.version for migration in migrations] == [1, 2, 3, 4, 5, 6, 7]
+    assert [migration.version for migration in migrations] == [1, 2, 3, 4, 5, 6, 7, 8]
     assert [migration.name for migration in migrations] == [
         "001_catalog_core.sql",
         "002_catalog_versions.sql",
@@ -13,5 +13,6 @@ def test_catalog_sql_migrations_are_ordered_and_unique() -> None:
         "005_harvest_runs.sql",
         "006_rag_jobs_activity.sql",
         "007_rag_vector_embeddings.sql",
+        "008_retrieval_profiles_and_embeddings.sql",
     ]
     assert all(len(migration.checksum) == 64 for migration in migrations)
