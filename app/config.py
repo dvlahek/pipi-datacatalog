@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     resource_fetch_timeout_seconds: float = 20.0
     resource_fetch_allowed_ports: str = "80,443"
 
+    # First RAG ingestion stage. Embeddings are intentionally added later.
+    rag_chunk_size_chars: int = 1200
+    rag_chunk_overlap_chars: int = 200
+
     # Persistent catalog metadata store. Source payloads/readings are not copied.
     catalog_store_enabled: bool = False
     database_url: str | None = None
