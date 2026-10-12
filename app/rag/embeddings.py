@@ -18,6 +18,7 @@ class EmbeddingError(RuntimeError):
 
 
 _TOKEN_RE = re.compile(r"[^\W_]+", flags=re.UNICODE)
+_SUPPORTED_INPUT_PROFILES = {"content-v1", "metadata-v1"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -152,11 +153,99 @@ class MultilingualE5EmbeddingProvider(EmbeddingProvider):
         return self._encode([text], prefix="query")[0]
 
 
+def _input_profile(settings: Settings) -> str:
+    profile = settings.rag_embedding_input_profile.strip().lower()
+    if profile not in _SUPPORTED_INPUT_PROFILES:
+        supported = ", ".join(sorted(_SUPPORTED_INPUT_PROFILES))
+        raise EmbeddingError(
+            f"Unsupported RAG embedding input profile {settings.rag_embedding_input_profile!r}; "
+            f"expected one of: {supported}."
+        )
+    return profile
+
+
+def _identity_for_profile(base_identity: str, profile: str) -> str:
+    # Keep the original model identity for the historical content-only baseline.
+    # Any changed passage construction gets a distinct identity so existing vectors
+    # cannot be silently reused after the embedding input semantics change.
+    if profile == "content-v1":
+        return base_identity
+    return f"{base_identity}#{profile}"
+
+
+def build_embedding_document_text(
+    text: str,
+    *,
+    profile: str,
+    dataset_title: str | None = None,
+    file_path: str | None = None,
+) -> str:
+    """Construct the text actually sent to the embedding model.
+
+    ``content-v1`` preserves the historical baseline. ``metadata-v1`` prepends
+    stable retrieval context without changing the stored RAG chunk or what the
+    user sees in search results. GitHub file paths are included only when present.
+    """
+
+    if profile == "content-v1":
+        return text
+    if profile != "metadata-v1":
+        raise EmbeddingError(f"Unsupported embedding input profile {profile!r}.")
+
+    parts: list[str] = []
+    if dataset_title and dataset_title.strip():
+        parts.append(f"Dataset title: {dataset_title.strip()}")
+    if file_path and file_path.strip():
+        parts.append(f"File path: {file_path.strip()}")
+    parts.append(f"Content:\n{text}")
+    return "\n".join(parts)
+
+
+def _embedding_inputs(
+    store: CatalogStore,
+    rag_store: RagStore,
+    rows: list[dict[str, object]],
+    *,
+    profile: str,
+) -> list[str]:
+    if profile == "content-v1":
+        return [str(item["text"]) for item in rows]
+
+    titles = {dataset.identifier: dataset.title for dataset in store.list_datasets()}
+    metadata_by_chunk: dict[tuple[str, int], dict[str, object]] = {}
+    dataset_identifiers = sorted(
+        {str(item.get("dataset_identifier") or "") for item in rows if item.get("dataset_identifier")}
+    )
+    for dataset_identifier in dataset_identifiers:
+        for chunk in rag_store.list_chunks(dataset_identifier, limit=100000):
+            metadata = chunk.get("metadata")
+            metadata_by_chunk[(dataset_identifier, int(chunk["chunk_index"]))] = (
+                dict(metadata) if isinstance(metadata, dict) else {}
+            )
+
+    inputs: list[str] = []
+    for item in rows:
+        dataset_identifier = str(item.get("dataset_identifier") or "")
+        chunk_index = int(item.get("chunk_index") or 0)
+        metadata = metadata_by_chunk.get((dataset_identifier, chunk_index), {})
+        file_path = str(metadata.get("file_path") or "").strip() or None
+        inputs.append(
+            build_embedding_document_text(
+                str(item["text"]),
+                profile=profile,
+                dataset_title=titles.get(dataset_identifier),
+                file_path=file_path,
+            )
+        )
+    return inputs
+
+
 def get_embedding_provider(settings: Settings) -> EmbeddingProvider:
     provider = settings.rag_embedding_provider.strip().lower()
+    profile = _input_profile(settings)
     if provider == "feature-hash":
         return FeatureHashEmbeddingProvider(
-            name=settings.rag_embedding_model,
+            name=_identity_for_profile(settings.rag_embedding_model, profile),
             dimensions=settings.rag_embedding_dimensions,
         )
     if provider in {"multilingual-e5", "sentence-transformers-e5", "e5"}:
@@ -170,6 +259,7 @@ def get_embedding_provider(settings: Settings) -> EmbeddingProvider:
         identity = settings.rag_embedding_model
         if revision:
             identity = f"{identity}@{revision}"
+        identity = _identity_for_profile(identity, profile)
         return MultilingualE5EmbeddingProvider(
             name=identity,
             dimensions=settings.rag_embedding_dimensions,
@@ -190,6 +280,7 @@ def embed_dataset_chunks(
     progress: Callable[[int, int], None] | None = None,
 ) -> dict[str, object]:
     provider = get_embedding_provider(settings)
+    profile = _input_profile(settings)
     rag_store = RagStore(store)
     rows = rag_store.list_current_chunks_for_embedding(
         provider.name,
@@ -201,7 +292,8 @@ def embed_dataset_chunks(
 
     for start in range(0, total, batch_size):
         batch = rows[start : start + batch_size]
-        vectors = provider.embed_documents(item["text"] for item in batch)
+        texts = _embedding_inputs(store, rag_store, batch, profile=profile)
+        vectors = provider.embed_documents(texts)
         rag_store.write_chunk_embeddings(
             [
                 {
@@ -220,6 +312,7 @@ def embed_dataset_chunks(
     return {
         "provider": settings.rag_embedding_provider,
         "model": provider.name,
+        "input_profile": profile,
         "dimensions": provider.dimensions,
         "eligible": total,
         "embedded": embedded,
@@ -234,6 +327,7 @@ def backfill_current_embeddings(
     progress: Callable[[int, int], None] | None = None,
 ) -> dict[str, object]:
     provider = get_embedding_provider(settings)
+    profile = _input_profile(settings)
     rag_store = RagStore(store)
     effective_limit = (
         max(1, int(limit))
@@ -265,7 +359,8 @@ def backfill_current_embeddings(
 
     for start in range(0, total, batch_size):
         batch = rows[start : start + batch_size]
-        vectors = provider.embed_documents(item["text"] for item in batch)
+        texts = _embedding_inputs(store, rag_store, batch, profile=profile)
+        vectors = provider.embed_documents(texts)
         rag_store.write_chunk_embeddings(
             [
                 {
@@ -285,6 +380,7 @@ def backfill_current_embeddings(
     return {
         "provider": settings.rag_embedding_provider,
         "model": provider.name,
+        "input_profile": profile,
         "dimensions": provider.dimensions,
         "attempted": total,
         "embedded": embedded,
