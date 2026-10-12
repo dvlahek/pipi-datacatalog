@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.activity.store import ActivityStore, RagJobStore
+from app.api.activity import router as activity_router
 from app.api.auth import router as auth_router
 from app.api.rag import router as rag_router
 from app.api.resources import router as resources_router
@@ -31,7 +33,17 @@ async def lifespan(_: FastAPI):
     # It creates the target database/role if DATABASE_ADMIN_URL is available and
     # applies only pending SQL migrations before the API begins serving requests.
     if settings.catalog_store_enabled:
-        catalog_store(settings)
+        store = catalog_store(settings)
+        if store is not None:
+            interrupted = RagJobStore(store).mark_interrupted()
+            if interrupted:
+                ActivityStore(store).log(
+                    "warning",
+                    "rag",
+                    "jobs-interrupted",
+                    f"Marked {interrupted} unfinished indexing job(s) as interrupted after application restart.",
+                    details={"count": interrupted},
+                )
     yield
 
 
@@ -52,6 +64,7 @@ app.add_middleware(SecurityHeadersMiddleware, settings=settings)
 app.include_router(auth_router)
 app.include_router(resources_router)
 app.include_router(rag_router)
+app.include_router(activity_router)
 app.include_router(router)
 
 
