@@ -60,22 +60,28 @@ def _decode_text(content: bytes) -> str:
         return content.decode("latin-1")
 
 
-def _extract_csv(content: bytes) -> str:
+def _extract_csv_rows(content: bytes) -> list[str]:
     text = _decode_text(content)
     reader = csv.reader(io.StringIO(text))
     rows = list(reader)
     if not rows:
-        return ""
+        return []
 
     header = rows[0]
     lines: list[str] = []
     for row_number, row in enumerate(rows[1:], start=1):
+        if not any(value.strip() for value in row):
+            continue
         pairs = []
         for index, value in enumerate(row):
             key = header[index] if index < len(header) and header[index] else f"column_{index + 1}"
             pairs.append(f"{key}: {value}")
         lines.append(f"Row {row_number}. " + " | ".join(pairs))
-    return "\n".join(lines)
+    return lines
+
+
+def _extract_csv(content: bytes) -> str:
+    return "\n".join(_extract_csv_rows(content))
 
 
 def _extract_json(content: bytes) -> str:
@@ -199,6 +205,55 @@ def chunk_text(
         start = next_start
 
     return chunks
+
+
+def extract_chunks(
+    probe: ResourceProbe,
+    *,
+    chunk_size: int = 1200,
+    overlap: int = 200,
+) -> tuple[str, list[TextChunk]]:
+    """Extract indexable text and create structure-aware chunks.
+
+    CSV records are indexed one row per chunk. This keeps small tabular datasets from
+    collapsing into one broad chunk and lets retrieval rank the matching record instead
+    of returning an entire table. Other supported media keep the generic text chunker.
+    """
+
+    if probe.detected_type != "csv":
+        text = extract_text(probe)
+        return text, chunk_text(text, chunk_size=chunk_size, overlap=overlap)
+
+    if not probe.content:
+        raise RagExtractionError("The resource fetch did not provide content bytes.")
+
+    rows = [_normalize_text(row) for row in _extract_csv_rows(probe.content)]
+    rows = [row for row in rows if row]
+    if not rows:
+        raise RagExtractionError("No indexable CSV rows could be extracted from the resource.")
+
+    text = "\n".join(rows)
+    chunks: list[TextChunk] = []
+    cursor = 0
+    for index, row in enumerate(rows):
+        start = cursor
+        end = start + len(row)
+        chunks.append(
+            TextChunk(
+                chunk_index=index,
+                text=row,
+                char_start=start,
+                char_end=end,
+                metadata={
+                    "character_count": len(row),
+                    "structure": "csv-row",
+                    "row_number": index + 1,
+                },
+            )
+        )
+        cursor = end + 1
+
+    return text, chunks
 
 
 def text_sha256(text: str) -> str:
