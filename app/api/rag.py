@@ -63,7 +63,7 @@ async def rag_search(
 
     try:
         provider = get_embedding_provider(settings)
-        query_vector = provider.embed_texts([q])[0]
+        query_vector = provider.embed_query(q)
         vector_results = rag_store.vector_search(
             query_vector,
             model=provider.name,
@@ -159,7 +159,10 @@ async def queue_embedding_backfill(
 ) -> dict[str, object]:
     settings = get_settings()
     store = _store()
-    target = settings.rag_embedding_model
+    try:
+        target = get_embedding_provider(settings).name
+    except EmbeddingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     jobs = RagJobStore(store)
     active = jobs.active_for_target("embedding-backfill", target)
     if active is not None:
