@@ -1,69 +1,220 @@
 <!doctype html>
-<html lang="en">
+<html lang="hr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PiPi Data Space · Simple Guide</title>
+  <title>PiPi Data Space · Vodič / Guide</title>
   <link rel="stylesheet" href="/portal/styles.css">
+  <style>
+    .tutorial-shell{max-width:980px}.tutorial-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.tutorial-actions button{padding:7px 10px}.tutorial-actions button.active{background:#2f5fe3;color:#fff}.tutorial-actions button:not(.active){background:#edf1f8;color:#283247}.tutorial-nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}.tutorial-nav a{font-size:13px}.tutorial-step{border-left:4px solid #dbe4ff;padding:2px 0 2px 14px;margin:14px 0}.tutorial-step h3{margin:0 0 4px;font-size:16px}.tutorial-step p{margin:4px 0}.tutorial-example{margin:10px 0;padding:12px;border:1px solid #e3e7ef;border-radius:10px;background:#f8faff}.tutorial-example strong{display:block;margin-bottom:5px}.tutorial-example code{display:block;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:6px}.tutorial-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:14px 0}.tutorial-flow div{padding:10px;border-radius:9px;background:#f6f8fb;border:1px solid #e5e9f0;text-align:center;font-size:13px}.tutorial-table{margin-top:10px}.tutorial-table th{text-transform:none;letter-spacing:0}.language-block[hidden]{display:none!important}.quick-rule{font-size:13px;color:#566177}.tutorial-list{padding-left:20px}.tutorial-list li{margin:6px 0}@media(max-width:760px){.tutorial-flow{grid-template-columns:1fr}.tutorial-actions{justify-content:flex-start}.topbar{gap:16px}}
+  </style>
 </head>
 <body>
-  <main class="shell" style="max-width:980px">
+  <main class="shell tutorial-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow">PiPi · simple guide</div>
-        <h1>How PiPi works</h1>
+        <div class="eyebrow">PiPi · vodič / simple guide</div>
+        <h1>Kako koristiti PiPi / How to use PiPi</h1>
       </div>
-      <div class="top-actions">
-        <a class="button-link" href="/portal/">Back to PiPi</a>
+      <div class="top-actions tutorial-actions">
+        <button id="langHr" class="active" type="button">Hrvatski</button>
+        <button id="langEn" type="button">English</button>
+        <a class="button-link" href="/portal/">PiPi portal</a>
       </div>
     </header>
 
-    <section class="card">
-      <h2>The idea in one minute</h2>
-      <p>Imagine that useful information is spread across many places: sensor systems, CSV files, university documents, websites and GitHub repositories. PiPi gives these sources one common catalog and one search layer.</p>
-      <p>PiPi does not need to copy every original source into one giant database. It records what a source is, where it comes from, how it can be accessed and which version was used. For searchable text, PiPi creates small text chunks and a search index.</p>
-      <p><strong>The important part:</strong> PiPi also remembers <em>how</em> information was searched. A different retrieval method can return different evidence even when the data and the question are unchanged. That search configuration is therefore part of the provenance.</p>
+    <section class="language-block" data-lang="hr">
+      <nav class="tutorial-nav" aria-label="Sadržaj">
+        <a class="button-link" href="#hr-idea">Ideja</a>
+        <a class="button-link" href="#hr-sources">Dodavanje izvora</a>
+        <a class="button-link" href="#hr-index">Indeksiranje</a>
+        <a class="button-link" href="#hr-search">Pretraživanje</a>
+        <a class="button-link" href="#hr-profiles">Profili</a>
+        <a class="button-link" href="#hr-why">Zašto je to važno</a>
+      </nav>
+
+      <section class="card" id="hr-idea">
+        <h2>1. Ideja projekta u jednoj minuti</h2>
+        <p>Zamisli da su korisne informacije razbacane po mnogo mjesta: senzori, CSV datoteke, fakultetski dokumenti, web stranice i GitHub repozitoriji. PiPi im daje <strong>zajednički katalog i zajednički način pretraživanja</strong>.</p>
+        <p>PiPi ne mora sve originalne podatke preseliti u jednu ogromnu bazu. Pamti što je izvor, gdje se nalazi, tko ga objavljuje, kako mu se pristupa i koja je verzija korištena. Za tekst koji želimo pretraživati PiPi radi manje dijelove teksta, odnosno <strong>chunkove</strong>, i gradi indeks.</p>
+        <div class="tutorial-flow" aria-label="PiPi tok">
+          <div>1. Izvor</div><div>2. Katalog i metadata</div><div>3. Chunkovi i vektori</div><div>4. Retrieval profil</div><div>5. Dokaz / rezultat</div>
+        </div>
+        <div class="policy-note"><strong>Glavna ideja:</strong> nije dovoljno znati samo iz kojeg je dokumenta informacija došla. Važno je znati i <em>kako</em> je sustav baš taj dokaz pronašao. Zato PiPi tretira retrieval konfiguraciju kao dio provenancea, odnosno podrijetla rezultata.</div>
+      </section>
+
+      <section class="card" id="hr-sources">
+        <h2>2. Kako dodati novi izvor</h2>
+        <p>Postoje dva osnovna načina. <strong>Provider-managed</strong> izvore PiPi pronalazi automatski kroz <strong>Sync providers</strong>. To su, primjerice, Sensor Hub i FOI dokumenti. <strong>Registered resources</strong> su izvori koje korisnik ručno dodaje URL-om, primjerice GitHub repozitorij, javni CSV, JSON, PDF ili web resurs.</p>
+
+        <div class="tutorial-step"><h3>Korak A — otvori “Add resource”</h3><p>U polje <strong>Resource URL</strong> zalijepi javni URL izvora. Za <strong>Type</strong> je najjednostavnije ostaviti <strong>Auto detect</strong>.</p></div>
+        <div class="tutorial-step"><h3>Korak B — opiši izvor</h3><p>Po želji dodaj naziv, publisher, licencu i keywords. <strong>Access level</strong> i <strong>Commercial terms</strong> opisuju uvjete korištenja izvora.</p></div>
+        <div class="tutorial-step"><h3>Korak C — klikni “Analyze and add”</h3><p>PiPi provjeri URL, prepozna vrstu izvora, zabilježi metadata i provenance te ga doda u katalog. Izvor se zatim vidi u tablici <strong>Registered resources</strong>.</p></div>
+        <div class="tutorial-step"><h3>Korak D — indeksiraj izvor ako želiš pretraživati sadržaj</h3><p>Katalogizacija i RAG indeksiranje nisu isto. Izvor može biti u katalogu, a da njegov sadržaj još nije indeksiran. Za tekstualne izvore koristi akciju <strong>Index</strong>. Nakon toga dobivamo chunkove koje retrieval može koristiti.</p></div>
+
+        <div class="tutorial-example"><strong>Primjer 1 — GitHub repozitorij</strong><span>Možeš dodati javni repozitorij REA:</span><code>https://github.com/morluto/rea</code><span>Type može ostati <strong>Auto detect</strong> ili se ručno postaviti na <strong>GitHub repository</strong>. Nakon indeksiranja PiPi pretražuje dopuštene tekstualne datoteke repozitorija i pamti putanju datoteke, npr. <code>docs/web-runtime.md</code>.</span></div>
+
+        <div class="tutorial-example"><strong>Primjer 2 — javni CSV</strong><span>Za test može se koristiti javna CSV datoteka iz PiPi repozitorija:</span><code>https://raw.githubusercontent.com/dvlahek/pipi-datacatalog/feature/sensor-hub-bootstrap/data/csv/pipi_demo_environment.csv</code><span>Nakon indeksiranja svaki red može postati mali pretraživi zapis, pa upit <code>temperature demo-site-b</code> može pronaći vrijednost temperature za tu lokaciju.</span></div>
+
+        <div class="tutorial-example"><strong>Primjer 3 — PDF ili dokument</strong><span>Zalijepi javni HTTPS URL dokumenta i ostavi <strong>Auto detect</strong>. Ako je tekst moguće izvući, PiPi ga može podijeliti u chunkove i indeksirati. Trenutačni osnovni pipeline ne koristi OCR za skenirane slike bez ugrađenog teksta.</span></div>
+
+        <div class="policy-note"><strong>Važno:</strong> oznaka “private” u ovom MVP-u je metadata o pravilima dijeljenja. Ako je originalni URL javno dostupan na internetu, PiPi ga time ne može učiniti privatnim. Izvor ostaje pod kontrolom izvornog sustava.</div>
+      </section>
+
+      <section class="card" id="hr-index">
+        <h2>3. Što napraviti nakon dodavanja izvora</h2>
+        <table class="tutorial-table">
+          <thead><tr><th>Akcija</th><th>Što radi</th><th>Kada je koristiš</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Refresh</strong></td><td>Ponovno provjerava izvor i provenance.</td><td>Kada se originalni izvor mogao promijeniti.</td></tr>
+            <tr><td><strong>Index</strong></td><td>Izvlači pretraživi tekst i radi chunkove.</td><td>Kada želiš da sadržaj ulazi u RAG pretraživanje.</td></tr>
+            <tr><td><strong>Build/update selected vectors</strong></td><td>Gradi embeddinge za trenutačno odabrani retrieval profil.</td><td>Kada profil pokazuje npr. 0/1487 ili mu nedostaju vektori.</td></tr>
+            <tr><td><strong>Disable</strong></td><td>Zadržava povijest, ali isključuje resurs iz aktivnog korištenja.</td><td>Kada izvor više ne želiš koristiti, ali ne želiš izgubiti audit trag.</td></tr>
+            <tr><td><strong>Sync providers</strong></td><td>Provjerava izvore kojima upravljaju ugrađeni provideri.</td><td>Za Sensor Hub, FOI documents i druge provider-managed izvore.</td></tr>
+          </tbody>
+        </table>
+        <p class="quick-rule"><strong>Pravilo:</strong> katalog govori “što izvor jest”, indeks govori “koji se sadržaj može pretraživati”, a vektori govore “kako ga određeni semantic retrieval profil predstavlja”.</p>
+      </section>
+
+      <section class="card" id="hr-search">
+        <h2>4. Kako pretraživati</h2>
+        <p><strong>Search catalog</strong> pretražuje opisne podatke kataloga. Koristi ga kada tražiš dataset prema nazivu, tipu, publisheru ili ključnim riječima.</p>
+        <p><strong>Search indexed content</strong> pretražuje stvarni indeksirani tekst. Upiši pitanje ili nekoliko riječi, odaberi retrieval profil i klikni <strong>Search indexed content</strong>.</p>
+        <p>Primjeri upita:</p>
+        <ul class="tutorial-list">
+          <li><code>temperature demo-site-b</code> — konkretna vrijednost u CSV-u</li>
+          <li><code>vlaga na demo-site-a</code> — hrvatski semantički upit nad istim CSV-om</li>
+          <li><code>runtime ownership</code> — tehnička tema u GitHub repozitoriju</li>
+          <li><code>rodna ravnopravnost studenata</code> — sadržaj FOI dokumenta</li>
+        </ul>
+        <p>Rezultati mogu pokazivati oznake <strong>lexical #</strong>, <strong>vector #</strong> i <strong>cos</strong>. One pomažu objasniti zašto je rezultat visoko rangiran.</p>
+      </section>
+
+      <section class="card" id="hr-profiles">
+        <h2>5. Što znače retrieval profili?</h2>
+        <p><strong>Lexical baseline · v1</strong> traži uglavnom podudaranje riječi. Dobar je kada upit koristi iste riječi kao izvor.</p>
+        <p><strong>Vector E5 · content-v1</strong> traži po značenju koristeći multilingual E5 embeddinge.</p>
+        <p><strong>Hybrid E5 · content-v1</strong> kombinira lexical i vector retrieval. To je naš stabilni default baseline.</p>
+        <p><strong>Vector/Hybrid E5 · metadata-v1</strong> u vektorsku reprezentaciju dodaje i naslov dataseta te putanju izvora. To nekim upitima pomaže, a nekima odmaže, zato se profil čuva odvojeno.</p>
+        <div class="policy-note"><strong>Primjer:</strong> isti podaci, isti E5 model i isti upit mogu dati drukčiji poredak samo zato što je promijenjen retrieval profil. PiPi zato ne prepisuje staru verziju nego obje čuva paralelno s vlastitim configuration hashom.</div>
+        <p><strong>Vectors 1487/1487</strong> znači da svih 1487 trenutačno pretraživih chunkova ima embedding za odabranu vektorsku reprezentaciju. Lexical profil ne treba vektore.</p>
+      </section>
+
+      <section class="card" id="hr-why">
+        <h2>6. Zašto je ovo više od običnog searcha?</h2>
+        <p>Većina RAG sustava želi samo pronaći dobar kontekst i dati odgovor. PiPi želi moći odgovoriti i na drugo pitanje: <strong>zašto je sustav izabrao baš ovaj dokaz i možemo li to kasnije reproducirati?</strong></p>
+        <p>Svaki zamrznuti retrieval profil ima svoj identitet i configuration hash. Pretrage se mogu zapisivati kao retrieval runs zajedno s upitom, profilom, snapshotom kataloga i vraćenim dokazima.</p>
+        <p>Kasnije možemo razlikovati tri razloga promjene odgovora:</p>
+        <ul class="tutorial-list"><li><strong>data drift</strong> — promijenili su se podaci</li><li><strong>retrieval drift</strong> — promijenio se način pronalaska dokaza</li><li><strong>generation drift</strong> — promijenio se generativni model ili njegova konfiguracija</li></ul>
+        <div class="policy-note"><strong>Poanta PiPi projekta:</strong> izgraditi Data Space u kojem su heterogeni izvori katalogizirani, verzionirani i pretraživi, ali i u kojem je AI retrieval dovoljno transparentan da možemo pratiti, usporediti i reproducirati put od izvora do dokaza, a kasnije i do LLM odgovora.</div>
+      </section>
     </section>
 
-    <section class="card">
-      <h2>What happens from source to answer?</h2>
-      <p><strong>1. Discover.</strong> PiPi finds or registers a data source, for example a sensor dataset, PDF, CSV or GitHub repository.</p>
-      <p><strong>2. Describe.</strong> The catalog stores metadata such as title, source, type, access information and version.</p>
-      <p><strong>3. Index.</strong> Text-based content is split into smaller chunks. These chunks can be searched by exact words and, when vectors are available, by meaning.</p>
-      <p><strong>4. Retrieve.</strong> A retrieval profile decides how PiPi searches. The profile is frozen and has its own configuration hash.</p>
-      <p><strong>5. Record.</strong> Every search can be stored as a retrieval run with the query, selected profile, data snapshot and returned evidence. Later we can compare or replay runs.</p>
-      <div class="policy-note" style="margin-top:12px"><strong>Think of it like a laboratory experiment.</strong> The data are the material, the retrieval profile is the experimental procedure, and the returned chunks are the observed result. If the procedure changes, we must record that change.</div>
-    </section>
+    <section class="language-block" data-lang="en" hidden>
+      <nav class="tutorial-nav" aria-label="Contents">
+        <a class="button-link" href="#en-idea">Idea</a>
+        <a class="button-link" href="#en-sources">Add sources</a>
+        <a class="button-link" href="#en-index">Indexing</a>
+        <a class="button-link" href="#en-search">Search</a>
+        <a class="button-link" href="#en-profiles">Profiles</a>
+        <a class="button-link" href="#en-why">Why it matters</a>
+      </nav>
 
-    <section class="card">
-      <h2>How to search</h2>
-      <p>Open <strong>Search indexed content</strong>, type a question or a few keywords, choose a retrieval profile and press <strong>Search indexed content</strong>.</p>
-      <p>For example, try <code>temperature demo-site-b</code>, <code>runtime ownership</code> or <code>rodna ravnopravnost studenata</code>.</p>
-      <p>The result cards show the matching source text. Technical labels such as <strong>lexical #</strong>, <strong>vector #</strong> and <strong>cos</strong> tell us why a result was ranked highly.</p>
-    </section>
+      <section class="card" id="en-idea">
+        <h2>1. The project idea in one minute</h2>
+        <p>Imagine useful information spread across many places: sensor systems, CSV files, university documents, websites and GitHub repositories. PiPi gives these sources a <strong>shared catalog and a shared search layer</strong>.</p>
+        <p>PiPi does not need to move every original dataset into one giant database. It records what a source is, where it comes from, who publishes it, how it can be accessed and which version was used. Searchable text is split into smaller pieces called <strong>chunks</strong> and indexed.</p>
+        <div class="tutorial-flow" aria-label="PiPi flow">
+          <div>1. Source</div><div>2. Catalog and metadata</div><div>3. Chunks and vectors</div><div>4. Retrieval profile</div><div>5. Evidence / result</div>
+        </div>
+        <div class="policy-note"><strong>Main idea:</strong> knowing the source document is not enough. We also need to know <em>how</em> the system selected that evidence. PiPi therefore treats retrieval configuration as part of provenance.</div>
+      </section>
 
-    <section class="card">
-      <h2>What do the retrieval profiles mean?</h2>
-      <p><strong>Lexical baseline · v1</strong> searches mostly by matching words. It is simple and strong when the question uses the same words as the source.</p>
-      <p><strong>Vector E5 · content-v1</strong> searches by meaning using multilingual E5 embeddings. It can connect related wording even when exact words differ.</p>
-      <p><strong>Hybrid E5 · content-v1</strong> combines lexical and vector search. This is the stable default baseline.</p>
-      <p><strong>Vector/Hybrid E5 · metadata-v1</strong> also puts dataset title and source path into the vector representation. This can help some questions and hurt others. That is exactly why PiPi keeps it as a separate profile instead of replacing the baseline.</p>
-      <div class="policy-note" style="margin-top:12px"><strong>Vectors 1487/1487</strong> means every currently searchable chunk has a vector for that selected profile. If a profile shows 0/1487, use <strong>Build/update selected vectors</strong> once.</div>
-    </section>
+      <section class="card" id="en-sources">
+        <h2>2. How to add a new source</h2>
+        <p>There are two main paths. <strong>Provider-managed</strong> sources are discovered by PiPi through <strong>Sync providers</strong>, for example Sensor Hub and FOI documents. <strong>Registered resources</strong> are sources a user adds manually by URL, such as a GitHub repository, public CSV, JSON, PDF or web resource.</p>
 
-    <section class="card">
-      <h2>Why keep several versions?</h2>
-      <p>Suppose the same question gives result A with one profile and result B with another. If we only keep the newest configuration, we lose the ability to explain the difference.</p>
-      <p>PiPi therefore keeps retrieval profiles side by side. The data may stay identical while the retrieval procedure changes. This lets us measure <strong>retrieval drift</strong>: how much the selected evidence changes because of the retrieval configuration itself.</p>
-      <p>Later, when a language model generates an answer from that evidence, we can separate three causes of change: <strong>data drift</strong>, <strong>retrieval drift</strong> and <strong>generation drift</strong>.</p>
-    </section>
+        <div class="tutorial-step"><h3>Step A — open “Add resource”</h3><p>Paste a public URL into <strong>Resource URL</strong>. The easiest choice for <strong>Type</strong> is <strong>Auto detect</strong>.</p></div>
+        <div class="tutorial-step"><h3>Step B — describe the source</h3><p>Optionally add a name, publisher, license and keywords. <strong>Access level</strong> and <strong>Commercial terms</strong> describe the intended usage conditions.</p></div>
+        <div class="tutorial-step"><h3>Step C — click “Analyze and add”</h3><p>PiPi validates the URL, detects the source type, records metadata and provenance, and adds it to the catalog. The source then appears under <strong>Registered resources</strong>.</p></div>
+        <div class="tutorial-step"><h3>Step D — index it if you want to search its content</h3><p>Catalog registration and RAG indexing are different. A source can exist in the catalog without its content being searchable. For text-based sources use the <strong>Index</strong> action. PiPi then creates searchable chunks.</p></div>
 
-    <section class="card">
-      <h2>Why are we building this?</h2>
-      <p>Most RAG systems focus on getting a good answer now. PiPi is also interested in a harder question: <strong>can we explain and reproduce why the system used exactly this evidence?</strong></p>
-      <p>That matters in research, public institutions, industry and any system where data change over time. Knowing the source document is not enough if the retrieval process that selected it has changed.</p>
-      <p><strong>Project point:</strong> treat retrieval configuration as part of provenance. PiPi is a working Data Space platform for testing that idea on heterogeneous, versioned data.</p>
+        <div class="tutorial-example"><strong>Example 1 — GitHub repository</strong><span>Add the public REA repository:</span><code>https://github.com/morluto/rea</code><span>Keep <strong>Auto detect</strong> or choose <strong>GitHub repository</strong>. After indexing, PiPi searches allowed text files and keeps source paths such as <code>docs/web-runtime.md</code>.</span></div>
+
+        <div class="tutorial-example"><strong>Example 2 — public CSV</strong><span>A simple test source is the public PiPi demo CSV:</span><code>https://raw.githubusercontent.com/dvlahek/pipi-datacatalog/feature/sensor-hub-bootstrap/data/csv/pipi_demo_environment.csv</code><span>After indexing, rows become small searchable records. A query such as <code>temperature demo-site-b</code> can retrieve the matching temperature row.</span></div>
+
+        <div class="tutorial-example"><strong>Example 3 — PDF or document</strong><span>Paste a public HTTPS document URL and keep <strong>Auto detect</strong>. If text can be extracted, PiPi can chunk and index it. The current basic pipeline does not use OCR for image-only scans without embedded text.</span></div>
+
+        <div class="policy-note"><strong>Important:</strong> in this MVP, “private” is sharing metadata. If the original source URL is publicly reachable on the internet, PiPi cannot make that external URL private. The original system remains authoritative.</div>
+      </section>
+
+      <section class="card" id="en-index">
+        <h2>3. What to do after adding a source</h2>
+        <table class="tutorial-table">
+          <thead><tr><th>Action</th><th>What it does</th><th>When to use it</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Refresh</strong></td><td>Checks the source and provenance again.</td><td>When the original source may have changed.</td></tr>
+            <tr><td><strong>Index</strong></td><td>Extracts searchable text and creates chunks.</td><td>When you want the content to participate in RAG retrieval.</td></tr>
+            <tr><td><strong>Build/update selected vectors</strong></td><td>Builds embeddings for the selected retrieval profile.</td><td>When the profile shows something like 0/1487 or missing vectors.</td></tr>
+            <tr><td><strong>Disable</strong></td><td>Keeps history but removes the resource from active use.</td><td>When you no longer want to use a source but still need the audit trail.</td></tr>
+            <tr><td><strong>Sync providers</strong></td><td>Checks built-in provider-managed sources.</td><td>For Sensor Hub, FOI documents and other provider sources.</td></tr>
+          </tbody>
+        </table>
+        <p class="quick-rule"><strong>Rule of thumb:</strong> the catalog says “what the source is”, the index says “which content can be searched”, and vectors say “how a semantic retrieval profile represents that content”.</p>
+      </section>
+
+      <section class="card" id="en-search">
+        <h2>4. How to search</h2>
+        <p><strong>Search catalog</strong> searches descriptive catalog metadata. Use it to find datasets by title, type, publisher or keywords.</p>
+        <p><strong>Search indexed content</strong> searches the indexed source text. Type a question or a few words, choose a retrieval profile and press <strong>Search indexed content</strong>.</p>
+        <p>Example queries:</p>
+        <ul class="tutorial-list">
+          <li><code>temperature demo-site-b</code> — exact information in a CSV</li>
+          <li><code>vlaga na demo-site-a</code> — a Croatian semantic query over the same CSV</li>
+          <li><code>runtime ownership</code> — a technical topic in a GitHub repository</li>
+          <li><code>rodna ravnopravnost studenata</code> — content from an FOI document</li>
+        </ul>
+        <p>Results may show <strong>lexical #</strong>, <strong>vector #</strong> and <strong>cos</strong>. These labels help explain why a result ranked highly.</p>
+      </section>
+
+      <section class="card" id="en-profiles">
+        <h2>5. What do retrieval profiles mean?</h2>
+        <p><strong>Lexical baseline · v1</strong> mainly matches words. It is strong when the query uses the same wording as the source.</p>
+        <p><strong>Vector E5 · content-v1</strong> searches by meaning using multilingual E5 embeddings.</p>
+        <p><strong>Hybrid E5 · content-v1</strong> combines lexical and vector retrieval. This is the stable default baseline.</p>
+        <p><strong>Vector/Hybrid E5 · metadata-v1</strong> also includes dataset title and source path in the vector representation. This helps some queries and hurts others, so it is stored as a separate profile.</p>
+        <div class="policy-note"><strong>Example:</strong> the same data, same E5 model and same query can produce a different ranking only because the retrieval profile changed. PiPi therefore keeps profiles side by side, each with its own configuration hash.</div>
+        <p><strong>Vectors 1487/1487</strong> means all 1487 currently searchable chunks have an embedding for the selected vector representation. A lexical-only profile does not need vectors.</p>
+      </section>
+
+      <section class="card" id="en-why">
+        <h2>6. Why is this more than ordinary search?</h2>
+        <p>Most RAG systems focus on finding good context and producing an answer. PiPi also asks a harder question: <strong>why did the system select exactly this evidence, and can we reproduce that selection later?</strong></p>
+        <p>Each frozen retrieval profile has its own identity and configuration hash. Searches can be recorded as retrieval runs together with the query, profile, catalog snapshot and returned evidence.</p>
+        <p>Later we can separate three causes of change:</p>
+        <ul class="tutorial-list"><li><strong>data drift</strong> — the data changed</li><li><strong>retrieval drift</strong> — the evidence-selection procedure changed</li><li><strong>generation drift</strong> — the generative model or generation configuration changed</li></ul>
+        <div class="policy-note"><strong>PiPi project point:</strong> build a Data Space where heterogeneous sources are cataloged, versioned and searchable, while AI retrieval remains transparent enough to trace, compare and reproduce the path from source to evidence and, later, to an LLM answer.</div>
+      </section>
     </section>
   </main>
+
+  <script>
+    (() => {
+      const buttons = { hr: document.getElementById("langHr"), en: document.getElementById("langEn") };
+      const blocks = [...document.querySelectorAll(".language-block")];
+      function setLanguage(lang) {
+        const active = lang === "en" ? "en" : "hr";
+        document.documentElement.lang = active;
+        blocks.forEach((block) => { block.hidden = block.dataset.lang !== active; });
+        Object.entries(buttons).forEach(([key, button]) => button?.classList.toggle("active", key === active));
+        try { localStorage.setItem("pipiTutorialLanguage", active); } catch (_) {}
+      }
+      buttons.hr?.addEventListener("click", () => setLanguage("hr"));
+      buttons.en?.addEventListener("click", () => setLanguage("en"));
+      let initial = "hr";
+      try { initial = localStorage.getItem("pipiTutorialLanguage") || (navigator.language?.toLowerCase().startsWith("hr") ? "hr" : "en"); } catch (_) {}
+      setLanguage(initial);
+    })();
+  </script>
 </body>
 </html>
