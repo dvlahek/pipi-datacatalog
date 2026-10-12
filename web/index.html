@@ -56,6 +56,23 @@
 
       <section class="card">
         <div class="section-head">
+          <div>
+            <h2>Activity & errors</h2>
+            <p class="muted">Background indexing actions and failures are logged here. Errors remain visible after the operation finishes.</p>
+          </div>
+          <button id="reloadActivity" class="secondary" type="button">Reload</button>
+        </div>
+        <p id="activityMessage" class="message"></p>
+        <div class="table-wrap">
+          <table class="activity-table">
+            <thead><tr><th>Time</th><th>Level</th><th>Category</th><th>Activity</th><th>Message</th></tr></thead>
+            <tbody id="activityRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
           <div><h2>Search catalog</h2><p class="muted">Search normalized metadata across all providers.</p></div>
         </div>
         <form id="searchForm" class="inline-form">
@@ -170,6 +187,19 @@
       </section>
     </section>
   </main>
+
+  <div id="busyOverlay" class="busy-overlay hidden" role="status" aria-live="polite" aria-busy="true">
+    <div class="busy-dialog">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="busy-copy">
+        <h2 id="busyTitle">Working…</h2>
+        <p id="busyMessage" class="muted">Please wait. Actions are temporarily disabled while this operation runs.</p>
+        <div class="progress-track" aria-hidden="true"><div id="busyProgress" class="progress-bar indeterminate"></div></div>
+        <p id="busyDetail" class="busy-detail"></p>
+      </div>
+    </div>
+  </div>
+
   <script src="/portal/app.js" defer></script>
   <script src="/portal/harvest.js" defer></script>
 </body>
