@@ -1,0 +1,62 @@
+[
+  {
+    "id": "csv-temperature-b",
+    "query": "temperature demo-site-b",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:csv:pipi-demo-environment",
+      "text_contains_any": ["demo-site-b", "18.7"]
+    }
+  },
+  {
+    "id": "csv-temperature-a",
+    "query": "temperature demo-site-a",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:csv:pipi-demo-environment",
+      "text_contains_any": ["demo-site-a", "20.1"]
+    }
+  },
+  {
+    "id": "csv-humidity-a",
+    "query": "humidity demo-site-a",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:csv:pipi-demo-environment",
+      "text_contains_any": ["humidity", "55.0"]
+    }
+  },
+  {
+    "id": "rea-runtime-ownership",
+    "query": "runtime ownership",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:resource:2",
+      "file_path_contains_any": [
+        "docs/testing.md",
+        "docs/web-runtime.md",
+        "docs/mcp-contracts.md",
+        "docs/native-investigation.md",
+        "docs/installation.md"
+      ]
+    }
+  },
+  {
+    "id": "rea-reverse-engineer-source",
+    "query": "reverse engineer source code",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:resource:2",
+      "file_path_contains_any": [
+        "README",
+        "docs/javascript",
+        "docs/native",
+        "docs/firmware",
+        "docs/browser",
+        "docs/mcp-contracts.md"
+      ]
+    }
+  },
+  {
+    "id": "foi-gender-equality",
+    "query": "rodna ravnopravnost studenata",
+    "relevant": {
+      "dataset_identifier_contains": "rodne_ravnopravnosti"
+    }
+  }
+]
