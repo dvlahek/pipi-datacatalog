@@ -12,7 +12,7 @@ from app.providers.foi_documents import (
     FoiDocumentsProvider,
     enrich_foi_document_dataset,
 )
-from app.rag.ingest import RagExtractionError, extract_chunks, text_sha256
+from app.rag.ingest import RagExtractionError, TextChunk, chunk_text, extract_chunks, text_sha256
 from app.rag.store import RagStore
 from app.resources.fetcher import (
     ResourceFetchError,
@@ -20,7 +20,14 @@ from app.resources.fetcher import (
     detect_resource_type,
     fetch_resource_probe,
 )
-from app.resources.service import dataset_from_registered_resource
+from app.resources.github import (
+    GitHubRepositoryCorpus,
+    GitHubResourceError,
+    fetch_github_repository_corpus,
+    fetch_github_repository_snapshot,
+    parse_github_repository_url,
+)
+from app.resources.service import dataset_from_github_resource, dataset_from_registered_resource
 from app.security.url_policy import UnsafeResourceURL
 
 
@@ -49,8 +56,6 @@ def select_text_distribution(dataset: CanonicalDataset) -> CatalogDistribution |
         return None
 
     for distribution in dataset.distributions:
-        # A metadata/detail page is discoverable catalog metadata, not yet the
-        # source document body. Providers can later add a PDF/text distribution.
         if distribution.kind == "metadata-page":
             continue
         media_type = distribution.media_type.lower()
@@ -177,6 +182,85 @@ def _store_probe_as_rag_document(
     }
 
 
+def _store_github_corpus_as_rag_document(
+    store: CatalogStore,
+    dataset: CanonicalDataset,
+    corpus: GitHubRepositoryCorpus,
+    settings: Settings,
+) -> dict[str, object]:
+    sections: list[str] = []
+    chunks: list[TextChunk] = []
+    cursor = 0
+    chunk_index = 0
+
+    for file in corpus.files:
+        section = f"File: {file.path}\n{file.text}"
+        file_chunks = chunk_text(
+            section,
+            chunk_size=settings.rag_chunk_size_chars,
+            overlap=settings.rag_chunk_overlap_chars,
+        )
+        for chunk in file_chunks:
+            chunks.append(
+                TextChunk(
+                    chunk_index=chunk_index,
+                    text=chunk.text,
+                    char_start=cursor + chunk.char_start,
+                    char_end=cursor + chunk.char_end,
+                    metadata={
+                        **chunk.metadata,
+                        "structure": "github-file",
+                        "file_path": file.path,
+                        "blob_sha": file.blob_sha,
+                        "source_url": file.raw_url,
+                    },
+                )
+            )
+            chunk_index += 1
+        sections.append(section)
+        cursor += len(section) + 2
+
+    text = "\n\n".join(sections)
+    if not text or not chunks:
+        raise RagIndexError("GitHub repository produced no indexable chunks.")
+
+    rag_store = RagStore(store)
+    dataset_version = rag_store.latest_dataset_version(dataset.identifier)
+    if dataset_version is None:
+        raise RagIndexError("Dataset has no catalog version. Refresh the repository before RAG indexing.")
+
+    document = rag_store.replace_document_index(
+        dataset_identifier=dataset.identifier,
+        dataset_version=dataset_version,
+        source_url=corpus.repository.html_url,
+        media_type="application/vnd.pipi.github-repository",
+        content_sha256=corpus.content_sha256,
+        extracted_text_sha256=text_sha256(text),
+        character_count=len(text),
+        chunks=chunks,
+    )
+    return {
+        "status": "indexed",
+        "dataset_identifier": dataset.identifier,
+        "dataset_version": dataset_version,
+        "detected_type": "github",
+        "media_type": "application/vnd.pipi.github-repository",
+        "character_count": len(text),
+        "chunk_count": len(chunks),
+        "document": document,
+        "github_index": {
+            "full_name": corpus.repository.full_name,
+            "head_sha": corpus.repository.head_sha,
+            "files_indexed": corpus.selected_count,
+            "candidate_files": corpus.candidate_count,
+            "fetched_bytes": corpus.fetched_bytes,
+            "tree_truncated": corpus.tree_truncated,
+            "max_files": settings.github_index_max_files,
+            "max_total_bytes": settings.github_index_max_total_bytes,
+        },
+    }
+
+
 async def _index_foi_document(
     store: CatalogStore,
     dataset: CanonicalDataset,
@@ -199,8 +283,6 @@ async def _index_foi_document(
     try:
         result = _store_probe_as_rag_document(store, enriched, probe, settings)
     except RagExtractionError as exc:
-        # Resolution and versioning are still useful even for a format whose text
-        # extractor has not been implemented yet (for example XLS/XLSX).
         raise RagIndexError(
             f"FOI source was resolved and versioned, but it is not text-indexable yet: {exc}"
         ) from exc
@@ -222,22 +304,17 @@ async def index_catalog_dataset(
     dataset_identifier: str,
     settings: Settings,
 ) -> dict[str, object]:
-    """Index a current catalog dataset without forcing it through the resource registry.
-
-    User-registered resources still use their refresh-aware path. Provider-managed
-    datasets use an indexable distribution and remain owned by their provider.
-    FOI documents resolve their source file only when explicitly indexed. Sensor
-    observations stay metadata-first and are not flattened into text chunks.
-    """
-
     dataset = _dataset_by_identifier(store, dataset_identifier)
 
-    if dataset.source_system == "resource-registry":
+    if dataset.source_system in {"resource-registry", "github"}:
         resource_id = _resource_id_for_dataset(store, dataset.identifier)
         if resource_id is None:
             raise RagIndexError("Registered-resource dataset is missing its registry entry.")
         result = await index_registered_resource(store, resource_id, settings)
-        return {**result, "index_source": "resource-registry"}
+        return {
+            **result,
+            "index_source": "github-repository" if dataset.source_system == "github" else "resource-registry",
+        }
 
     if dataset.source_system == "foi-documents":
         try:
@@ -275,6 +352,38 @@ async def index_registered_resource(
         raise KeyError(resource_id)
     if not resource["enabled"]:
         raise RagIndexError("Disabled resources cannot be indexed.")
+
+    github_ref = parse_github_repository_url(str(resource["source_url"]))
+    if github_ref is not None:
+        try:
+            requested_type = str(resource["requested_type"])
+            if requested_type not in {"auto", "github", "text", "generic"}:
+                raise GitHubResourceError(
+                    f"GitHub repository URL conflicts with requested resource type {requested_type!r}."
+                )
+            snapshot = await fetch_github_repository_snapshot(str(resource["source_url"]), settings)
+            dataset = dataset_from_github_resource(resource, snapshot)
+            sync = store.upsert_datasets([dataset])
+            store.mark_resource_success(
+                resource_id,
+                detected_type="github",
+                dataset_identifier=dataset.identifier,
+                media_type="application/vnd.github.repository+json",
+                etag=None,
+                last_modified=snapshot.pushed_at,
+                content_sha256=None,
+            )
+            corpus = await fetch_github_repository_corpus(snapshot, settings)
+            result = _store_github_corpus_as_rag_document(store, dataset, corpus, settings)
+            return {
+                **result,
+                "resource_id": resource_id,
+                "catalog_sync": sync,
+                "index_source": "github-repository",
+            }
+        except GitHubResourceError as exc:
+            store.mark_resource_error(resource_id, str(exc))
+            raise RagIndexError(str(exc)) from exc
 
     try:
         probe = await fetch_resource_probe(str(resource["source_url"]), settings)
