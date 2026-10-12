@@ -12,6 +12,7 @@ if str(_REPOSITORY_ROOT) not in sys.path:
 
 from app.catalog.service import catalog_store
 from app.config import get_settings
+from app.rag.embeddings import get_embedding_provider
 from app.rag.search import search_rag
 
 _DEFAULT_CASES = _REPOSITORY_ROOT / "config" / "rag_eval_queries.json"
@@ -78,6 +79,7 @@ def main() -> None:
     store = catalog_store(settings)
     if store is None:
         raise SystemExit("Persistent catalog store is required. Set CATALOG_STORE_ENABLED=true.")
+    provider = get_embedding_provider(settings)
 
     cases = json.loads(args.cases.read_text(encoding="utf-8"))
     if not isinstance(cases, list) or not cases:
@@ -85,7 +87,8 @@ def main() -> None:
 
     report: dict[str, Any] = {
         "embedding_provider": settings.rag_embedding_provider,
-        "embedding_model": settings.rag_embedding_model,
+        "embedding_model": provider.name,
+        "embedding_input_profile": settings.rag_embedding_input_profile,
         "limit": args.limit,
         "modes": {},
     }
@@ -123,7 +126,10 @@ def main() -> None:
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return
 
-    print(f"Embedding: {report['embedding_provider']} · {report['embedding_model']}")
+    print(
+        f"Embedding: {report['embedding_provider']} · {report['embedding_model']} "
+        f"· profile={report['embedding_input_profile']}"
+    )
     print(f"Cases: {len(cases)} · top-k: {args.limit}")
     for mode in args.modes:
         mode_report = report["modes"][mode]
