@@ -24,6 +24,7 @@
   function kindLabel(kind) {
     if (kind === "provider-sync") return "Provider sync";
     if (kind === "resource-refresh") return "Registered resources";
+    if (kind === "rag-reindex") return "RAG re-index";
     return kind || "Harvest";
   }
 
@@ -34,6 +35,9 @@
     }
     if (run.run_kind === "resource-refresh") {
       return `${summary.checked ?? 0} checked · ${summary.versions_created ?? 0} changed · ${summary.errors ?? 0} errors`;
+    }
+    if (run.run_kind === "rag-reindex") {
+      return `${summary.candidates ?? 0} stale · ${summary.reindexed ?? 0} re-indexed · ${summary.deferred ?? 0} deferred · ${summary.errors ?? 0} errors`;
     }
     return JSON.stringify(summary);
   }
