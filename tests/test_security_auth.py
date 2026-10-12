@@ -35,7 +35,14 @@ def test_password_hash_and_jwt_roundtrip() -> None:
 
 
 def test_auth_configuration_fails_closed_when_enabled_without_secrets() -> None:
-    settings = Settings(auth_enabled=True)
+    # Explicitly override local .env values so this test really exercises the
+    # fail-closed path on developer machines that already have auth configured.
+    settings = Settings(
+        auth_enabled=True,
+        auth_username=None,
+        auth_password_hash=None,
+        auth_jwt_secret=None,
+    )
     try:
         validate_auth_configuration(settings)
     except RuntimeError as exc:
