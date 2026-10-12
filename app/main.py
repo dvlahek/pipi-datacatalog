@@ -6,6 +6,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.auth import router as auth_router
+from app.api.rag import router as rag_router
 from app.api.resources import router as resources_router
 from app.api.routes import router
 from app.catalog.service import catalog_store
@@ -50,6 +51,7 @@ app.add_middleware(SecurityHeadersMiddleware, settings=settings)
 
 app.include_router(auth_router)
 app.include_router(resources_router)
+app.include_router(rag_router)
 app.include_router(router)
 
 
