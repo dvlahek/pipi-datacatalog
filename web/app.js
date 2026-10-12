@@ -2,6 +2,7 @@ const state = {
   token: sessionStorage.getItem("pipiToken"),
   authEnabled: true,
   datasetsByIdentifier: new Map(),
+  ragStatusByIdentifier: new Map(),
 };
 
 const el = (id) => document.getElementById(id);
@@ -182,6 +183,33 @@ function datasetIsRagIndexable(dataset) {
   });
 }
 
+function ragStatusCell(dataset, statusInfo) {
+  const cell = document.createElement("td");
+  const badge = document.createElement("span");
+  badge.className = "badge";
+
+  if (dataset.dataset_type === "sensor-observation") {
+    badge.classList.add("rag-metadata");
+    badge.textContent = "Metadata-first";
+  } else if (dataset.dataset_type === "live-video-stream") {
+    badge.classList.add("rag-metadata");
+    badge.textContent = "Metadata only";
+  } else if (!statusInfo || statusInfo.status === "not_indexed") {
+    badge.classList.add("rag-not-indexed");
+    badge.textContent = "Not indexed";
+  } else if (statusInfo.status === "stale") {
+    badge.classList.add("rag-stale");
+    badge.textContent = `Stale v${statusInfo.indexed_version} → v${statusInfo.catalog_version}`;
+    badge.title = "Catalog metadata/source changed after the current RAG index. Re-index before retrieval.";
+  } else {
+    badge.classList.add("rag-indexed");
+    badge.textContent = `Indexed v${statusInfo.indexed_version}`;
+  }
+
+  cell.append(badge);
+  return cell;
+}
+
 async function indexDatasetForRag(dataset) {
   const resolvingFoi = dataset.source_system === "foi-documents"
     && !(dataset.distributions || []).some((item) => item.kind === "source-document");
@@ -260,11 +288,18 @@ function appendDatasetActions(dataset, actions) {
 }
 
 async function loadDatasets() {
-  const payload = await apiFetch("/api/v1/datasets");
+  const [payload, ragPayload] = await Promise.all([
+    apiFetch("/api/v1/datasets"),
+    apiFetch("/api/v1/rag/status"),
+  ]);
+
   el("datasetCount").textContent = payload.count;
   const rows = el("datasetRows");
   rows.replaceChildren();
   state.datasetsByIdentifier = new Map();
+  state.ragStatusByIdentifier = new Map(
+    (ragPayload.data || []).map((item) => [item.dataset_identifier, item]),
+  );
 
   for (const dataset of payload.data) {
     state.datasetsByIdentifier.set(dataset.identifier, dataset);
@@ -282,6 +317,7 @@ async function loadDatasets() {
     row.append(td(dataset.dataset_type));
     row.append(td(dataset.source_system));
     row.append(td(distributionLabel(dataset)));
+    row.append(ragStatusCell(dataset, state.ragStatusByIdentifier.get(dataset.identifier)));
     row.append(sharingCell(datasetSharing(dataset)));
 
     const actionsCell = document.createElement("td");
@@ -352,14 +388,14 @@ async function loadResources() {
       actions.append(button("Disable", async () => {
         try {
           await apiFetch(`/api/v1/resources/${resource.id}`, { method: "DELETE" });
-          await loadResources();
+          await Promise.all([loadResources(), loadDatasets()]);
         } catch (error) { window.alert(error.message); }
       }));
     } else {
       actions.append(button("Enable", async () => {
         try {
           await apiFetch(`/api/v1/resources/${resource.id}/enable`, { method: "POST" });
-          await loadResources();
+          await Promise.all([loadResources(), loadDatasets()]);
         } catch (error) { window.alert(error.message); }
       }));
     }
@@ -385,7 +421,7 @@ function renderRagResults(payload) {
   if (!payload.data.length) {
     const empty = document.createElement("div");
     empty.className = "muted";
-    empty.textContent = "No indexed chunks matched this query.";
+    empty.textContent = "No current indexed chunks matched this query.";
     results.append(empty);
     return;
   }
