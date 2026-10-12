@@ -53,6 +53,17 @@ class Settings(BaseSettings):
     rag_auto_reindex_enabled: bool = True
     rag_auto_reindex_limit: int = 10
 
+    # Vector retrieval. `feature-hash` is a deterministic dependency-free baseline
+    # for validating pgvector storage and hybrid retrieval. It is not a semantic
+    # language model; a multilingual neural provider can replace it without changing
+    # the catalog/chunk schema.
+    rag_embedding_provider: str = "feature-hash"
+    rag_embedding_model: str = "feature-hash-384-v1"
+    rag_embedding_dimensions: int = 384
+    rag_embedding_batch_size: int = 128
+    rag_embedding_backfill_limit: int = 10000
+    rag_hybrid_rrf_k: int = 60
+
     # Persistent catalog metadata store. Source payloads/readings are not copied.
     catalog_store_enabled: bool = False
     database_url: str | None = None
