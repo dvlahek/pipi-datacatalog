@@ -162,6 +162,42 @@ async def refresh_registered_resource(
         return {"status": "error", "resource": failed, "error": str(exc), "sync": None}
 
 
+async def refresh_enabled_resources(
+    store: CatalogStore,
+    settings: Settings,
+) -> dict[str, object]:
+    """Refresh all enabled user-registered resources and summarize catalog changes."""
+
+    enabled = [resource for resource in store.list_resources() if resource["enabled"]]
+    results: list[dict[str, object]] = []
+    totals = {
+        "checked": len(enabled),
+        "ok": 0,
+        "errors": 0,
+        "inserted": 0,
+        "updated": 0,
+        "unchanged": 0,
+        "versions_created": 0,
+    }
+
+    for resource in enabled:
+        result = await refresh_registered_resource(store, int(resource["id"]), settings)
+        results.append(result)
+        if result["status"] == "ok":
+            totals["ok"] += 1
+            sync = result.get("sync") or {}
+            for key in ("inserted", "updated", "unchanged", "versions_created"):
+                totals[key] += int(sync.get(key, 0))
+        else:
+            totals["errors"] += 1
+
+    return {
+        "status": "ok" if totals["errors"] == 0 else "partial",
+        **totals,
+        "data": results,
+    }
+
+
 async def register_resource(
     store: CatalogStore,
     payload: ResourceCreate,
