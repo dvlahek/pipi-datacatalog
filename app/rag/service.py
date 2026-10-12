@@ -7,6 +7,11 @@ from urllib.parse import unquote, urlparse
 from app.catalog.store import CatalogStore
 from app.config import Settings
 from app.models.catalog import CatalogDistribution, CanonicalDataset
+from app.providers.foi_documents import (
+    FoiDocumentResolutionError,
+    FoiDocumentsProvider,
+    enrich_foi_document_dataset,
+)
 from app.rag.ingest import RagExtractionError, extract_chunks, text_sha256
 from app.rag.store import RagStore
 from app.resources.fetcher import (
@@ -45,7 +50,7 @@ def select_text_distribution(dataset: CanonicalDataset) -> CatalogDistribution |
 
     for distribution in dataset.distributions:
         # A metadata/detail page is discoverable catalog metadata, not yet the
-        # source document body. Providers can later add a PDF/XLS/text distribution.
+        # source document body. Providers can later add a PDF/text distribution.
         if distribution.kind == "metadata-page":
             continue
         media_type = distribution.media_type.lower()
@@ -172,6 +177,46 @@ def _store_probe_as_rag_document(
     }
 
 
+async def _index_foi_document(
+    store: CatalogStore,
+    dataset: CanonicalDataset,
+    settings: Settings,
+) -> dict[str, object]:
+    foi_metadata = dict(dataset.extensions.get("foi_documents") or {})
+    detail_url = str(foi_metadata.get("detail_url") or "").strip()
+    if not detail_url:
+        raise RagIndexError("FOI document dataset is missing its public detail URL.")
+
+    provider = FoiDocumentsProvider(
+        settings.foi_documents_base_url,
+        settings.foi_documents_timeout_seconds,
+    )
+    detail = await provider.resolve_detail(detail_url)
+    probe = await fetch_resource_probe(detail.download_url, settings)
+    enriched = enrich_foi_document_dataset(dataset, detail, probe)
+    catalog_sync = store.upsert_datasets([enriched])
+
+    try:
+        result = _store_probe_as_rag_document(store, enriched, probe, settings)
+    except RagExtractionError as exc:
+        # Resolution and versioning are still useful even for a format whose text
+        # extractor has not been implemented yet (for example XLS/XLSX).
+        raise RagIndexError(
+            f"FOI source was resolved and versioned, but it is not text-indexable yet: {exc}"
+        ) from exc
+
+    return {
+        **result,
+        "index_source": "foi-document-download",
+        "catalog_sync": catalog_sync,
+        "foi_document": {
+            "detail_url": detail.detail_url,
+            "download_id": detail.download_id,
+            "download_url": probe.final_url,
+        },
+    }
+
+
 async def index_catalog_dataset(
     store: CatalogStore,
     dataset_identifier: str,
@@ -181,7 +226,8 @@ async def index_catalog_dataset(
 
     User-registered resources still use their refresh-aware path. Provider-managed
     datasets use an indexable distribution and remain owned by their provider.
-    Sensor observations stay metadata-first and are not flattened into text chunks.
+    FOI documents resolve their source file only when explicitly indexed. Sensor
+    observations stay metadata-first and are not flattened into text chunks.
     """
 
     dataset = _dataset_by_identifier(store, dataset_identifier)
@@ -192,6 +238,17 @@ async def index_catalog_dataset(
             raise RagIndexError("Registered-resource dataset is missing its registry entry.")
         result = await index_registered_resource(store, resource_id, settings)
         return {**result, "index_source": "resource-registry"}
+
+    if dataset.source_system == "foi-documents":
+        try:
+            return await _index_foi_document(store, dataset, settings)
+        except (
+            FoiDocumentResolutionError,
+            ResourceFetchError,
+            UnsafeResourceURL,
+            ValueError,
+        ) as exc:
+            raise RagIndexError(str(exc)) from exc
 
     distribution = select_text_distribution(dataset)
     if distribution is None:
