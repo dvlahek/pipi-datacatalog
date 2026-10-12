@@ -95,6 +95,7 @@ function datasetIsRagIndexable(dataset) {
   if (["sensor-observation", "live-video-stream"].includes(dataset.dataset_type)) return false;
   const distributions = dataset.distributions || [];
   return distributions.some((item) => {
+    if (item.kind === "metadata-page") return false;
     const media = String(item.media_type || "").toLowerCase();
     const format = String(item.format || "").toUpperCase();
     return media.startsWith("text/")
@@ -145,6 +146,12 @@ function appendDatasetActions(dataset, actions) {
   const liveStream = distributions.find((item) => item.kind === "live-stream" || String(item.format || "").toUpperCase() === "HLS");
   if (liveStream) {
     actions.append(linkButton("Open HLS", liveStream.access_url));
+    added = true;
+  }
+
+  const metadataPage = distributions.find((item) => item.kind === "metadata-page");
+  if (metadataPage) {
+    actions.append(linkButton("Open details", metadataPage.access_url));
     added = true;
   }
 
