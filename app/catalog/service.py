@@ -8,6 +8,7 @@ from app.config import Settings
 from app.models.catalog import CanonicalDataset
 from app.providers.base import CatalogProvider
 from app.providers.csv_file import CsvFileProvider
+from app.providers.foi_documents import FoiDocumentsProvider
 from app.providers.registry import ProviderStatus, discover_from_providers
 from app.providers.sensor_hub import SensorHubProvider
 from app.providers.static_web import StaticWebProvider
@@ -29,6 +30,13 @@ def configured_providers(
             CsvFileProvider(
                 settings.csv_datasets_config,
                 settings.catalog_public_base_url,
+            )
+        )
+    if settings.provider_foi_documents_enabled:
+        providers.append(
+            FoiDocumentsProvider(
+                settings.foi_documents_base_url,
+                settings.foi_documents_timeout_seconds,
             )
         )
 
