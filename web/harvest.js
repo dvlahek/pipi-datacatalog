@@ -128,3 +128,13 @@
 
   window.loadHarvestRuns = loadHarvestRuns;
 })();
+
+// Keep the main portal shell small while loading the background indexing/activity UI
+// after app.js has defined the shared API helpers and dashboard functions.
+(() => {
+  if (document.querySelector('script[data-pipi-jobs]')) return;
+  const script = document.createElement("script");
+  script.src = "/portal/jobs.js";
+  script.dataset.pipiJobs = "true";
+  document.body.append(script);
+})();
