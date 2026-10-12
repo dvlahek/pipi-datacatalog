@@ -34,10 +34,14 @@ _TEXT_MEDIA_TYPES = {
     "application/pdf",
 }
 _TEXT_FORMATS = {"CSV", "JSON", "PDF", "TXT", "TEXT", "HTML"}
+_METADATA_FIRST_DATASET_TYPES = {"sensor-observation"}
 
 
 def select_text_distribution(dataset: CanonicalDataset) -> CatalogDistribution | None:
     """Return the first distribution that can feed the current text RAG pipeline."""
+
+    if dataset.dataset_type in _METADATA_FIRST_DATASET_TYPES:
+        return None
 
     for distribution in dataset.distributions:
         media_type = distribution.media_type.lower()
@@ -174,6 +178,7 @@ async def index_catalog_dataset(
 
     User-registered resources still use their refresh-aware path. Provider-managed
     datasets use an indexable distribution and remain owned by their provider.
+    Sensor observations stay metadata-first and are not flattened into text chunks.
     """
 
     dataset = _dataset_by_identifier(store, dataset_identifier)
