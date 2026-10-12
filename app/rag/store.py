@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, delete, select
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, delete, select, text
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.catalog.store import Base, CatalogStore, DatasetVersionRow, ResourceRow
@@ -41,6 +41,8 @@ class RagChunkRow(Base):
     char_start: Mapped[int] = mapped_column(Integer)
     char_end: Mapped[int] = mapped_column(Integer)
     metadata_json: Mapped[dict[str, Any]] = mapped_column("metadata", JSON, default=dict)
+    # pgvector columns are added by migration 007 and intentionally accessed with
+    # SQL text below. Keeping them out of the ORM preserves SQLite unit-test setup.
 
 
 class RagStore:
@@ -126,8 +128,6 @@ class RagStore:
             return None if row is None else self._document_dict(row)
 
     def index_status(self, dataset_identifier: str) -> dict[str, Any]:
-        """Compare the latest catalog version with the latest indexed RAG version."""
-
         catalog_version = self.latest_dataset_version(dataset_identifier)
         document = self.document_status(dataset_identifier)
         indexed_version = None if document is None else int(document["dataset_version"])
@@ -148,8 +148,6 @@ class RagStore:
         }
 
     def list_index_statuses(self) -> list[dict[str, Any]]:
-        """Return freshness status for all versioned catalog datasets in two queries."""
-
         with Session(self.engine) as session:
             version_rows = session.scalars(
                 select(DatasetVersionRow).order_by(
@@ -237,13 +235,6 @@ class RagStore:
             ]
 
     def search_chunks(self, query: str, *, limit: int = 10) -> list[dict[str, Any]]:
-        """Search only chunks whose index matches the current catalog version.
-
-        Disabled user-registered resources remain preserved in catalog/version history,
-        but their previously indexed chunks are excluded from retrieval. A RAG index
-        also becomes ineligible as soon as a newer catalog version exists. This avoids
-        silently answering from stale content while a re-index is pending.
-        """
         with Session(self.engine) as session:
             disabled_resource_datasets = set(
                 session.scalars(
@@ -308,6 +299,190 @@ class RagStore:
             ]
 
         return rank_chunk_candidates(query, candidates, limit=limit)
+
+    def _require_pgvector(self) -> None:
+        if self.engine.dialect.name != "postgresql":
+            raise RuntimeError("pgvector retrieval requires PostgreSQL.")
+
+    @staticmethod
+    def _vector_literal(vector: list[float]) -> str:
+        return "[" + ",".join(f"{value:.10g}" for value in vector) + "]"
+
+    def list_current_chunks_for_embedding(
+        self,
+        model: str,
+        *,
+        dataset_identifier: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        self._require_pgvector()
+        query = """
+            WITH latest_versions AS (
+                SELECT dataset_identifier, MAX(version) AS version
+                FROM catalog_dataset_versions
+                GROUP BY dataset_identifier
+            )
+            SELECT c.id AS chunk_id, c.text, d.dataset_identifier, d.dataset_version, c.chunk_index
+            FROM rag_chunks c
+            JOIN rag_documents d ON d.id = c.document_id
+            JOIN latest_versions v
+              ON v.dataset_identifier = d.dataset_identifier
+             AND v.version = d.dataset_version
+            LEFT JOIN catalog_resources r ON r.dataset_identifier = d.dataset_identifier
+            WHERE (r.id IS NULL OR r.enabled = TRUE)
+              AND (:dataset_identifier IS NULL OR d.dataset_identifier = :dataset_identifier)
+              AND (c.embedding IS NULL OR c.embedding_model IS DISTINCT FROM :model)
+            ORDER BY d.dataset_identifier, d.dataset_version, c.chunk_index
+        """
+        params: dict[str, Any] = {
+            "model": model,
+            "dataset_identifier": dataset_identifier,
+        }
+        if limit is not None:
+            query += " LIMIT :limit"
+            params["limit"] = max(1, int(limit))
+        with self.engine.begin() as connection:
+            rows = connection.execute(text(query), params).mappings().all()
+            return [dict(row) for row in rows]
+
+    def write_chunk_embeddings(
+        self,
+        rows: list[dict[str, Any]],
+        *,
+        model: str,
+        dimensions: int,
+    ) -> int:
+        self._require_pgvector()
+        if not rows:
+            return 0
+        now = datetime.now(timezone.utc)
+        payloads = [
+            {
+                "chunk_id": int(item["chunk_id"]),
+                "embedding": self._vector_literal(list(item["vector"])),
+                "model": model,
+                "dimensions": dimensions,
+                "embedded_at": now,
+            }
+            for item in rows
+        ]
+        statement = text(
+            """
+            UPDATE rag_chunks
+               SET embedding = CAST(:embedding AS vector),
+                   embedding_model = :model,
+                   embedding_dimensions = :dimensions,
+                   embedded_at = :embedded_at
+             WHERE id = :chunk_id
+            """
+        )
+        with self.engine.begin() as connection:
+            result = connection.execute(statement, payloads)
+            return int(result.rowcount or 0)
+
+    def embedding_status(self, model: str) -> dict[str, Any]:
+        self._require_pgvector()
+        statement = text(
+            """
+            WITH latest_versions AS (
+                SELECT dataset_identifier, MAX(version) AS version
+                FROM catalog_dataset_versions
+                GROUP BY dataset_identifier
+            ), current_chunks AS (
+                SELECT c.id, c.embedding, c.embedding_model
+                FROM rag_chunks c
+                JOIN rag_documents d ON d.id = c.document_id
+                JOIN latest_versions v
+                  ON v.dataset_identifier = d.dataset_identifier
+                 AND v.version = d.dataset_version
+                LEFT JOIN catalog_resources r ON r.dataset_identifier = d.dataset_identifier
+                WHERE (r.id IS NULL OR r.enabled = TRUE)
+            )
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE embedding IS NOT NULL AND embedding_model = :model) AS embedded
+            FROM current_chunks
+            """
+        )
+        with self.engine.begin() as connection:
+            row = connection.execute(statement, {"model": model}).mappings().one()
+        total = int(row["total"] or 0)
+        embedded = int(row["embedded"] or 0)
+        return {
+            "model": model,
+            "total_current_chunks": total,
+            "embedded_current_model": embedded,
+            "missing": max(0, total - embedded),
+            "complete": total > 0 and total == embedded,
+        }
+
+    def vector_search(
+        self,
+        query_vector: list[float],
+        *,
+        model: str,
+        limit: int = 10,
+    ) -> list[dict[str, Any]]:
+        self._require_pgvector()
+        if not any(query_vector):
+            return []
+        statement = text(
+            """
+            WITH latest_versions AS (
+                SELECT dataset_identifier, MAX(version) AS version
+                FROM catalog_dataset_versions
+                GROUP BY dataset_identifier
+            )
+            SELECT
+                d.dataset_identifier,
+                d.dataset_version,
+                d.source_url,
+                d.media_type,
+                c.chunk_index,
+                c.text,
+                c.char_start,
+                c.char_end,
+                c.metadata,
+                (c.embedding <=> CAST(:query_vector AS vector)) AS distance
+            FROM rag_chunks c
+            JOIN rag_documents d ON d.id = c.document_id
+            JOIN latest_versions v
+              ON v.dataset_identifier = d.dataset_identifier
+             AND v.version = d.dataset_version
+            LEFT JOIN catalog_resources r ON r.dataset_identifier = d.dataset_identifier
+            WHERE (r.id IS NULL OR r.enabled = TRUE)
+              AND c.embedding IS NOT NULL
+              AND c.embedding_model = :model
+            ORDER BY c.embedding <=> CAST(:query_vector AS vector)
+            LIMIT :limit
+            """
+        )
+        params = {
+            "query_vector": self._vector_literal(query_vector),
+            "model": model,
+            "limit": max(1, int(limit)),
+        }
+        with self.engine.begin() as connection:
+            rows = connection.execute(statement, params).mappings().all()
+
+        results: list[dict[str, Any]] = []
+        for row in rows:
+            distance = float(row["distance"])
+            results.append(
+                {
+                    "dataset_identifier": str(row["dataset_identifier"]),
+                    "dataset_version": int(row["dataset_version"]),
+                    "source_url": str(row["source_url"]),
+                    "media_type": str(row["media_type"]),
+                    "chunk_index": int(row["chunk_index"]),
+                    "text": str(row["text"]),
+                    "char_start": int(row["char_start"]),
+                    "char_end": int(row["char_end"]),
+                    "metadata": dict(row["metadata"] or {}),
+                    "vector_similarity": round(1.0 - distance, 8),
+                }
+            )
+        return results
 
     @staticmethod
     def _document_dict(row: RagDocumentRow) -> dict[str, Any]:
