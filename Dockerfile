@@ -4,11 +4,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
+ARG INSTALL_NEURAL_EMBEDDINGS=0
+
 WORKDIR /app
 
-COPY requirements.txt ./
+COPY requirements.txt requirements-embeddings.txt ./
 RUN python -m pip install --upgrade pip && \
-    python -m pip install -r requirements.txt
+    if [ "$INSTALL_NEURAL_EMBEDDINGS" = "1" ]; then \
+        python -m pip install -r requirements-embeddings.txt; \
+    else \
+        python -m pip install -r requirements.txt; \
+    fi
 
 COPY . .
 
