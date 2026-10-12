@@ -39,6 +39,23 @@
 
       <section class="card">
         <div class="section-head">
+          <div>
+            <h2>Harvest activity</h2>
+            <p class="muted">Recent provider synchronizations and registered-resource refreshes. Scheduled and manual runs use the same audit trail.</p>
+          </div>
+          <button id="reloadHarvestRuns" class="secondary" type="button">Reload</button>
+        </div>
+        <p id="harvestMessage" class="message"></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Started</th><th>Run</th><th>Trigger</th><th>Status</th><th>Summary</th><th>Duration</th></tr></thead>
+            <tbody id="harvestRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
           <div><h2>Search catalog</h2><p class="muted">Search normalized metadata across all providers.</p></div>
         </div>
         <form id="searchForm" class="inline-form">
@@ -153,5 +170,6 @@
     </section>
   </main>
   <script src="/portal/app.js" defer></script>
+  <script src="/portal/harvest.js" defer></script>
 </body>
 </html>
