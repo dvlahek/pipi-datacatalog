@@ -272,6 +272,31 @@ def get_embedding_provider(settings: Settings) -> EmbeddingProvider:
     )
 
 
+def _write_batch_embeddings(
+    rag_store: RagStore,
+    settings: Settings,
+    provider: EmbeddingProvider,
+    profile: str,
+    batch: list[dict[str, object]],
+    vectors: list[list[float]],
+) -> int:
+    return rag_store.write_chunk_embeddings(
+        [
+            {
+                "chunk_id": int(item["chunk_id"]),
+                "vector": vector,
+            }
+            for item, vector in zip(batch, vectors)
+        ],
+        model=provider.name,
+        dimensions=provider.dimensions,
+        provider=settings.rag_embedding_provider,
+        base_model=settings.rag_embedding_model,
+        revision=settings.rag_embedding_revision or None,
+        input_profile=profile,
+    )
+
+
 def embed_dataset_chunks(
     store: CatalogStore,
     settings: Settings,
@@ -294,17 +319,7 @@ def embed_dataset_chunks(
         batch = rows[start : start + batch_size]
         texts = _embedding_inputs(store, rag_store, batch, profile=profile)
         vectors = provider.embed_documents(texts)
-        rag_store.write_chunk_embeddings(
-            [
-                {
-                    "chunk_id": int(item["chunk_id"]),
-                    "vector": vector,
-                }
-                for item, vector in zip(batch, vectors)
-            ],
-            model=provider.name,
-            dimensions=provider.dimensions,
-        )
+        _write_batch_embeddings(rag_store, settings, provider, profile, batch, vectors)
         embedded += len(batch)
         if progress:
             progress(embedded, total)
@@ -361,17 +376,7 @@ def backfill_current_embeddings(
         batch = rows[start : start + batch_size]
         texts = _embedding_inputs(store, rag_store, batch, profile=profile)
         vectors = provider.embed_documents(texts)
-        rag_store.write_chunk_embeddings(
-            [
-                {
-                    "chunk_id": int(item["chunk_id"]),
-                    "vector": vector,
-                }
-                for item, vector in zip(batch, vectors)
-            ],
-            model=provider.name,
-            dimensions=provider.dimensions,
-        )
+        _write_batch_embeddings(rag_store, settings, provider, profile, batch, vectors)
         embedded += len(batch)
         if progress:
             progress(embedded, total)
