@@ -126,6 +126,14 @@ async def list_providers() -> dict[str, object]:
                 "description": "Version-aware CSV file metadata provider",
             }
         )
+    if settings.provider_foi_documents_enabled:
+        providers.append(
+            {
+                "name": "foi-documents",
+                "kind": "public-document-catalog",
+                "description": "Public FOI Dokumenti discovery provider",
+            }
+        )
 
     return {"count": len(providers), "data": providers}
 
