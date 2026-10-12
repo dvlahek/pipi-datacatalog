@@ -50,6 +50,21 @@
 
       <section class="card">
         <div class="section-head">
+          <div>
+            <h2>Search indexed content</h2>
+            <p class="muted">Search RAG chunks from the latest indexed version of each dataset. This is the transparent lexical baseline before embeddings.</p>
+          </div>
+        </div>
+        <form id="ragSearchForm" class="inline-form">
+          <input id="ragSearchQuery" placeholder="temperature demo-site-b" required minlength="2">
+          <button type="submit">Search indexed content</button>
+        </form>
+        <p id="ragSearchMessage" class="message"></p>
+        <div id="ragSearchResults" class="results"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
           <div><h2>Add resource</h2><p class="muted">The server validates the URL, detects the type, records provenance and creates or updates catalog metadata.</p></div>
         </div>
         <form id="resourceForm" class="resource-form">
