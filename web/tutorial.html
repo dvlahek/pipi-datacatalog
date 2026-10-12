@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PiPi Data Space · Simple Guide</title>
+  <link rel="stylesheet" href="/portal/styles.css">
+</head>
+<body>
+  <main class="shell" style="max-width:980px">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">PiPi · simple guide</div>
+        <h1>How PiPi works</h1>
+      </div>
+      <div class="top-actions">
+        <a class="button-link" href="/portal/">Back to PiPi</a>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>The idea in one minute</h2>
+      <p>Imagine that useful information is spread across many places: sensor systems, CSV files, university documents, websites and GitHub repositories. PiPi gives these sources one common catalog and one search layer.</p>
+      <p>PiPi does not need to copy every original source into one giant database. It records what a source is, where it comes from, how it can be accessed and which version was used. For searchable text, PiPi creates small text chunks and a search index.</p>
+      <p><strong>The important part:</strong> PiPi also remembers <em>how</em> information was searched. A different retrieval method can return different evidence even when the data and the question are unchanged. That search configuration is therefore part of the provenance.</p>
+    </section>
+
+    <section class="card">
+      <h2>What happens from source to answer?</h2>
+      <p><strong>1. Discover.</strong> PiPi finds or registers a data source, for example a sensor dataset, PDF, CSV or GitHub repository.</p>
+      <p><strong>2. Describe.</strong> The catalog stores metadata such as title, source, type, access information and version.</p>
+      <p><strong>3. Index.</strong> Text-based content is split into smaller chunks. These chunks can be searched by exact words and, when vectors are available, by meaning.</p>
+      <p><strong>4. Retrieve.</strong> A retrieval profile decides how PiPi searches. The profile is frozen and has its own configuration hash.</p>
+      <p><strong>5. Record.</strong> Every search can be stored as a retrieval run with the query, selected profile, data snapshot and returned evidence. Later we can compare or replay runs.</p>
+      <div class="policy-note" style="margin-top:12px"><strong>Think of it like a laboratory experiment.</strong> The data are the material, the retrieval profile is the experimental procedure, and the returned chunks are the observed result. If the procedure changes, we must record that change.</div>
+    </section>
+
+    <section class="card">
+      <h2>How to search</h2>
+      <p>Open <strong>Search indexed content</strong>, type a question or a few keywords, choose a retrieval profile and press <strong>Search indexed content</strong>.</p>
+      <p>For example, try <code>temperature demo-site-b</code>, <code>runtime ownership</code> or <code>rodna ravnopravnost studenata</code>.</p>
+      <p>The result cards show the matching source text. Technical labels such as <strong>lexical #</strong>, <strong>vector #</strong> and <strong>cos</strong> tell us why a result was ranked highly.</p>
+    </section>
+
+    <section class="card">
+      <h2>What do the retrieval profiles mean?</h2>
+      <p><strong>Lexical baseline · v1</strong> searches mostly by matching words. It is simple and strong when the question uses the same words as the source.</p>
+      <p><strong>Vector E5 · content-v1</strong> searches by meaning using multilingual E5 embeddings. It can connect related wording even when exact words differ.</p>
+      <p><strong>Hybrid E5 · content-v1</strong> combines lexical and vector search. This is the stable default baseline.</p>
+      <p><strong>Vector/Hybrid E5 · metadata-v1</strong> also puts dataset title and source path into the vector representation. This can help some questions and hurt others. That is exactly why PiPi keeps it as a separate profile instead of replacing the baseline.</p>
+      <div class="policy-note" style="margin-top:12px"><strong>Vectors 1487/1487</strong> means every currently searchable chunk has a vector for that selected profile. If a profile shows 0/1487, use <strong>Build/update selected vectors</strong> once.</div>
+    </section>
+
+    <section class="card">
+      <h2>Why keep several versions?</h2>
+      <p>Suppose the same question gives result A with one profile and result B with another. If we only keep the newest configuration, we lose the ability to explain the difference.</p>
+      <p>PiPi therefore keeps retrieval profiles side by side. The data may stay identical while the retrieval procedure changes. This lets us measure <strong>retrieval drift</strong>: how much the selected evidence changes because of the retrieval configuration itself.</p>
+      <p>Later, when a language model generates an answer from that evidence, we can separate three causes of change: <strong>data drift</strong>, <strong>retrieval drift</strong> and <strong>generation drift</strong>.</p>
+    </section>
+
+    <section class="card">
+      <h2>Why are we building this?</h2>
+      <p>Most RAG systems focus on getting a good answer now. PiPi is also interested in a harder question: <strong>can we explain and reproduce why the system used exactly this evidence?</strong></p>
+      <p>That matters in research, public institutions, industry and any system where data change over time. Knowing the source document is not enough if the retrieval process that selected it has changed.</p>
+      <p><strong>Project point:</strong> treat retrieval configuration as part of provenance. PiPi is a working Data Space platform for testing that idea on heterogeneous, versioned data.</p>
+    </section>
+  </main>
+</body>
+</html>
