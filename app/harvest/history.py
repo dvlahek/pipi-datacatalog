@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -22,6 +23,12 @@ harvest_runs = Table(
     Column("summary", JSON, nullable=False, default=dict),
     Column("error", Text, nullable=True),
 )
+
+
+def _json_safe(value: dict[str, Any] | None) -> dict[str, Any]:
+    """Normalize API/service summaries so JSON columns never receive datetimes."""
+
+    return json.loads(json.dumps(value or {}, ensure_ascii=False, default=str))
 
 
 class HarvestHistoryStore:
@@ -65,7 +72,7 @@ class HarvestHistoryStore:
                 .values(
                     status=status,
                     finished_at=now,
-                    summary=summary or {},
+                    summary=_json_safe(summary),
                     error=error[:4000] if error else None,
                 )
             )
