@@ -7,7 +7,7 @@ from urllib.parse import unquote, urlparse
 from app.catalog.store import CatalogStore
 from app.config import Settings
 from app.models.catalog import CatalogDistribution, CanonicalDataset
-from app.rag.ingest import RagExtractionError, chunk_text, extract_text, text_sha256
+from app.rag.ingest import RagExtractionError, extract_chunks, text_sha256
 from app.rag.store import RagStore
 from app.resources.fetcher import (
     ResourceFetchError,
@@ -134,9 +134,8 @@ def _store_probe_as_rag_document(
     probe: ResourceProbe,
     settings: Settings,
 ) -> dict[str, object]:
-    text = extract_text(probe)
-    chunks = chunk_text(
-        text,
+    text, chunks = extract_chunks(
+        probe,
         chunk_size=settings.rag_chunk_size_chars,
         overlap=settings.rag_chunk_overlap_chars,
     )
