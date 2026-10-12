@@ -14,6 +14,7 @@ ResourceType = Literal[
     "image",
     "audio",
     "video",
+    "github",
     "generic",
 ]
 
