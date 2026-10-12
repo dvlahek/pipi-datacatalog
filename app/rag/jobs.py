@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.activity.store import ActivityStore, RagJobStore
 from app.catalog.store import CatalogStore
 from app.config import Settings
@@ -68,7 +70,7 @@ def _embed_after_index(
             f"Embedded {embedding.get('embedded', 0)} chunk(s) for {dataset_identifier}.",
             details={"job_id": job_id, "dataset_identifier": dataset_identifier, **embedding},
         )
-    except (EmbeddingError, RuntimeError, ValueError) as exc:
+    except (EmbeddingError, RuntimeError, ValueError, SQLAlchemyError) as exc:
         error = str(exc) or exc.__class__.__name__
         result["embedding"] = {"status": "error", "error": error}
         activity.log(
