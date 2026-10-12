@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     # `multilingual-e5` enables neural semantic retrieval through Sentence Transformers.
     # A model revision can be pinned for reproducibility; changing model/revision
     # produces a different embedding identity and therefore triggers a new backfill.
+    # `metadata-v1` enriches passage input with dataset title and, when available,
+    # GitHub file_path. The non-default profile becomes part of the vector identity.
     rag_embedding_provider: str = "feature-hash"
     rag_embedding_model: str = "feature-hash-384-v1"
     rag_embedding_revision: str | None = None
@@ -64,6 +66,7 @@ class Settings(BaseSettings):
     rag_embedding_device: str = "auto"
     rag_embedding_batch_size: int = 128
     rag_embedding_backfill_limit: int = 10000
+    rag_embedding_input_profile: str = "content-v1"
     rag_hybrid_rrf_k: int = 60
     # GitHub repositories are one catalog Dataset containing many source files.
     # Prefer at most this many results per file before backfilling from duplicates.
