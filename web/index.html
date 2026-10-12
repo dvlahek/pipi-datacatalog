@@ -52,7 +52,7 @@
         <div class="section-head">
           <div>
             <h2>Search indexed content</h2>
-            <p class="muted">Search RAG chunks from the latest indexed version of each dataset. This is the transparent lexical baseline before embeddings.</p>
+            <p class="muted">Search RAG chunks from the current indexed version of each dataset. Stale indexes are excluded until re-indexed.</p>
           </div>
         </div>
         <form id="ragSearchForm" class="inline-form">
@@ -148,7 +148,7 @@
           </div>
         </div>
         <p id="datasetMessage" class="message"></p>
-        <div class="table-wrap"><table class="catalog-table"><thead><tr><th>Catalog ID</th><th>Title</th><th>Type</th><th>Source</th><th>Format</th><th>Sharing</th><th>Actions</th></tr></thead><tbody id="datasetRows"></tbody></table></div>
+        <div class="table-wrap"><table class="catalog-table"><thead><tr><th>Catalog ID</th><th>Title</th><th>Type</th><th>Source</th><th>Format</th><th>RAG</th><th>Sharing</th><th>Actions</th></tr></thead><tbody id="datasetRows"></tbody></table></div>
       </section>
     </section>
   </main>
