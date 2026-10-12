@@ -22,6 +22,15 @@ class Settings(BaseSettings):
     foi_documents_base_url: str = "https://dokumenti.foi.hr/document/"
     foi_documents_timeout_seconds: float = 20.0
 
+    # GitHub repository resources. Public repositories work without a token, but
+    # GitHub's unauthenticated API limit is low. Configure a server-side token in
+    # production; it is never stored in catalog metadata.
+    github_api_token: str | None = None
+    github_timeout_seconds: float = 20.0
+    github_index_max_files: int = 100
+    github_index_max_file_bytes: int = 256 * 1024
+    github_index_max_total_bytes: int = 3 * 1024 * 1024
+
     # Authentication is secure-by-default. Disable only for isolated local tests.
     auth_enabled: bool = True
     auth_username: str | None = None
