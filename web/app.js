@@ -1,6 +1,7 @@
 const state = {
   token: sessionStorage.getItem("pipiToken"),
   authEnabled: true,
+  datasetsByIdentifier: new Map(),
 };
 
 const el = (id) => document.getElementById(id);
@@ -165,8 +166,11 @@ async function loadDatasets() {
   el("datasetCount").textContent = payload.count;
   const rows = el("datasetRows");
   rows.replaceChildren();
+  state.datasetsByIdentifier = new Map();
 
   for (const dataset of payload.data) {
+    state.datasetsByIdentifier.set(dataset.identifier, dataset);
+
     const row = document.createElement("tr");
     row.append(td(dataset.catalog_id));
 
@@ -268,6 +272,62 @@ async function loadDashboard() {
   await Promise.all([loadDatasets(), loadResources(), loadProviders()]);
 }
 
+function renderRagResults(payload) {
+  const results = el("ragSearchResults");
+  results.replaceChildren();
+
+  if (!payload.data.length) {
+    const empty = document.createElement("div");
+    empty.className = "muted";
+    empty.textContent = "No indexed chunks matched this query.";
+    results.append(empty);
+    return;
+  }
+
+  for (const item of payload.data) {
+    const dataset = state.datasetsByIdentifier.get(item.dataset_identifier);
+    const card = document.createElement("article");
+    card.className = "result rag-result";
+
+    const heading = document.createElement("div");
+    heading.className = "rag-result-head";
+
+    const title = document.createElement("strong");
+    title.textContent = dataset?.title || item.dataset_identifier;
+
+    const score = document.createElement("span");
+    score.className = "badge";
+    score.textContent = `#${item.rank} · score ${item.score}`;
+    heading.append(title, score);
+
+    const meta = document.createElement("div");
+    meta.className = "rag-meta";
+    meta.textContent = `dataset version ${item.dataset_version} · chunk ${item.chunk_index} · ${item.media_type}`;
+
+    const identifier = document.createElement("div");
+    identifier.className = "rag-identifier";
+    identifier.textContent = item.dataset_identifier;
+
+    const chunk = document.createElement("pre");
+    chunk.className = "rag-chunk";
+    chunk.textContent = item.text;
+
+    card.append(heading, meta, identifier, chunk);
+
+    if (item.source_url) {
+      const source = document.createElement("a");
+      source.className = "rag-source";
+      source.href = item.source_url;
+      source.target = "_blank";
+      source.rel = "noopener noreferrer";
+      source.textContent = "Open source";
+      card.append(source);
+    }
+
+    results.append(card);
+  }
+}
+
 el("loginForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   setMessage(el("loginMessage"), "Signing in...");
@@ -359,6 +419,26 @@ el("searchForm").addEventListener("submit", async (event) => {
     message.className = "message error";
     message.textContent = error.message;
     results.append(message);
+  }
+});
+
+el("ragSearchForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const query = el("ragSearchQuery").value.trim();
+  if (query.length < 2) return;
+
+  setMessage(el("ragSearchMessage"), "Searching indexed content...");
+  el("ragSearchResults").replaceChildren();
+  try {
+    const payload = await apiFetch(`/api/v1/rag/search?q=${encodeURIComponent(query)}&limit=10`);
+    setMessage(
+      el("ragSearchMessage"),
+      `${payload.count} result(s) · ${payload.retrieval}`,
+      payload.count ? "success" : "",
+    );
+    renderRagResults(payload);
+  } catch (error) {
+    setMessage(el("ragSearchMessage"), error.message, "error");
   }
 });
 
