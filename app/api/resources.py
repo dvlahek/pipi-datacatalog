@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.catalog.service import catalog_store
 from app.config import get_settings
+from app.harvest.history import HarvestHistoryStore
 from app.models.resource import ResourceCreate
 from app.resources.service import (
     refresh_enabled_resources,
@@ -43,7 +44,17 @@ async def list_resources() -> dict[str, object]:
 @router.post("/refresh-enabled")
 async def refresh_all_enabled_resources() -> dict[str, object]:
     settings = get_settings()
-    return await refresh_enabled_resources(_store(), settings)
+    store = _store()
+    history = HarvestHistoryStore(store)
+    run_id = history.start("resource-refresh", trigger="manual")
+    try:
+        result = await refresh_enabled_resources(store, settings)
+        run_status = "partial" if int(result.get("errors", 0)) else "ok"
+        history.finish(run_id, status=run_status, summary=result)
+        return {**result, "harvest_run_id": run_id}
+    except Exception as exc:
+        history.finish(run_id, status="error", error=str(exc))
+        raise
 
 
 @router.get("/{resource_id}")
