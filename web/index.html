@@ -93,9 +93,16 @@
 
       <section class="card">
         <div class="section-head">
-          <div><h2>Registered resources</h2><p class="muted">Disable retains catalog metadata and version history.</p></div>
-          <button id="reloadResources" class="secondary" type="button">Reload</button>
+          <div>
+            <h2>Registered resources</h2>
+            <p class="muted">Refresh re-checks source content and creates a new catalog version only when relevant metadata or content changed. Disable retains history.</p>
+          </div>
+          <div class="actions">
+            <button id="refreshAllResources" class="secondary" type="button">Refresh enabled</button>
+            <button id="reloadResources" class="secondary" type="button">Reload</button>
+          </div>
         </div>
+        <p id="resourceListMessage" class="message"></p>
         <div class="table-wrap"><table><thead><tr><th>ID</th><th>Name / URL</th><th>Type</th><th>Status</th><th>Last check</th><th>Actions</th></tr></thead><tbody id="resourceRows"></tbody></table></div>
       </section>
 
@@ -103,9 +110,12 @@
         <div class="section-head">
           <div>
             <h2>Catalog datasets</h2>
-            <p class="muted">Provider-managed datasets stay in the catalog. Text and tabular datasets can be indexed for RAG without re-registering them as resources.</p>
+            <p class="muted">Provider-managed datasets stay in the catalog. Sync providers discovers new datasets and versions changed metadata.</p>
           </div>
-          <button id="reloadDatasets" class="secondary" type="button">Reload</button>
+          <div class="actions">
+            <button id="syncCatalog" class="secondary" type="button">Sync providers</button>
+            <button id="reloadDatasets" class="secondary" type="button">Reload</button>
+          </div>
         </div>
         <p id="datasetMessage" class="message"></p>
         <div class="table-wrap"><table><thead><tr><th>Catalog ID</th><th>Title</th><th>Type</th><th>Source</th><th>Access</th><th>Actions</th></tr></thead><tbody id="datasetRows"></tbody></table></div>
