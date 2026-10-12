@@ -130,11 +130,12 @@
 })();
 
 // Keep the main portal shell small while loading the background indexing/activity UI
-// after app.js has defined the shared API helpers and dashboard functions.
+// after app.js has defined the shared API helpers and dashboard functions. Version the
+// dynamic script URL so a browser cannot pair fresh HTML with a stale jobs bundle.
 (() => {
   if (document.querySelector('script[data-pipi-jobs]')) return;
   const script = document.createElement("script");
-  script.src = "/portal/jobs.js";
+  script.src = "/portal/jobs.js?v=retrieval-profiles-v1";
   script.dataset.pipiJobs = "true";
   document.body.append(script);
 })();
