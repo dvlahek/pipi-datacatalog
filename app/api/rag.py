@@ -6,9 +6,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.activity.store import ActivityStore, RagJobStore
 from app.catalog.service import catalog_store
 from app.config import get_settings
-from app.rag.embeddings import EmbeddingError, get_embedding_provider, reciprocal_rank_fusion
+from app.rag.embeddings import EmbeddingError, get_embedding_provider
 from app.rag.jobs import run_dataset_index_job, run_embedding_backfill_job, run_resource_index_job
 from app.rag.maintenance import reindex_stale_datasets
+from app.rag.search import search_rag
 from app.rag.service import RagIndexError, index_catalog_dataset, index_registered_resource
 from app.rag.store import RagStore
 
@@ -48,85 +49,12 @@ async def rag_search(
     mode: str = Query(default="hybrid", pattern="^(lexical|vector|hybrid)$"),
 ) -> dict[str, object]:
     settings = get_settings()
-    rag_store = RagStore(_store())
-    candidate_limit = min(100, max(20, limit * 5))
-
-    if mode == "lexical":
-        results = rag_store.search_chunks(q, limit=limit)
-        return {
-            "query": q,
-            "retrieval": "lexical-baseline-v1-current-only",
-            "mode": mode,
-            "count": len(results),
-            "data": [{"rank": rank, **item} for rank, item in enumerate(results, start=1)],
-        }
-
     try:
-        provider = get_embedding_provider(settings)
-        query_vector = provider.embed_query(q)
-        vector_results = rag_store.vector_search(
-            query_vector,
-            model=provider.name,
-            limit=candidate_limit if mode == "hybrid" else limit,
-        )
-    except (EmbeddingError, RuntimeError, SQLAlchemyError) as exc:
+        return search_rag(_store(), settings, q, limit=limit, mode=mode)
+    except RuntimeError as exc:
         if mode == "vector":
-            raise HTTPException(status_code=409, detail=f"Vector retrieval unavailable: {exc}") from exc
-        lexical = rag_store.search_chunks(q, limit=limit)
-        return {
-            "query": q,
-            "retrieval": "lexical-fallback-vector-unavailable",
-            "mode": mode,
-            "warning": str(exc),
-            "count": len(lexical),
-            "data": [{"rank": rank, **item} for rank, item in enumerate(lexical, start=1)],
-        }
-
-    if mode == "vector":
-        results = []
-        for rank, item in enumerate(vector_results[:limit], start=1):
-            record = dict(item)
-            record["score"] = record.get("vector_similarity")
-            record["vector_rank"] = rank
-            record["lexical_rank"] = None
-            results.append({"rank": rank, **record})
-        return {
-            "query": q,
-            "retrieval": f"pgvector-cosine-exact:{provider.name}",
-            "mode": mode,
-            "embedding_model": provider.name,
-            "count": len(results),
-            "data": results,
-        }
-
-    lexical = rag_store.search_chunks(q, limit=candidate_limit)
-    if not vector_results:
-        return {
-            "query": q,
-            "retrieval": "lexical-fallback-no-current-vectors",
-            "mode": mode,
-            "embedding_model": provider.name,
-            "count": min(limit, len(lexical)),
-            "data": [
-                {"rank": rank, **item}
-                for rank, item in enumerate(lexical[:limit], start=1)
-            ],
-        }
-
-    fused = reciprocal_rank_fusion(
-        lexical,
-        vector_results,
-        limit=limit,
-        k=max(1, int(settings.rag_hybrid_rrf_k)),
-    )
-    return {
-        "query": q,
-        "retrieval": f"hybrid-rrf-v1:lexical+pgvector:{provider.name}",
-        "mode": mode,
-        "embedding_model": provider.name,
-        "count": len(fused),
-        "data": [{"rank": rank, **item} for rank, item in enumerate(fused, start=1)],
-    }
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        raise
 
 
 @router.get("/embeddings/status")
