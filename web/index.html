@@ -88,7 +88,7 @@
           </div>
         </div>
         <form id="resourceForm" class="resource-form">
-          <label class="wide">Resource URL<input id="resourceUrl" type="url" placeholder="https://example.org/data.csv" required></label>
+          <label class="wide">Resource URL<input id="resourceUrl" type="url" placeholder="https://example.org/data.csv or https://github.com/owner/repo" required></label>
           <label>Name<input id="resourceName" placeholder="Optional display name"></label>
           <label>Type
             <select id="resourceType">
@@ -100,6 +100,7 @@
               <option value="image">Image</option>
               <option value="audio">Audio</option>
               <option value="video">Video</option>
+              <option value="github">GitHub repository</option>
               <option value="generic">Generic</option>
             </select>
           </label>
