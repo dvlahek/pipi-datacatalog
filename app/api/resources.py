@@ -6,7 +6,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.catalog.service import catalog_store
 from app.config import get_settings
 from app.models.resource import ResourceCreate
-from app.resources.service import register_resource, refresh_registered_resource
+from app.resources.service import (
+    refresh_enabled_resources,
+    refresh_registered_resource,
+    register_resource,
+)
 from app.security.url_policy import UnsafeResourceURL
 
 router = APIRouter(prefix="/api/v1/resources", tags=["resources"])
@@ -34,6 +38,12 @@ def _store():
 async def list_resources() -> dict[str, object]:
     resources = _store().list_resources()
     return {"count": len(resources), "data": resources}
+
+
+@router.post("/refresh-enabled")
+async def refresh_all_enabled_resources() -> dict[str, object]:
+    settings = get_settings()
+    return await refresh_enabled_resources(_store(), settings)
 
 
 @router.get("/{resource_id}")
