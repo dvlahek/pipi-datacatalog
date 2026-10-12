@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.catalog.store import CatalogStore
 from app.config import Settings
 from app.rag.embeddings import EmbeddingError, embed_dataset_chunks
@@ -76,7 +78,7 @@ async def reindex_stale_datasets(
             if getattr(settings, "rag_embedding_provider", None):
                 try:
                     embedding = embed_dataset_chunks(store, settings, dataset_identifier)
-                except (EmbeddingError, RuntimeError, ValueError) as exc:
+                except (EmbeddingError, RuntimeError, ValueError, SQLAlchemyError) as exc:
                     embedding = {"status": "error", "error": str(exc)}
             reindexed += 1
             results.append(
