@@ -1,8 +1,7 @@
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
-
-import pytest
 
 from app.rag import maintenance
 
@@ -57,8 +56,7 @@ class FakeRagStore:
         ]
 
 
-@pytest.mark.asyncio
-async def test_reindex_stale_only_respects_disabled_resources_and_limit(monkeypatch):
+def test_reindex_stale_only_respects_disabled_resources_and_limit(monkeypatch):
     calls: list[str] = []
 
     async def fake_index(_store, dataset_identifier, _settings):
@@ -69,7 +67,7 @@ async def test_reindex_stale_only_respects_disabled_resources_and_limit(monkeypa
     monkeypatch.setattr(maintenance, "index_catalog_dataset", fake_index)
 
     settings = SimpleNamespace(rag_auto_reindex_enabled=True, rag_auto_reindex_limit=1)
-    result = await maintenance.reindex_stale_datasets(FakeStore(), settings)
+    result = asyncio.run(maintenance.reindex_stale_datasets(FakeStore(), settings))
 
     assert calls == ["urn:test:stale-a"]
     assert result["candidates"] == 3
@@ -80,8 +78,7 @@ async def test_reindex_stale_only_respects_disabled_resources_and_limit(monkeypa
     assert result["errors"] == 0
 
 
-@pytest.mark.asyncio
-async def test_reindex_stale_can_be_disabled(monkeypatch):
+def test_reindex_stale_can_be_disabled(monkeypatch):
     class ShouldNotConstruct:
         def __init__(self, _store):
             raise AssertionError("RagStore should not be constructed when maintenance is disabled")
@@ -89,7 +86,7 @@ async def test_reindex_stale_can_be_disabled(monkeypatch):
     monkeypatch.setattr(maintenance, "RagStore", ShouldNotConstruct)
     settings = SimpleNamespace(rag_auto_reindex_enabled=False, rag_auto_reindex_limit=10)
 
-    result = await maintenance.reindex_stale_datasets(FakeStore(), settings)
+    result = asyncio.run(maintenance.reindex_stale_datasets(FakeStore(), settings))
 
     assert result["status"] == "disabled"
     assert result["attempted"] == 0
