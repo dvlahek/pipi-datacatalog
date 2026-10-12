@@ -13,6 +13,7 @@ from app.catalog.service import catalog_store, sync_catalog
 from app.clients.sensor_hub import SensorHubClient
 from app.config import get_settings
 from app.harvest.history import HarvestHistoryStore
+from app.rag.maintenance import reindex_stale_datasets
 from app.resources.service import refresh_enabled_resources
 
 
@@ -60,6 +61,21 @@ async def run_cycle() -> int:
     except Exception as exc:
         history.finish(resource_run_id, status="error", error=str(exc))
         print(f"RESOURCE_REFRESH_FAILED: {exc}")
+        exit_code = 1
+
+    rag_run_id = history.start("rag-reindex", trigger="scheduled")
+    try:
+        rag_stats = await reindex_stale_datasets(store, settings)
+        rag_status = "partial" if int(rag_stats.get("errors", 0)) else "ok"
+        if rag_stats.get("status") == "disabled":
+            rag_status = "ok"
+        history.finish(rag_run_id, status=rag_status, summary=rag_stats)
+        print("RAG_REINDEX", json.dumps(rag_stats, ensure_ascii=False, default=str))
+        if rag_status != "ok":
+            exit_code = 1
+    except Exception as exc:
+        history.finish(rag_run_id, status="error", error=str(exc))
+        print(f"RAG_REINDEX_FAILED: {exc}")
         exit_code = 1
 
     return exit_code
