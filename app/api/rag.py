@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.catalog.service import catalog_store
 from app.config import get_settings
-from app.rag.service import RagIndexError, index_registered_resource
+from app.rag.service import RagIndexError, index_catalog_dataset, index_registered_resource
 from app.rag.store import RagStore
 
 router = APIRouter(prefix="/api/v1/rag", tags=["rag"])
@@ -51,6 +51,31 @@ async def rag_search(
             {"rank": rank, **item}
             for rank, item in enumerate(results, start=1)
         ],
+    }
+
+
+@router.post("/datasets/{dataset_identifier:path}/index")
+async def index_dataset(dataset_identifier: str) -> dict[str, object]:
+    settings = get_settings()
+    store = _store()
+    try:
+        return await index_catalog_dataset(store, dataset_identifier, settings)
+    except RagIndexError as exc:
+        detail = str(exc)
+        code = 404 if detail == "Catalog dataset not found." else 422
+        raise HTTPException(status_code=code, detail=detail) from exc
+
+
+@router.get("/datasets/{dataset_identifier:path}/status")
+async def rag_dataset_status(dataset_identifier: str) -> dict[str, object]:
+    store = _store()
+    if not any(item.identifier == dataset_identifier for item in store.list_datasets()):
+        raise HTTPException(status_code=404, detail="Catalog dataset not found.")
+    document = RagStore(store).document_status(dataset_identifier)
+    return {
+        "dataset_identifier": dataset_identifier,
+        "status": "indexed" if document is not None else "not_indexed",
+        "document": document,
     }
 
 
