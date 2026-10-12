@@ -28,7 +28,8 @@ async def reindex_stale_datasets(
 
     Never-indexed datasets remain untouched. Disabled registered resources are skipped.
     A per-run limit prevents a provider refresh from causing an unbounded download burst.
-    Current chunks are re-embedded after successful text indexing when pgvector is available.
+    Current chunks are re-embedded after successful text indexing when vector settings
+    are configured and pgvector is available.
     """
 
     effective_limit = max(0, int(limit if limit is not None else settings.rag_auto_reindex_limit))
@@ -72,10 +73,11 @@ async def reindex_stale_datasets(
         try:
             result = await index_catalog_dataset(store, dataset_identifier, settings)
             embedding: dict[str, Any] | None = None
-            try:
-                embedding = embed_dataset_chunks(store, settings, dataset_identifier)
-            except (EmbeddingError, RuntimeError, ValueError) as exc:
-                embedding = {"status": "error", "error": str(exc)}
+            if getattr(settings, "rag_embedding_provider", None):
+                try:
+                    embedding = embed_dataset_chunks(store, settings, dataset_identifier)
+                except (EmbeddingError, RuntimeError, ValueError) as exc:
+                    embedding = {"status": "error", "error": str(exc)}
             reindexed += 1
             results.append(
                 {
