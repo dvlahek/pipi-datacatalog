@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.catalog.store import Base, CatalogStore, DatasetVersionRow
 from app.rag.ingest import TextChunk
+from app.rag.retrieval import rank_chunk_candidates
 
 
 class RagDocumentRow(Base):
@@ -164,6 +165,47 @@ class RagStore:
                 }
                 for row in rows
             ]
+
+    def search_chunks(self, query: str, *, limit: int = 10) -> list[dict[str, Any]]:
+        """Search chunks from only the latest indexed version of each dataset."""
+        with Session(self.engine) as session:
+            documents = session.scalars(
+                select(RagDocumentRow).order_by(
+                    RagDocumentRow.dataset_identifier,
+                    RagDocumentRow.dataset_version.desc(),
+                )
+            ).all()
+
+            latest_documents: dict[str, RagDocumentRow] = {}
+            for document in documents:
+                latest_documents.setdefault(document.dataset_identifier, document)
+
+            if not latest_documents:
+                return []
+
+            document_ids = [document.id for document in latest_documents.values()]
+            rows = session.execute(
+                select(RagChunkRow, RagDocumentRow)
+                .join(RagDocumentRow, RagChunkRow.document_id == RagDocumentRow.id)
+                .where(RagChunkRow.document_id.in_(document_ids))
+            ).all()
+
+            candidates = [
+                {
+                    "dataset_identifier": document.dataset_identifier,
+                    "dataset_version": document.dataset_version,
+                    "source_url": document.source_url,
+                    "media_type": document.media_type,
+                    "chunk_index": chunk.chunk_index,
+                    "text": chunk.text,
+                    "char_start": chunk.char_start,
+                    "char_end": chunk.char_end,
+                    "metadata": dict(chunk.metadata_json or {}),
+                }
+                for chunk, document in rows
+            ]
+
+        return rank_chunk_candidates(query, candidates, limit=limit)
 
     @staticmethod
     def _document_dict(row: RagDocumentRow) -> dict[str, Any]:
