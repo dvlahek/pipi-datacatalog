@@ -102,7 +102,7 @@
           </select>
           <button type="submit">Search indexed content</button>
         </form>
-        <p class="muted retrieval-note">Hybrid uses reciprocal-rank fusion of the lexical baseline and pgvector cosine retrieval. The current feature-hash vectors validate vector plumbing and are not yet a neural semantic model.</p>
+        <p class="muted retrieval-note">Hybrid uses reciprocal-rank fusion of lexical retrieval and pgvector cosine retrieval. The active embedding model is shown above; feature-hash remains a plumbing baseline, while multilingual E5 provides neural semantic retrieval.</p>
         <p id="ragSearchMessage" class="message"></p>
         <div id="ragSearchResults" class="results"></div>
       </section>
