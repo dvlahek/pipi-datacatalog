@@ -41,8 +41,8 @@ class RagChunkRow(Base):
     char_start: Mapped[int] = mapped_column(Integer)
     char_end: Mapped[int] = mapped_column(Integer)
     metadata_json: Mapped[dict[str, Any]] = mapped_column("metadata", JSON, default=dict)
-    # pgvector columns are added by migration 007 and intentionally accessed with
-    # SQL text below. Keeping them out of the ORM preserves SQLite unit-test setup.
+    # pgvector storage is handled through SQL migrations and text statements below.
+    # Keeping vector columns out of this ORM model preserves SQLite unit-test setup.
 
 
 class RagStore:
@@ -329,16 +329,17 @@ class RagStore:
               ON v.dataset_identifier = d.dataset_identifier
              AND v.version = d.dataset_version
             LEFT JOIN catalog_resources r ON r.dataset_identifier = d.dataset_identifier
+            LEFT JOIN rag_chunk_embeddings e
+              ON e.chunk_id = c.id
+             AND e.embedding_identity = :model
             WHERE (r.id IS NULL OR r.enabled = TRUE)
+              AND e.chunk_id IS NULL
         """
         params: dict[str, Any] = {"model": model}
         if dataset_identifier is not None:
             query += " AND d.dataset_identifier = :dataset_identifier"
             params["dataset_identifier"] = dataset_identifier
-        query += """
-              AND (c.embedding IS NULL OR c.embedding_model IS DISTINCT FROM :model)
-            ORDER BY d.dataset_identifier, d.dataset_version, c.chunk_index
-        """
+        query += " ORDER BY d.dataset_identifier, d.dataset_version, c.chunk_index"
         if limit is not None:
             query += " LIMIT :limit"
             params["limit"] = max(1, int(limit))
@@ -352,6 +353,10 @@ class RagStore:
         *,
         model: str,
         dimensions: int,
+        provider: str = "unknown",
+        base_model: str | None = None,
+        revision: str | None = None,
+        input_profile: str = "content-v1",
     ) -> int:
         self._require_pgvector()
         if not rows:
@@ -360,21 +365,35 @@ class RagStore:
         payloads = [
             {
                 "chunk_id": int(item["chunk_id"]),
-                "embedding": self._vector_literal(list(item["vector"])),
-                "model": model,
+                "embedding_identity": model,
+                "embedding_provider": provider,
+                "embedding_model": base_model or model,
+                "embedding_revision": revision,
+                "input_profile": input_profile,
                 "dimensions": dimensions,
+                "embedding": self._vector_literal(list(item["vector"])),
                 "embedded_at": now,
             }
             for item in rows
         ]
         statement = text(
             """
-            UPDATE rag_chunks
-               SET embedding = CAST(:embedding AS vector),
-                   embedding_model = :model,
-                   embedding_dimensions = :dimensions,
-                   embedded_at = :embedded_at
-             WHERE id = :chunk_id
+            INSERT INTO rag_chunk_embeddings (
+                chunk_id, embedding_identity, embedding_provider, embedding_model,
+                embedding_revision, input_profile, dimensions, embedding, embedded_at
+            ) VALUES (
+                :chunk_id, :embedding_identity, :embedding_provider, :embedding_model,
+                :embedding_revision, :input_profile, :dimensions,
+                CAST(:embedding AS vector), :embedded_at
+            )
+            ON CONFLICT (chunk_id, embedding_identity) DO UPDATE SET
+                embedding_provider = EXCLUDED.embedding_provider,
+                embedding_model = EXCLUDED.embedding_model,
+                embedding_revision = EXCLUDED.embedding_revision,
+                input_profile = EXCLUDED.input_profile,
+                dimensions = EXCLUDED.dimensions,
+                embedding = EXCLUDED.embedding,
+                embedded_at = EXCLUDED.embedded_at
             """
         )
         with self.engine.begin() as connection:
@@ -390,7 +409,7 @@ class RagStore:
                 FROM catalog_dataset_versions
                 GROUP BY dataset_identifier
             ), current_chunks AS (
-                SELECT c.id, c.embedding, c.embedding_model
+                SELECT c.id
                 FROM rag_chunks c
                 JOIN rag_documents d ON d.id = c.document_id
                 JOIN latest_versions v
@@ -401,8 +420,11 @@ class RagStore:
             )
             SELECT
                 COUNT(*) AS total,
-                COUNT(*) FILTER (WHERE embedding IS NOT NULL AND embedding_model = :model) AS embedded
-            FROM current_chunks
+                COUNT(e.chunk_id) AS embedded
+            FROM current_chunks c
+            LEFT JOIN rag_chunk_embeddings e
+              ON e.chunk_id = c.id
+             AND e.embedding_identity = :model
             """
         )
         with self.engine.begin() as connection:
@@ -444,17 +466,18 @@ class RagStore:
                 c.char_start,
                 c.char_end,
                 c.metadata,
-                (c.embedding <=> CAST(:query_vector AS vector)) AS distance
+                (e.embedding <=> CAST(:query_vector AS vector)) AS distance
             FROM rag_chunks c
             JOIN rag_documents d ON d.id = c.document_id
             JOIN latest_versions v
               ON v.dataset_identifier = d.dataset_identifier
              AND v.version = d.dataset_version
+            JOIN rag_chunk_embeddings e
+              ON e.chunk_id = c.id
+             AND e.embedding_identity = :model
             LEFT JOIN catalog_resources r ON r.dataset_identifier = d.dataset_identifier
             WHERE (r.id IS NULL OR r.enabled = TRUE)
-              AND c.embedding IS NOT NULL
-              AND c.embedding_model = :model
-            ORDER BY c.embedding <=> CAST(:query_vector AS vector)
+            ORDER BY e.embedding <=> CAST(:query_vector AS vector)
             LIMIT :limit
             """
         )
