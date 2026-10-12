@@ -165,10 +165,11 @@ function sharingCell(policy) {
 }
 
 function resourceIsRagIndexable(resource) {
-  return ["csv", "json", "document", "text"].includes(resource.detected_type || resource.requested_type);
+  return ["csv", "json", "document", "text", "github"].includes(resource.detected_type || resource.requested_type);
 }
 
 function datasetIsRagIndexable(dataset) {
+  if (dataset.source_system === "github") return true;
   if (["sensor-observation", "live-video-stream"].includes(dataset.dataset_type)) return false;
   const distributions = dataset.distributions || [];
   return distributions.some((item) => {
@@ -213,18 +214,24 @@ function ragStatusCell(dataset, statusInfo) {
 async function indexDatasetForRag(dataset) {
   const resolvingFoi = dataset.source_system === "foi-documents"
     && !(dataset.distributions || []).some((item) => item.kind === "source-document");
-  setMessage(
-    el("datasetMessage"),
-    resolvingFoi ? `Resolving source and indexing ${dataset.title}...` : `Indexing ${dataset.title}...`,
-  );
+  const githubRepository = dataset.source_system === "github";
+  const activity = resolvingFoi
+    ? `Resolving source and indexing ${dataset.title}...`
+    : githubRepository
+      ? `Reading the current GitHub revision and indexing ${dataset.title}...`
+      : `Indexing ${dataset.title}...`;
+  setMessage(el("datasetMessage"), activity);
   try {
     const payload = await apiFetch(
       `/api/v1/rag/datasets/${encodeURIComponent(dataset.identifier)}/index`,
       { method: "POST" },
     );
+    const githubInfo = payload.github_index
+      ? ` ${payload.github_index.files_indexed} repository file(s),`
+      : "";
     setMessage(
       el("datasetMessage"),
-      `Indexed ${dataset.title}: version ${payload.dataset_version}, ${payload.chunk_count} chunk(s).`,
+      `Indexed ${dataset.title}:${githubInfo} version ${payload.dataset_version}, ${payload.chunk_count} chunk(s).`,
       "success",
     );
     await loadDatasets();
@@ -236,7 +243,10 @@ async function indexDatasetForRag(dataset) {
 async function indexResourceForRag(resource) {
   try {
     const payload = await apiFetch(`/api/v1/rag/resources/${resource.id}/index`, { method: "POST" });
-    window.alert(`RAG indexing complete: dataset version ${payload.dataset_version}, ${payload.chunk_count} chunk(s).`);
+    const githubInfo = payload.github_index
+      ? `${payload.github_index.files_indexed} repository file(s), `
+      : "";
+    window.alert(`RAG indexing complete: ${githubInfo}dataset version ${payload.dataset_version}, ${payload.chunk_count} chunk(s).`);
     await Promise.all([loadResources(), loadDatasets()]);
   } catch (error) {
     window.alert(error.message);
@@ -259,6 +269,12 @@ function appendDatasetActions(dataset, actions) {
     added = true;
   }
 
+  const repository = distributions.find((item) => item.kind === "repository");
+  if (repository) {
+    actions.append(linkButton("Open repo", repository.access_url));
+    added = true;
+  }
+
   const metadataPage = distributions.find((item) => item.kind === "metadata-page");
   if (metadataPage) {
     actions.append(linkButton("Open details", metadataPage.access_url));
@@ -273,6 +289,9 @@ function appendDatasetActions(dataset, actions) {
 
   if (dataset.source_system === "foi-documents" && !sourceDocument) {
     actions.append(button("Resolve & index", () => indexDatasetForRag(dataset)));
+    added = true;
+  } else if (dataset.source_system === "github") {
+    actions.append(button("Index repository", () => indexDatasetForRag(dataset)));
     added = true;
   } else if (datasetIsRagIndexable(dataset)) {
     actions.append(button("Index for RAG", () => indexDatasetForRag(dataset)));
@@ -348,7 +367,8 @@ async function loadResources() {
     nameCell.append(url);
     row.append(nameCell);
 
-    row.append(td(resource.detected_type || resource.requested_type || "auto"));
+    const resourceType = resource.detected_type || resource.requested_type || "auto";
+    row.append(td(resourceType));
     row.append(sharingCell(resourceSharing(resource)));
 
     const statusCell = document.createElement("td");
@@ -369,6 +389,9 @@ async function loadResources() {
     const actionsCell = document.createElement("td");
     const actions = document.createElement("div");
     actions.className = "actions";
+    if (resourceType === "github") {
+      actions.append(linkButton("Open repo", resource.source_url));
+    }
     actions.append(button("Refresh", async () => {
       try {
         const payload = await apiFetch(`/api/v1/resources/${resource.id}/refresh`, { method: "POST" });
@@ -382,7 +405,7 @@ async function loadResources() {
       } catch (error) { window.alert(error.message); }
     }));
     if (resource.enabled && resourceIsRagIndexable(resource)) {
-      actions.append(button("Index RAG", () => indexResourceForRag(resource)));
+      actions.append(button(resourceType === "github" ? "Index repository" : "Index RAG", () => indexResourceForRag(resource)));
     }
     if (resource.enabled) {
       actions.append(button("Disable", async () => {
@@ -444,7 +467,8 @@ function renderRagResults(payload) {
 
     const meta = document.createElement("div");
     meta.className = "rag-meta";
-    meta.textContent = `dataset version ${item.dataset_version} · chunk ${item.chunk_index} · ${item.media_type}`;
+    const filePath = item.metadata?.file_path ? ` · ${item.metadata.file_path}` : "";
+    meta.textContent = `dataset version ${item.dataset_version} · chunk ${item.chunk_index} · ${item.media_type}${filePath}`;
 
     const identifier = document.createElement("div");
     identifier.className = "rag-identifier";
@@ -456,13 +480,14 @@ function renderRagResults(payload) {
 
     card.append(heading, meta, identifier, chunk);
 
-    if (item.source_url) {
+    const sourceUrl = item.metadata?.source_url || item.source_url;
+    if (sourceUrl) {
       const source = document.createElement("a");
       source.className = "rag-source";
-      source.href = item.source_url;
+      source.href = sourceUrl;
       source.target = "_blank";
       source.rel = "noopener noreferrer";
-      source.textContent = "Open source";
+      source.textContent = item.metadata?.file_path ? "Open file" : "Open source";
       card.append(source);
     }
 
@@ -539,7 +564,10 @@ el("resourceForm").addEventListener("submit", async (event) => {
     });
 
     if (payload.status === "ok") {
-      setMessage(el("resourceMessage"), "Resource registered and catalog metadata created.", "success");
+      const githubInfo = payload.github
+        ? ` GitHub ${payload.github.full_name} @ ${payload.github.head_sha.slice(0, 12)}.`
+        : "";
+      setMessage(el("resourceMessage"), `Resource registered and catalog metadata created.${githubInfo}`, "success");
       el("resourceForm").reset();
       updatePriceFields();
     } else {
