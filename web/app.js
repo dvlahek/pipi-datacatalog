@@ -235,7 +235,13 @@ async function loadResources() {
     actions.className = "actions";
     actions.append(button("Refresh", async () => {
       try {
-        await apiFetch(`/api/v1/resources/${resource.id}/refresh`, { method: "POST" });
+        const payload = await apiFetch(`/api/v1/resources/${resource.id}/refresh`, { method: "POST" });
+        const versions = payload.sync?.versions_created || 0;
+        setMessage(
+          el("resourceListMessage"),
+          versions ? `Resource ${resource.id} changed: ${versions} new dataset version(s).` : `Resource ${resource.id} checked: no catalog change.`,
+          "success",
+        );
         await Promise.all([loadResources(), loadDatasets()]);
       } catch (error) { window.alert(error.message); }
     }));
@@ -439,6 +445,36 @@ el("ragSearchForm").addEventListener("submit", async (event) => {
     renderRagResults(payload);
   } catch (error) {
     setMessage(el("ragSearchMessage"), error.message, "error");
+  }
+});
+
+el("refreshAllResources").addEventListener("click", async () => {
+  setMessage(el("resourceListMessage"), "Refreshing enabled registered resources...");
+  try {
+    const payload = await apiFetch("/api/v1/resources/refresh-enabled", { method: "POST" });
+    setMessage(
+      el("resourceListMessage"),
+      `Checked ${payload.checked}: ${payload.versions_created} new version(s), ${payload.unchanged} unchanged, ${payload.errors} error(s).`,
+      payload.errors ? "error" : "success",
+    );
+    await Promise.all([loadResources(), loadDatasets()]);
+  } catch (error) {
+    setMessage(el("resourceListMessage"), error.message, "error");
+  }
+});
+
+el("syncCatalog").addEventListener("click", async () => {
+  setMessage(el("datasetMessage"), "Syncing configured providers...");
+  try {
+    const payload = await apiFetch("/api/v1/catalog/sync", { method: "POST" });
+    setMessage(
+      el("datasetMessage"),
+      `Provider sync complete: ${payload.inserted} inserted, ${payload.updated} updated, ${payload.unchanged} unchanged, ${payload.versions_created} new version(s).`,
+      payload.provider_errors ? "error" : "success",
+    );
+    await Promise.all([loadDatasets(), loadProviders()]);
+  } catch (error) {
+    setMessage(el("datasetMessage"), error.message, "error");
   }
 });
 
