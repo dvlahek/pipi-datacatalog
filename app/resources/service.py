@@ -13,6 +13,12 @@ from app.models.catalog import (
 )
 from app.models.resource import ResourceCreate
 from app.resources.fetcher import ResourceFetchError, ResourceProbe, fetch_resource_probe
+from app.resources.github import (
+    GitHubRepositorySnapshot,
+    GitHubResourceError,
+    fetch_github_repository_snapshot,
+    parse_github_repository_url,
+)
 from app.security.url_policy import UnsafeResourceURL, validate_external_resource_url
 
 
@@ -25,6 +31,7 @@ def _dataset_type(detected_type: str) -> str:
         "image": "image",
         "audio": "audio",
         "video": "video",
+        "github": "software-repository",
     }.get(detected_type, "generic")
 
 
@@ -35,6 +42,8 @@ def _format_name(detected_type: str, media_type: str, url: str) -> str | None:
         return "JSON"
     if detected_type == "document" and media_type == "application/pdf":
         return "PDF"
+    if detected_type == "github":
+        return "GitHub"
     if media_type in {"application/vnd.apple.mpegurl", "application/x-mpegurl"}:
         return "HLS"
     suffix = PurePosixPath(urlparse(url).path).suffix.lstrip(".")
@@ -46,6 +55,105 @@ def _is_live_hls(probe: ResourceProbe) -> bool:
         "application/vnd.apple.mpegurl",
         "application/x-mpegurl",
     } or urlparse(probe.final_url).path.lower().endswith(".m3u8")
+
+
+def _sharing_metadata(resource: dict[str, object]) -> dict[str, object]:
+    metadata = dict(resource.get("metadata") or {})
+    return {
+        "access_level": str(metadata.get("access_level") or "unspecified"),
+        "commercial_model": str(metadata.get("commercial_model") or "unspecified"),
+        "price_amount": metadata.get("price_amount"),
+        "price_currency": metadata.get("price_currency"),
+        "access_note": metadata.get("access_note"),
+    }
+
+
+def dataset_from_github_resource(
+    resource: dict[str, object],
+    snapshot: GitHubRepositorySnapshot,
+) -> CanonicalDataset:
+    resource_id = int(resource["id"])
+    metadata = dict(resource.get("metadata") or {})
+    sharing = _sharing_metadata(resource)
+    title = str(resource.get("name") or snapshot.full_name)
+    publisher = str(metadata.get("publisher") or snapshot.owner)
+    license_value = str(metadata.get("license") or snapshot.license_spdx or "unknown")
+    keywords = [str(item) for item in metadata.get("keywords", [])]
+    for item in ["github", "repository", *snapshot.topics]:
+        if item and item not in keywords:
+            keywords.append(item)
+    if snapshot.language and snapshot.language not in keywords:
+        keywords.append(snapshot.language)
+
+    identifier = f"urn:pipi:dataset:resource:{resource_id}"
+    api_url = f"https://api.github.com/repos/{snapshot.full_name}"
+
+    return CanonicalDataset(
+        catalog_id=f"resource:{resource_id}",
+        identifier=identifier,
+        title=title,
+        description=(
+            snapshot.description
+            or "GitHub repository registered through the PiPi dataspace resource registry."
+        ),
+        publisher=publisher,
+        license=license_value,
+        dataset_type="software-repository",
+        source_system="github",
+        external_id=snapshot.full_name,
+        keywords=keywords,
+        provenance=CatalogProvenance(
+            source_url=snapshot.html_url,
+            last_modified=snapshot.pushed_at,
+            source_version=snapshot.head_sha,
+        ),
+        source=CatalogSource(
+            id=snapshot.full_name,
+            code=f"github-{snapshot.owner}-{snapshot.repo}",
+            name=snapshot.full_name,
+            description=snapshot.description,
+            owner=snapshot.owner,
+            provider="GitHub",
+            license=license_value,
+        ),
+        distributions=[
+            CatalogDistribution(
+                identifier=f"{identifier}:distribution:repository",
+                title="GitHub repository",
+                access_url=snapshot.html_url,
+                media_type="application/vnd.github.repository+json",
+                format="GitHub",
+                endpoint_url=api_url,
+                endpoint_description="GitHub REST API repository endpoint",
+                kind="repository",
+                is_live=False,
+            )
+        ],
+        extensions={
+            "resource_registry": {
+                "resource_id": resource_id,
+                "registered_source_url": str(resource["source_url"]),
+                "final_url": snapshot.html_url,
+                "requested_type": resource["requested_type"],
+                "detected_type": "github",
+                **sharing,
+            },
+            "github": {
+                "owner": snapshot.owner,
+                "repo": snapshot.repo,
+                "full_name": snapshot.full_name,
+                "visibility": snapshot.visibility,
+                "default_branch": snapshot.default_branch,
+                "head_sha": snapshot.head_sha,
+                "pushed_at": snapshot.pushed_at,
+                "language": snapshot.language,
+                "license_spdx": snapshot.license_spdx,
+                "topics": list(snapshot.topics),
+                "archived": snapshot.archived,
+                "size_kb": snapshot.size_kb,
+            },
+        },
+    )
 
 
 def dataset_from_registered_resource(
@@ -71,11 +179,7 @@ def dataset_from_registered_resource(
         content_sha256=None if live_hls else probe.content_sha256,
     )
 
-    access_level = str(metadata.get("access_level") or "unspecified")
-    commercial_model = str(metadata.get("commercial_model") or "unspecified")
-    price_amount = metadata.get("price_amount")
-    price_currency = metadata.get("price_currency")
-    access_note = metadata.get("access_note")
+    sharing = _sharing_metadata(resource)
 
     return CanonicalDataset(
         catalog_id=f"resource:{resource_id}",
@@ -121,11 +225,7 @@ def dataset_from_registered_resource(
                 "requested_type": resource["requested_type"],
                 "detected_type": probe.detected_type,
                 "byte_size": None if live_hls else probe.byte_size,
-                "access_level": access_level,
-                "commercial_model": commercial_model,
-                "price_amount": price_amount,
-                "price_currency": price_currency,
-                "access_note": access_note,
+                **sharing,
             }
         },
     )
@@ -141,6 +241,43 @@ async def refresh_registered_resource(
         raise KeyError(resource_id)
     if not resource["enabled"]:
         return {"status": "disabled", "resource": resource, "sync": None}
+
+    github_ref = parse_github_repository_url(str(resource["source_url"]))
+    if github_ref is not None:
+        try:
+            requested_type = str(resource["requested_type"])
+            # `text` and `generic` are accepted here for resources that were
+            # registered before the GitHub adapter existed and are upgraded on refresh.
+            if requested_type not in {"auto", "github", "text", "generic"}:
+                raise GitHubResourceError(
+                    f"GitHub repository URL conflicts with requested resource type {requested_type!r}."
+                )
+            snapshot = await fetch_github_repository_snapshot(str(resource["source_url"]), settings)
+            dataset = dataset_from_github_resource(resource, snapshot)
+            sync_stats = store.upsert_datasets([dataset])
+            updated_resource = store.mark_resource_success(
+                resource_id,
+                detected_type="github",
+                dataset_identifier=dataset.identifier,
+                media_type="application/vnd.github.repository+json",
+                etag=None,
+                last_modified=snapshot.pushed_at,
+                content_sha256=None,
+            )
+            return {
+                "status": "ok",
+                "resource": updated_resource,
+                "dataset": dataset.model_dump(),
+                "sync": sync_stats,
+                "github": {
+                    "full_name": snapshot.full_name,
+                    "default_branch": snapshot.default_branch,
+                    "head_sha": snapshot.head_sha,
+                },
+            }
+        except GitHubResourceError as exc:
+            failed = store.mark_resource_error(resource_id, str(exc))
+            return {"status": "error", "resource": failed, "error": str(exc), "sync": None}
 
     try:
         probe = await fetch_resource_probe(str(resource["source_url"]), settings)
