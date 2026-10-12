@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     provider_foi_documents_enabled: bool = True
     csv_datasets_config: str = "config/csv_datasets.json"
     catalog_public_base_url: str = "http://127.0.0.1:8000"
-    foi_documents_base_url: str = "https://dokumenti.foi.hr/document/"
+    foi_documents_base_url: str = "https://dokumenti.foi.unizg.hr/document/"
     foi_documents_timeout_seconds: float = 20.0
 
     # GitHub repository resources. Public repositories work without a token, but
@@ -65,6 +65,9 @@ class Settings(BaseSettings):
     rag_embedding_batch_size: int = 128
     rag_embedding_backfill_limit: int = 10000
     rag_hybrid_rrf_k: int = 60
+    # GitHub repositories are one catalog Dataset containing many source files.
+    # Prefer at most this many results per file before backfilling from duplicates.
+    rag_source_diversity_max_per_file: int = 2
 
     # Persistent catalog metadata store. Source payloads/readings are not copied.
     catalog_store_enabled: bool = False
