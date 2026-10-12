@@ -65,7 +65,10 @@
 
       <section class="card">
         <div class="section-head">
-          <div><h2>Add resource</h2><p class="muted">The server validates the URL, detects the type, records provenance and creates or updates catalog metadata.</p></div>
+          <div>
+            <h2>Add resource</h2>
+            <p class="muted">Register a source, describe how it may be shared, and let PiPi track provenance and changes.</p>
+          </div>
         </div>
         <form id="resourceForm" class="resource-form">
           <label class="wide">Resource URL<input id="resourceUrl" type="url" placeholder="https://example.org/data.csv" required></label>
@@ -85,7 +88,34 @@
           </label>
           <label>Publisher<input id="resourcePublisher" placeholder="Optional"></label>
           <label>License<input id="resourceLicense" placeholder="unknown"></label>
+          <label>Access level
+            <select id="resourceAccessLevel">
+              <option value="public">Public</option>
+              <option value="authenticated">Registered users</option>
+              <option value="approval-required">Approval required</option>
+              <option value="private">Private</option>
+            </select>
+          </label>
+          <label>Commercial terms
+            <select id="resourceCommercialModel">
+              <option value="free">Free</option>
+              <option value="paid">Paid</option>
+              <option value="negotiable">Negotiable</option>
+              <option value="not-for-sale">Not for sale</option>
+            </select>
+          </label>
+          <label id="resourcePriceLabel" class="hidden">Price
+            <input id="resourcePriceAmount" type="number" min="0" step="0.01" placeholder="0.00">
+          </label>
+          <label id="resourceCurrencyLabel" class="hidden">Currency
+            <select id="resourcePriceCurrency">
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+            </select>
+          </label>
+          <label class="wide">Access / usage note<input id="resourceAccessNote" placeholder="Optional conditions, contact or approval note"></label>
           <label class="wide">Keywords<input id="resourceKeywords" placeholder="comma, separated, keywords"></label>
+          <p class="wide policy-note">Sharing terms are catalog metadata in this MVP. Marking an already-public URL as private does not hide or protect the source itself. Enforcement will be handled by the identity, authorization and data-contract layer.</p>
           <div class="wide"><button type="submit">Analyze and add</button></div>
         </form>
         <p id="resourceMessage" class="message"></p>
@@ -103,7 +133,7 @@
           </div>
         </div>
         <p id="resourceListMessage" class="message"></p>
-        <div class="table-wrap"><table><thead><tr><th>ID</th><th>Name / URL</th><th>Type</th><th>Status</th><th>Last check</th><th>Actions</th></tr></thead><tbody id="resourceRows"></tbody></table></div>
+        <div class="table-wrap"><table class="resource-table"><thead><tr><th>ID</th><th>Name / URL</th><th>Type</th><th>Sharing</th><th>Status</th><th>Last check</th><th>Actions</th></tr></thead><tbody id="resourceRows"></tbody></table></div>
       </section>
 
       <section class="card">
@@ -118,7 +148,7 @@
           </div>
         </div>
         <p id="datasetMessage" class="message"></p>
-        <div class="table-wrap"><table><thead><tr><th>Catalog ID</th><th>Title</th><th>Type</th><th>Source</th><th>Access</th><th>Actions</th></tr></thead><tbody id="datasetRows"></tbody></table></div>
+        <div class="table-wrap"><table class="catalog-table"><thead><tr><th>Catalog ID</th><th>Title</th><th>Type</th><th>Source</th><th>Format</th><th>Sharing</th><th>Actions</th></tr></thead><tbody id="datasetRows"></tbody></table></div>
       </section>
     </section>
   </main>
