@@ -8,7 +8,7 @@ from app.config import Settings
 from app.models.catalog import CanonicalDataset
 from app.providers.base import CatalogProvider
 from app.providers.csv_file import CsvFileProvider
-from app.providers.foi_documents import FoiDocumentsProvider
+from app.providers.foi_documents import FoiDocumentsProvider, preserve_foi_document_enrichment
 from app.providers.registry import ProviderStatus, discover_from_providers
 from app.providers.sensor_hub import SensorHubProvider
 from app.providers.static_web import StaticWebProvider
@@ -82,17 +82,40 @@ def catalog_store(settings: Settings) -> CatalogStore | None:
     return _initialized_store(settings.database_url, settings.database_admin_url)
 
 
+def _preserve_on_demand_provider_state(
+    discovered: list[CanonicalDataset],
+    current: list[CanonicalDataset],
+) -> list[CanonicalDataset]:
+    current_by_identifier = {dataset.identifier: dataset for dataset in current}
+    return [
+        preserve_foi_document_enrichment(
+            dataset,
+            current_by_identifier.get(dataset.identifier),
+        )
+        if dataset.source_system == "foi-documents"
+        else dataset
+        for dataset in discovered
+    ]
+
+
 async def sync_catalog(
     client: SensorHubClient,
     settings: Settings,
 ) -> dict[str, object]:
-    """Discover healthy providers and version-aware upsert their metadata."""
+    """Discover healthy providers and version-aware upsert their metadata.
+
+    Lightweight providers can preserve richer on-demand state already stored in the
+    catalog. FOI Dokumenti is the first example: normal sync discovers listing metadata
+    only, while a resolved source-document distribution and content hash remain attached
+    after an individual document has been fetched for indexing.
+    """
 
     store = catalog_store(settings)
     if store is None:
         raise RuntimeError("Persistent catalog store is disabled.")
 
     datasets, provider_statuses = await discover_catalog(client, settings)
+    datasets = _preserve_on_demand_provider_state(datasets, store.list_datasets())
     stats: dict[str, object] = store.upsert_datasets(datasets)
     stats["stored"] = store.count_datasets()
     stats["providers"] = [status.model_dump() for status in provider_statuses]
