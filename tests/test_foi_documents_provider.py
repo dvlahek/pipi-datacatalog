@@ -1,9 +1,13 @@
 import pytest
 
 from app.providers.foi_documents import (
+    FoiDocumentDetail,
     FoiDocumentResolutionError,
     FoiDocumentsProvider,
+    enrich_foi_document_dataset,
+    preserve_foi_document_enrichment,
 )
+from app.resources.fetcher import ResourceProbe
 
 
 HTML = """
@@ -82,3 +86,46 @@ def test_detail_page_without_download_link_is_rejected() -> None:
             "https://dokumenti.foi.hr/document/Test",
             "https://dokumenti.foi.hr/document/",
         )
+
+
+def test_source_enrichment_is_preserved_across_lightweight_listing_sync() -> None:
+    dataset = FoiDocumentsProvider.parse_listing(
+        HTML,
+        "https://dokumenti.foi.hr/document/",
+    )[0]
+    detail = FoiDocumentDetail(
+        detail_url=str(dataset.distributions[0].access_url),
+        download_url="https://dokumenti.foi.hr/document/download/567",
+        download_id="567",
+        page_title=dataset.title,
+    )
+    probe = ResourceProbe(
+        final_url=detail.download_url,
+        media_type="application/pdf",
+        detected_type="document",
+        content_sha256="a" * 64,
+        byte_size=1234,
+        etag='"abc"',
+        last_modified="Mon, 12 Oct 2026 07:00:00 GMT",
+        title_hint="567",
+        content=b"%PDF synthetic",
+    )
+
+    enriched = enrich_foi_document_dataset(dataset, detail, probe)
+    assert enriched.provenance is not None
+    assert enriched.provenance.content_sha256 == "a" * 64
+    assert enriched.extensions["foi_documents"]["download_resolved"] is True
+    source = [item for item in enriched.distributions if item.kind == "source-document"]
+    assert len(source) == 1
+    assert source[0].format == "PDF"
+    assert source[0].download_url == detail.download_url
+
+    rediscovered = dataset.model_copy(deep=True)
+    rediscovered.title = "Odluka o testu - updated title"
+    preserved = preserve_foi_document_enrichment(rediscovered, enriched)
+
+    assert preserved.title == "Odluka o testu - updated title"
+    assert preserved.extensions["foi_documents"]["download_resolved"] is True
+    assert preserved.provenance is not None
+    assert preserved.provenance.content_sha256 == "a" * 64
+    assert any(item.kind == "source-document" for item in preserved.distributions)
