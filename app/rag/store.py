@@ -6,7 +6,7 @@ from typing import Any
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, delete, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from app.catalog.store import Base, CatalogStore, DatasetVersionRow
+from app.catalog.store import Base, CatalogStore, DatasetVersionRow, ResourceRow
 from app.rag.ingest import TextChunk
 from app.rag.retrieval import rank_chunk_candidates
 
@@ -167,8 +167,21 @@ class RagStore:
             ]
 
     def search_chunks(self, query: str, *, limit: int = 10) -> list[dict[str, Any]]:
-        """Search chunks from only the latest indexed version of each dataset."""
+        """Search chunks from the latest indexed version of each active dataset.
+
+        Disabled user-registered resources remain preserved in catalog/version history,
+        but their previously indexed chunks are excluded from retrieval.
+        """
         with Session(self.engine) as session:
+            disabled_resource_datasets = set(
+                session.scalars(
+                    select(ResourceRow.dataset_identifier).where(
+                        ResourceRow.enabled.is_(False),
+                        ResourceRow.dataset_identifier.is_not(None),
+                    )
+                ).all()
+            )
+
             documents = session.scalars(
                 select(RagDocumentRow).order_by(
                     RagDocumentRow.dataset_identifier,
@@ -178,6 +191,8 @@ class RagStore:
 
             latest_documents: dict[str, RagDocumentRow] = {}
             for document in documents:
+                if document.dataset_identifier in disabled_resource_datasets:
+                    continue
                 latest_documents.setdefault(document.dataset_identifier, document)
 
             if not latest_documents:
