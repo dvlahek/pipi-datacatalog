@@ -71,6 +71,12 @@ def dataset_from_registered_resource(
         content_sha256=None if live_hls else probe.content_sha256,
     )
 
+    access_level = str(metadata.get("access_level") or "unspecified")
+    commercial_model = str(metadata.get("commercial_model") or "unspecified")
+    price_amount = metadata.get("price_amount")
+    price_currency = metadata.get("price_currency")
+    access_note = metadata.get("access_note")
+
     return CanonicalDataset(
         catalog_id=f"resource:{resource_id}",
         identifier=identifier,
@@ -115,6 +121,11 @@ def dataset_from_registered_resource(
                 "requested_type": resource["requested_type"],
                 "detected_type": probe.detected_type,
                 "byte_size": None if live_hls else probe.byte_size,
+                "access_level": access_level,
+                "commercial_model": commercial_model,
+                "price_amount": price_amount,
+                "price_currency": price_currency,
+                "access_note": access_note,
             }
         },
     )
@@ -216,6 +227,11 @@ async def register_resource(
             "publisher": payload.publisher,
             "license": payload.license,
             "keywords": payload.keywords,
+            "access_level": payload.access_level,
+            "commercial_model": payload.commercial_model,
+            "price_amount": payload.price_amount,
+            "price_currency": payload.price_currency,
+            "access_note": payload.access_note,
         },
     )
     return await refresh_registered_resource(store, int(resource["id"]), settings)
