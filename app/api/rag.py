@@ -6,7 +6,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.activity.store import ActivityStore, RagJobStore
 from app.catalog.service import catalog_store
 from app.config import get_settings
-from app.rag.jobs import run_dataset_index_job, run_resource_index_job
+from app.rag.embeddings import EmbeddingError, get_embedding_provider, reciprocal_rank_fusion
+from app.rag.jobs import run_dataset_index_job, run_embedding_backfill_job, run_resource_index_job
 from app.rag.maintenance import reindex_stale_datasets
 from app.rag.service import RagIndexError, index_catalog_dataset, index_registered_resource
 from app.rag.store import RagStore
@@ -44,17 +45,146 @@ def _resource_or_404(resource_id: int) -> tuple[object, dict[str, object]]:
 async def rag_search(
     q: str = Query(min_length=2, max_length=500),
     limit: int = Query(default=10, ge=1, le=50),
+    mode: str = Query(default="hybrid", pattern="^(lexical|vector|hybrid)$"),
 ) -> dict[str, object]:
-    results = RagStore(_store()).search_chunks(q, limit=limit)
+    settings = get_settings()
+    rag_store = RagStore(_store())
+    candidate_limit = min(100, max(20, limit * 5))
+
+    if mode == "lexical":
+        results = rag_store.search_chunks(q, limit=limit)
+        return {
+            "query": q,
+            "retrieval": "lexical-baseline-v1-current-only",
+            "mode": mode,
+            "count": len(results),
+            "data": [{"rank": rank, **item} for rank, item in enumerate(results, start=1)],
+        }
+
+    try:
+        provider = get_embedding_provider(settings)
+        query_vector = provider.embed_texts([q])[0]
+        vector_results = rag_store.vector_search(
+            query_vector,
+            model=provider.name,
+            limit=candidate_limit if mode == "hybrid" else limit,
+        )
+    except (EmbeddingError, RuntimeError, SQLAlchemyError) as exc:
+        if mode == "vector":
+            raise HTTPException(status_code=409, detail=f"Vector retrieval unavailable: {exc}") from exc
+        lexical = rag_store.search_chunks(q, limit=limit)
+        return {
+            "query": q,
+            "retrieval": "lexical-fallback-vector-unavailable",
+            "mode": mode,
+            "warning": str(exc),
+            "count": len(lexical),
+            "data": [{"rank": rank, **item} for rank, item in enumerate(lexical, start=1)],
+        }
+
+    if mode == "vector":
+        results = []
+        for rank, item in enumerate(vector_results[:limit], start=1):
+            record = dict(item)
+            record["score"] = record.get("vector_similarity")
+            record["vector_rank"] = rank
+            record["lexical_rank"] = None
+            results.append({"rank": rank, **record})
+        return {
+            "query": q,
+            "retrieval": f"pgvector-cosine-exact:{provider.name}",
+            "mode": mode,
+            "embedding_model": provider.name,
+            "count": len(results),
+            "data": results,
+        }
+
+    lexical = rag_store.search_chunks(q, limit=candidate_limit)
+    if not vector_results:
+        return {
+            "query": q,
+            "retrieval": "lexical-fallback-no-current-vectors",
+            "mode": mode,
+            "embedding_model": provider.name,
+            "count": min(limit, len(lexical)),
+            "data": [
+                {"rank": rank, **item}
+                for rank, item in enumerate(lexical[:limit], start=1)
+            ],
+        }
+
+    fused = reciprocal_rank_fusion(
+        lexical,
+        vector_results,
+        limit=limit,
+        k=max(1, int(settings.rag_hybrid_rrf_k)),
+    )
     return {
         "query": q,
-        "retrieval": "lexical-baseline-v1-current-only",
-        "count": len(results),
-        "data": [
-            {"rank": rank, **item}
-            for rank, item in enumerate(results, start=1)
-        ],
+        "retrieval": f"hybrid-rrf-v1:lexical+pgvector:{provider.name}",
+        "mode": mode,
+        "embedding_model": provider.name,
+        "count": len(fused),
+        "data": [{"rank": rank, **item} for rank, item in enumerate(fused, start=1)],
     }
+
+
+@router.get("/embeddings/status")
+async def embedding_status() -> dict[str, object]:
+    settings = get_settings()
+    try:
+        provider = get_embedding_provider(settings)
+        payload = RagStore(_store()).embedding_status(provider.name)
+        return {
+            "available": True,
+            "provider": settings.rag_embedding_provider,
+            "model": provider.name,
+            "dimensions": provider.dimensions,
+            **payload,
+        }
+    except (EmbeddingError, RuntimeError, SQLAlchemyError) as exc:
+        return {
+            "available": False,
+            "provider": settings.rag_embedding_provider,
+            "model": settings.rag_embedding_model,
+            "dimensions": settings.rag_embedding_dimensions,
+            "error": str(exc),
+        }
+
+
+@router.post("/embeddings/jobs/backfill", status_code=status.HTTP_202_ACCEPTED)
+async def queue_embedding_backfill(
+    background_tasks: BackgroundTasks,
+    limit: int | None = Query(default=None, ge=1, le=50000),
+) -> dict[str, object]:
+    settings = get_settings()
+    store = _store()
+    target = settings.rag_embedding_model
+    jobs = RagJobStore(store)
+    active = jobs.active_for_target("embedding-backfill", target)
+    if active is not None:
+        return {"accepted": False, "reason": "already-running", "job": active}
+
+    job = jobs.create(
+        target_kind="embedding-backfill",
+        target_identifier=target,
+        label=f"Vector backfill · {target}",
+    )
+    ActivityStore(store).log(
+        "info",
+        "rag",
+        "embedding-backfill-queued",
+        f"Queued vector backfill for {target}.",
+        details={"job_id": job["id"], "limit": limit},
+    )
+    background_tasks.add_task(
+        run_embedding_backfill_job,
+        store,
+        settings,
+        int(job["id"]),
+        limit,
+    )
+    return {"accepted": True, "job": job}
 
 
 @router.get("/status")
