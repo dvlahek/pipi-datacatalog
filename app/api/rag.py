@@ -45,12 +45,27 @@ async def rag_search(
     results = RagStore(_store()).search_chunks(q, limit=limit)
     return {
         "query": q,
-        "retrieval": "lexical-baseline-v1",
+        "retrieval": "lexical-baseline-v1-current-only",
         "count": len(results),
         "data": [
             {"rank": rank, **item}
             for rank, item in enumerate(results, start=1)
         ],
+    }
+
+
+@router.get("/status")
+async def rag_status() -> dict[str, object]:
+    data = RagStore(_store()).list_index_statuses()
+    counts = {
+        "indexed": sum(1 for item in data if item["status"] == "indexed"),
+        "stale": sum(1 for item in data if item["status"] == "stale"),
+        "not_indexed": sum(1 for item in data if item["status"] == "not_indexed"),
+    }
+    return {
+        "count": len(data),
+        "counts": counts,
+        "data": data,
     }
 
 
@@ -71,12 +86,7 @@ async def rag_dataset_status(dataset_identifier: str) -> dict[str, object]:
     store = _store()
     if not any(item.identifier == dataset_identifier for item in store.list_datasets()):
         raise HTTPException(status_code=404, detail="Catalog dataset not found.")
-    document = RagStore(store).document_status(dataset_identifier)
-    return {
-        "dataset_identifier": dataset_identifier,
-        "status": "indexed" if document is not None else "not_indexed",
-        "document": document,
-    }
+    return RagStore(store).index_status(dataset_identifier)
 
 
 @router.post("/resources/{resource_id}/index")
@@ -98,15 +108,15 @@ async def rag_resource_status(resource_id: int) -> dict[str, object]:
             "resource_id": resource_id,
             "status": "not_indexed",
             "dataset_identifier": None,
+            "catalog_version": None,
+            "indexed_version": None,
             "document": None,
         }
 
-    document = RagStore(store).document_status(str(dataset_identifier))
+    status_payload = RagStore(store).index_status(str(dataset_identifier))
     return {
         "resource_id": resource_id,
-        "status": "indexed" if document is not None else "not_indexed",
-        "dataset_identifier": dataset_identifier,
-        "document": document,
+        **status_payload,
     }
 
 
