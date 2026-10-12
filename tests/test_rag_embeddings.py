@@ -1,5 +1,7 @@
+from app.rag import embeddings
 from app.rag.embeddings import (
     FeatureHashEmbeddingProvider,
+    MultilingualE5EmbeddingProvider,
     reciprocal_rank_fusion,
 )
 
@@ -28,6 +30,35 @@ def test_feature_hash_keeps_related_token_signal() -> None:
         return sum(a * b for a, b in zip(left, right))
 
     assert dot(query, related) > dot(query, unrelated)
+
+
+def test_multilingual_e5_uses_query_and_passage_prefixes(monkeypatch) -> None:
+    calls: list[list[str]] = []
+
+    class FakeModel:
+        def encode(self, values, **_kwargs):
+            calls.append(list(values))
+            return [[1.0, 0.0, 0.0] for _ in values]
+
+    monkeypatch.setattr(
+        embeddings,
+        "_load_sentence_transformer",
+        lambda _model_id, _revision, _device: FakeModel(),
+    )
+
+    provider = MultilingualE5EmbeddingProvider(
+        name="test-e5",
+        dimensions=3,
+        model_id="example/e5",
+    )
+
+    query = provider.embed_query("temperatura u Varaždinu")
+    passages = provider.embed_documents(["temperatura senzora", "odluka fakulteta"])
+
+    assert query == [1.0, 0.0, 0.0]
+    assert passages == [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]
+    assert calls[0] == ["query: temperatura u Varaždinu"]
+    assert calls[1] == ["passage: temperatura senzora", "passage: odluka fakulteta"]
 
 
 def test_reciprocal_rank_fusion_combines_both_rankings() -> None:
