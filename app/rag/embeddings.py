@@ -134,7 +134,29 @@ def backfill_current_embeddings(
         if limit is not None
         else max(1, int(settings.rag_embedding_backfill_limit))
     )
-    rows = rag_store.list_current_chunks_for_embedding(provider.name, limit=effective_limit)
+
+    # Do not pass a NULL dataset identifier into PostgreSQL. Psycopg cannot infer
+    # a type for a bind used in ``:dataset_identifier IS NULL`` and PostgreSQL
+    # raises AmbiguousParameter. Enumerating current indexed datasets also keeps
+    # the backfill bounded to content that is actually eligible for retrieval.
+    current_identifiers = sorted(
+        str(item["dataset_identifier"])
+        for item in rag_store.list_index_statuses()
+        if item.get("status") == "indexed" and item.get("dataset_identifier")
+    )
+    rows: list[dict[str, object]] = []
+    for dataset_identifier in current_identifiers:
+        remaining = effective_limit - len(rows)
+        if remaining <= 0:
+            break
+        rows.extend(
+            rag_store.list_current_chunks_for_embedding(
+                provider.name,
+                dataset_identifier=dataset_identifier,
+                limit=remaining,
+            )
+        )
+
     total = len(rows)
     embedded = 0
     batch_size = max(1, int(settings.rag_embedding_batch_size))
