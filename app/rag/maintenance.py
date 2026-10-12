@@ -4,6 +4,7 @@ from typing import Any
 
 from app.catalog.store import CatalogStore
 from app.config import Settings
+from app.rag.embeddings import EmbeddingError, embed_dataset_chunks
 from app.rag.service import RagIndexError, index_catalog_dataset
 from app.rag.store import RagStore
 
@@ -27,6 +28,7 @@ async def reindex_stale_datasets(
 
     Never-indexed datasets remain untouched. Disabled registered resources are skipped.
     A per-run limit prevents a provider refresh from causing an unbounded download burst.
+    Current chunks are re-embedded after successful text indexing when pgvector is available.
     """
 
     effective_limit = max(0, int(limit if limit is not None else settings.rag_auto_reindex_limit))
@@ -69,6 +71,11 @@ async def reindex_stale_datasets(
         dataset_identifier = str(item["dataset_identifier"])
         try:
             result = await index_catalog_dataset(store, dataset_identifier, settings)
+            embedding: dict[str, Any] | None = None
+            try:
+                embedding = embed_dataset_chunks(store, settings, dataset_identifier)
+            except (EmbeddingError, RuntimeError, ValueError) as exc:
+                embedding = {"status": "error", "error": str(exc)}
             reindexed += 1
             results.append(
                 {
@@ -77,6 +84,7 @@ async def reindex_stale_datasets(
                     "from_version": item.get("indexed_version"),
                     "to_version": result.get("dataset_version"),
                     "chunk_count": result.get("chunk_count"),
+                    "embedding": embedding,
                 }
             )
         except (RagIndexError, KeyError, ValueError) as exc:
