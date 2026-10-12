@@ -81,10 +81,86 @@ function linkButton(label, url) {
   return node;
 }
 
-function accessLabel(dataset) {
+function distributionLabel(dataset) {
   const distributions = dataset.distributions || [];
   if (!distributions.length) return "—";
   return distributions.map((item) => item.format || item.media_type || item.kind || "access").join(", ");
+}
+
+function accessBadgeInfo(value) {
+  const map = {
+    public: ["Public", "public"],
+    authenticated: ["Registered users", "authenticated"],
+    "approval-required": ["Approval required", "approval"],
+    private: ["Private", "private"],
+    "provider-authenticated": ["Provider auth", "authenticated"],
+    unspecified: ["Unspecified", ""],
+  };
+  return map[value] || [value || "Unspecified", ""];
+}
+
+function commercialLabel(model, amount = null, currency = null) {
+  if (model === "paid") {
+    if (amount !== null && amount !== undefined && currency) return `Paid · ${amount} ${currency}`;
+    return "Paid";
+  }
+  if (model === "free") return "Free";
+  if (model === "negotiable") return "Negotiable";
+  if (model === "not-for-sale") return "Not for sale";
+  return null;
+}
+
+function datasetSharing(dataset) {
+  const registry = dataset.extensions?.resource_registry || null;
+  if (registry) {
+    return {
+      access: registry.access_level || "unspecified",
+      commercial: registry.commercial_model || "unspecified",
+      priceAmount: registry.price_amount ?? null,
+      priceCurrency: registry.price_currency || null,
+    };
+  }
+
+  if (dataset.source_system === "sensor-hub") {
+    return { access: "provider-authenticated", commercial: "not-applicable" };
+  }
+  if (["foi-documents", "whatsupcams", "csv-file"].includes(dataset.source_system)) {
+    return { access: "public", commercial: "not-applicable" };
+  }
+  return { access: "unspecified", commercial: "not-applicable" };
+}
+
+function resourceSharing(resource) {
+  const metadata = resource.metadata || {};
+  return {
+    access: metadata.access_level || "unspecified",
+    commercial: metadata.commercial_model || "unspecified",
+    priceAmount: metadata.price_amount ?? null,
+    priceCurrency: metadata.price_currency || null,
+  };
+}
+
+function sharingCell(policy) {
+  const cell = document.createElement("td");
+  const stack = document.createElement("div");
+  stack.className = "policy-stack";
+
+  const [accessText, accessClass] = accessBadgeInfo(policy.access);
+  const access = document.createElement("span");
+  access.className = `badge${accessClass ? ` ${accessClass}` : ""}`;
+  access.textContent = accessText;
+  stack.append(access);
+
+  const commercialText = commercialLabel(policy.commercial, policy.priceAmount, policy.priceCurrency);
+  if (commercialText) {
+    const commercial = document.createElement("span");
+    commercial.className = "badge commercial";
+    commercial.textContent = commercialText;
+    stack.append(commercial);
+  }
+
+  cell.append(stack);
+  return cell;
 }
 
 function resourceIsRagIndexable(resource) {
@@ -194,9 +270,9 @@ async function loadDatasets() {
     state.datasetsByIdentifier.set(dataset.identifier, dataset);
 
     const row = document.createElement("tr");
-    row.append(td(dataset.catalog_id));
+    row.append(td(dataset.catalog_id, "catalog-id-cell"));
 
-    const titleCell = td(dataset.title);
+    const titleCell = td(dataset.title, "dataset-title-cell");
     const identifier = document.createElement("span");
     identifier.className = "sub";
     identifier.textContent = dataset.identifier;
@@ -205,7 +281,8 @@ async function loadDatasets() {
 
     row.append(td(dataset.dataset_type));
     row.append(td(dataset.source_system));
-    row.append(td(accessLabel(dataset)));
+    row.append(td(distributionLabel(dataset)));
+    row.append(sharingCell(datasetSharing(dataset)));
 
     const actionsCell = document.createElement("td");
     const actions = document.createElement("div");
@@ -236,6 +313,7 @@ async function loadResources() {
     row.append(nameCell);
 
     row.append(td(resource.detected_type || resource.requested_type || "auto"));
+    row.append(sharingCell(resourceSharing(resource)));
 
     const statusCell = document.createElement("td");
     const badge = document.createElement("span");
@@ -356,6 +434,18 @@ function renderRagResults(payload) {
   }
 }
 
+function updatePriceFields() {
+  const paid = el("resourceCommercialModel").value === "paid";
+  el("resourcePriceLabel").classList.toggle("hidden", !paid);
+  el("resourceCurrencyLabel").classList.toggle("hidden", !paid);
+  el("resourcePriceAmount").required = paid;
+  el("resourcePriceCurrency").required = paid;
+  if (!paid) el("resourcePriceAmount").value = "";
+}
+
+el("resourceCommercialModel").addEventListener("change", updatePriceFields);
+updatePriceFields();
+
 el("loginForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   setMessage(el("loginMessage"), "Signing in...");
@@ -390,6 +480,8 @@ el("resourceForm").addEventListener("submit", async (event) => {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+  const commercialModel = el("resourceCommercialModel").value;
+  const priceAmount = commercialModel === "paid" ? Number(el("resourcePriceAmount").value) : null;
 
   setMessage(el("resourceMessage"), "Validating and ingesting resource...");
   try {
@@ -402,12 +494,18 @@ el("resourceForm").addEventListener("submit", async (event) => {
         publisher: el("resourcePublisher").value || null,
         license: el("resourceLicense").value || null,
         keywords,
+        access_level: el("resourceAccessLevel").value,
+        commercial_model: commercialModel,
+        price_amount: priceAmount,
+        price_currency: commercialModel === "paid" ? el("resourcePriceCurrency").value : null,
+        access_note: el("resourceAccessNote").value || null,
       }),
     });
 
     if (payload.status === "ok") {
       setMessage(el("resourceMessage"), "Resource registered and catalog metadata created.", "success");
       el("resourceForm").reset();
+      updatePriceFields();
     } else {
       setMessage(el("resourceMessage"), payload.error || "Resource registered, but ingestion failed.", "error");
     }
