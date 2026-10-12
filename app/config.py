@@ -16,8 +16,11 @@ class Settings(BaseSettings):
     provider_sensor_hub_enabled: bool = True
     provider_static_web_enabled: bool = True
     provider_csv_enabled: bool = True
+    provider_foi_documents_enabled: bool = True
     csv_datasets_config: str = "config/csv_datasets.json"
     catalog_public_base_url: str = "http://127.0.0.1:8000"
+    foi_documents_base_url: str = "https://dokumenti.foi.hr/document/"
+    foi_documents_timeout_seconds: float = 20.0
 
     # Authentication is secure-by-default. Disable only for isolated local tests.
     auth_enabled: bool = True
