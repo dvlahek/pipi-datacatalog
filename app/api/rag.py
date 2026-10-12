@@ -9,6 +9,14 @@ from app.config import get_settings
 from app.rag.embeddings import EmbeddingError, get_embedding_provider
 from app.rag.jobs import run_dataset_index_job, run_embedding_backfill_job, run_resource_index_job
 from app.rag.maintenance import reindex_stale_datasets
+from app.rag.profiles import (
+    ensure_builtin_profiles,
+    get_retrieval_profile,
+    get_retrieval_run,
+    list_retrieval_runs,
+    record_retrieval_run,
+    settings_for_profile,
+)
 from app.rag.search import search_rag
 from app.rag.service import RagIndexError, index_catalog_dataset, index_registered_resource
 from app.rag.store import RagStore
@@ -42,29 +50,102 @@ def _resource_or_404(resource_id: int) -> tuple[object, dict[str, object]]:
     return store, resource
 
 
+def _profile_or_404(profile_id: str):
+    try:
+        return get_retrieval_profile(profile_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Retrieval profile not found.") from exc
+
+
+@router.get("/profiles")
+async def retrieval_profiles() -> dict[str, object]:
+    store = _store()
+    settings = get_settings()
+    profiles = ensure_builtin_profiles(store)
+    data: list[dict[str, object]] = []
+    for item in profiles:
+        row = dict(item)
+        profile = get_retrieval_profile(str(row["profile_id"]))
+        if profile.embedding_provider is None:
+            row["embedding_status"] = None
+        else:
+            profile_settings = settings_for_profile(settings, profile)
+            provider = get_embedding_provider(profile_settings)
+            row["embedding_status"] = RagStore(store).embedding_status(provider.name)
+            row["embedding_identity"] = provider.name
+        data.append(row)
+    return {"count": len(data), "data": data}
+
+
 @router.get("/search")
 async def rag_search(
     q: str = Query(min_length=2, max_length=500),
     limit: int = Query(default=10, ge=1, le=50),
     mode: str = Query(default="hybrid", pattern="^(lexical|vector|hybrid)$"),
+    profile: str | None = Query(default=None),
 ) -> dict[str, object]:
     settings = get_settings()
+    store = _store()
+    selected_profile = None
+    if profile is not None:
+        selected_profile = _profile_or_404(profile)
+        ensure_builtin_profiles(store)
     try:
-        return search_rag(_store(), settings, q, limit=limit, mode=mode)
+        payload = search_rag(
+            store,
+            settings,
+            q,
+            limit=limit,
+            mode=mode,
+            profile_id=profile,
+        )
     except RuntimeError as exc:
-        if mode == "vector":
+        effective_mode = selected_profile.mode if selected_profile is not None else mode
+        if effective_mode == "vector":
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         raise
 
+    run_id = record_retrieval_run(
+        store,
+        query=q,
+        profile=selected_profile,
+        retrieval=str(payload.get("retrieval") or "unknown"),
+        top_k=limit,
+        result=payload,
+    )
+    if run_id is not None:
+        payload["retrieval_run_id"] = run_id
+    return payload
+
 
 @router.get("/embeddings/status")
-async def embedding_status() -> dict[str, object]:
+async def embedding_status(
+    profile: str | None = Query(default=None),
+) -> dict[str, object]:
     settings = get_settings()
+    profile_payload = None
+    if profile is not None:
+        selected = _profile_or_404(profile)
+        if selected.embedding_provider is None:
+            return {
+                "available": True,
+                "profile": selected.public_dict(),
+                "not_applicable": True,
+                "model": None,
+                "dimensions": None,
+                "total_current_chunks": 0,
+                "embedded_current_model": 0,
+                "missing": 0,
+                "complete": True,
+            }
+        settings = settings_for_profile(settings, selected)
+        profile_payload = selected.public_dict()
     try:
         provider = get_embedding_provider(settings)
         payload = RagStore(_store()).embedding_status(provider.name)
         return {
             "available": True,
+            "profile": profile_payload,
             "provider": settings.rag_embedding_provider,
             "model": provider.name,
             "dimensions": provider.dimensions,
@@ -73,6 +154,7 @@ async def embedding_status() -> dict[str, object]:
     except (EmbeddingError, RuntimeError, SQLAlchemyError) as exc:
         return {
             "available": False,
+            "profile": profile_payload,
             "provider": settings.rag_embedding_provider,
             "model": settings.rag_embedding_model,
             "dimensions": settings.rag_embedding_dimensions,
@@ -84,9 +166,17 @@ async def embedding_status() -> dict[str, object]:
 async def queue_embedding_backfill(
     background_tasks: BackgroundTasks,
     limit: int | None = Query(default=None, ge=1, le=50000),
+    profile: str | None = Query(default=None),
 ) -> dict[str, object]:
     settings = get_settings()
     store = _store()
+    selected_profile = None
+    if profile is not None:
+        selected_profile = _profile_or_404(profile)
+        ensure_builtin_profiles(store)
+        if selected_profile.embedding_provider is None:
+            raise HTTPException(status_code=422, detail="Lexical profiles do not require vectors.")
+        settings = settings_for_profile(settings, selected_profile)
     try:
         target = get_embedding_provider(settings).name
     except EmbeddingError as exc:
@@ -106,7 +196,11 @@ async def queue_embedding_backfill(
         "rag",
         "embedding-backfill-queued",
         f"Queued vector backfill for {target}.",
-        details={"job_id": job["id"], "limit": limit},
+        details={
+            "job_id": job["id"],
+            "limit": limit,
+            "profile_id": None if selected_profile is None else selected_profile.profile_id,
+        },
     )
     background_tasks.add_task(
         run_embedding_backfill_job,
@@ -116,6 +210,22 @@ async def queue_embedding_backfill(
         limit,
     )
     return {"accepted": True, "job": job}
+
+
+@router.get("/runs")
+async def retrieval_runs(
+    limit: int = Query(default=30, ge=1, le=100),
+) -> dict[str, object]:
+    data = list_retrieval_runs(_store(), limit=limit)
+    return {"count": len(data), "data": data}
+
+
+@router.get("/runs/{run_id}")
+async def retrieval_run(run_id: int) -> dict[str, object]:
+    row = get_retrieval_run(_store(), run_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Retrieval run not found.")
+    return row
 
 
 @router.get("/status")
