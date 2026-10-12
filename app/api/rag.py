@@ -37,6 +37,23 @@ def _resource_or_404(resource_id: int) -> tuple[object, dict[str, object]]:
     return store, resource
 
 
+@router.get("/search")
+async def rag_search(
+    q: str = Query(min_length=2, max_length=500),
+    limit: int = Query(default=10, ge=1, le=50),
+) -> dict[str, object]:
+    results = RagStore(_store()).search_chunks(q, limit=limit)
+    return {
+        "query": q,
+        "retrieval": "lexical-baseline-v1",
+        "count": len(results),
+        "data": [
+            {"rank": rank, **item}
+            for rank, item in enumerate(results, start=1)
+        ],
+    }
+
+
 @router.post("/resources/{resource_id}/index")
 async def index_resource(resource_id: int) -> dict[str, object]:
     settings = get_settings()
