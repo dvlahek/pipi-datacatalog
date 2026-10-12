@@ -166,14 +166,15 @@
     }
   }
 
-  async function startEmbeddingBackfill() {
+  async function startEmbeddingBackfill(profileId = null) {
     const messageNode = byId("ragSearchMessage");
     setMessage(messageNode, "Queueing vector build for current RAG chunks…");
+    const suffix = profileId ? `?profile=${encodeURIComponent(profileId)}` : "";
     try {
-      const payload = await apiFetch("/api/v1/rag/embeddings/jobs/backfill", { method: "POST" });
+      const payload = await apiFetch(`/api/v1/rag/embeddings/jobs/backfill${suffix}`, { method: "POST" });
       return await monitorJob(payload.job, {
         title: "Building vector index",
-        message: "Creating pgvector embeddings for current indexed chunks. Existing text retrieval remains intact.",
+        message: "Creating pgvector embeddings for the selected retrieval profile. Existing profile vectors remain intact.",
         messageNode,
       });
     } catch (error) {
