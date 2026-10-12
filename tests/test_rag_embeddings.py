@@ -1,7 +1,10 @@
+from app.config import Settings
 from app.rag import embeddings
 from app.rag.embeddings import (
     FeatureHashEmbeddingProvider,
     MultilingualE5EmbeddingProvider,
+    build_embedding_document_text,
+    get_embedding_provider,
     reciprocal_rank_fusion,
 )
 
@@ -59,6 +62,43 @@ def test_multilingual_e5_uses_query_and_passage_prefixes(monkeypatch) -> None:
     assert passages == [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]
     assert calls[0] == ["query: temperatura u Varaždinu"]
     assert calls[1] == ["passage: temperatura senzora", "passage: odluka fakulteta"]
+
+
+def test_metadata_embedding_profile_adds_title_and_file_path() -> None:
+    value = build_embedding_document_text(
+        "runtime ownership is checked before resume",
+        profile="metadata-v1",
+        dataset_title="REA: Reverse Engineer Anything",
+        file_path="docs/web-runtime.md",
+    )
+
+    assert value == (
+        "Dataset title: REA: Reverse Engineer Anything\n"
+        "File path: docs/web-runtime.md\n"
+        "Content:\nruntime ownership is checked before resume"
+    )
+
+
+def test_content_embedding_profile_preserves_historical_input() -> None:
+    text = "temperature demo-site-b"
+    assert build_embedding_document_text(
+        text,
+        profile="content-v1",
+        dataset_title="ignored title",
+        file_path="ignored/path.md",
+    ) == text
+
+
+def test_nondefault_embedding_profile_changes_vector_identity() -> None:
+    settings = Settings(
+        _env_file=None,
+        rag_embedding_provider="feature-hash",
+        rag_embedding_model="feature-hash-384-v1",
+        rag_embedding_dimensions=384,
+        rag_embedding_input_profile="metadata-v1",
+    )
+    provider = get_embedding_provider(settings)
+    assert provider.name == "feature-hash-384-v1#metadata-v1"
 
 
 def test_reciprocal_rank_fusion_combines_both_rankings() -> None:
