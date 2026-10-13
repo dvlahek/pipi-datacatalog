@@ -1,6 +1,11 @@
 import pytest
 
-from app.rag.drift import compare_ranked_evidence, evidence_key, ordered_evidence_hash
+from app.rag.drift import (
+    compare_ranked_evidence,
+    evidence_key,
+    ordered_evidence_hash,
+    source_key,
+)
 
 
 def _item(dataset: str, version: int, chunk: int) -> dict[str, object]:
@@ -13,6 +18,7 @@ def _item(dataset: str, version: int, chunk: int) -> dict[str, object]:
 
 def test_evidence_key_uses_versioned_chunk_identity() -> None:
     assert evidence_key(_item("dataset-a", 3, 7)) == ("dataset-a", 3, 7)
+    assert source_key(_item("dataset-a", 3, 7)) == ("dataset-a", 3)
 
 
 def test_identical_rankings_have_zero_drift() -> None:
@@ -28,6 +34,10 @@ def test_identical_rankings_have_zero_drift() -> None:
     assert metrics["ordered_evidence_same"] is True
     assert metrics["mean_abs_rank_shift_common"] == 0.0
     assert metrics["left_evidence_hash"] == metrics["right_evidence_hash"]
+    assert metrics["source_retention_at_k"] == 1.0
+    assert metrics["source_churn_at_k"] == 0.0
+    assert metrics["source_jaccard_at_k"] == 1.0
+    assert metrics["top1_source_same"] is True
 
 
 def test_profile_change_can_preserve_set_but_change_ranking() -> None:
@@ -39,10 +49,25 @@ def test_profile_change_can_preserve_set_but_change_ranking() -> None:
     assert metrics["retention_at_k"] == 1.0
     assert metrics["jaccard_at_k"] == 1.0
     assert metrics["top1_same"] is False
+    assert metrics["top1_source_same"] is False
     assert metrics["ordered_evidence_same"] is False
     assert metrics["mean_abs_rank_shift_common"] == pytest.approx(2 / 3, abs=1e-7)
     assert metrics["max_abs_rank_shift_common"] == 1
     assert ordered_evidence_hash(left) != ordered_evidence_hash(right)
+
+
+def test_chunk_change_inside_same_source_is_not_source_top1_change() -> None:
+    left = [_item("doc", 4, 0), _item("doc", 4, 1), _item("other", 1, 0)]
+    right = [_item("doc", 4, 8), _item("doc", 4, 1), _item("other", 1, 0)]
+
+    metrics = compare_ranked_evidence(left, right, limit=3)
+
+    assert metrics["top1_same"] is False
+    assert metrics["top1_source_same"] is True
+    assert metrics["retention_at_k"] == pytest.approx(2 / 3, abs=1e-7)
+    assert metrics["source_retention_at_k"] == 1.0
+    assert metrics["source_churn_at_k"] == 0.0
+    assert metrics["source_jaccard_at_k"] == 1.0
 
 
 def test_disjoint_rankings_have_full_churn() -> None:
@@ -58,3 +83,6 @@ def test_disjoint_rankings_have_full_churn() -> None:
     assert metrics["mean_abs_rank_shift_common"] is None
     assert len(metrics["left_only"]) == 2
     assert len(metrics["right_only"]) == 2
+    assert metrics["source_retention_at_k"] == 0.0
+    assert metrics["source_churn_at_k"] == 1.0
+    assert metrics["source_jaccard_at_k"] == 0.0
