@@ -20,7 +20,7 @@ from app.rag.drift import compare_profiles, compare_ranked_sources
 from app.rag.profiles import catalog_snapshot_hash, get_retrieval_profile
 
 DEFAULT_CASES = ROOT / "config" / "rag_eval_queries.json"
-DEFAULT_TAXONOMY = ROOT / "config" / "rag_eval_query_taxonomy.json"
+DEFAULT_TAXONOMY = ROOT / "config" / "rag_eval_taxonomy.json"
 
 
 def _sha256(path: Path) -> str:
@@ -51,6 +51,23 @@ def _summary(rows: list[dict[str, Any]], prefix: str) -> dict[str, float]:
     }
 
 
+def _taxonomy_map(payload: Any) -> dict[str, dict[str, Any]]:
+    raw = payload.get("cases", payload) if isinstance(payload, dict) else payload
+    if isinstance(raw, dict):
+        return {
+            str(case_id): dict(labels)
+            for case_id, labels in raw.items()
+            if isinstance(labels, dict)
+        }
+    if isinstance(raw, list):
+        return {
+            str(item["id"]): dict(item)
+            for item in raw
+            if isinstance(item, dict) and item.get("id")
+        }
+    raise ValueError("Unsupported taxonomy format.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Freeze the PiPi retrieval-profile pilot as a provenance-rich JSON artifact."
@@ -70,12 +87,7 @@ def main() -> None:
 
     cases = json.loads(args.cases.read_text(encoding="utf-8"))
     taxonomy_payload = json.loads(args.taxonomy.read_text(encoding="utf-8"))
-    taxonomy_rows = taxonomy_payload.get("cases", taxonomy_payload)
-    taxonomy = {
-        str(item["id"]): item
-        for item in taxonomy_rows
-        if isinstance(item, dict) and item.get("id")
-    }
+    taxonomy = _taxonomy_map(taxonomy_payload)
 
     left_profile = get_retrieval_profile(args.left)
     right_profile = get_retrieval_profile(args.right)
@@ -106,7 +118,7 @@ def main() -> None:
                 "query": case.get("query"),
                 "taxonomy": {
                     key: tag.get(key)
-                    for key in ("source_family", "language_relation", "query_type")
+                    for key in ("source_family", "language", "language_relation", "query_type")
                     if tag.get(key) is not None
                 },
                 "chunk_retention": chunk["retention_at_k"],
