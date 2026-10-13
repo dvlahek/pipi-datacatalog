@@ -1,0 +1,16 @@
+{
+  "artifact": "pipi-benchmark-v2-confirmation-pass1-judgment-manifest",
+  "schema_version": 1,
+  "status": "frozen-before-replicate-pass2-and-before-quality-metrics",
+  "confirmation_cases_sha256": "c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5",
+  "augmented_pool_sha256": "04e8a7b25d0a38d8412d6e2e7ff91887848d1ce04943f6e2c20b0cea605f1a4c",
+  "pass1_blinded_input_sha256": "6f47c16eb59de2179c1d300e6c2e9ab929f858ea5ae4d6896fbaed977b46655d",
+  "pass1_judge_criteria_sha256": "3020848ef8f388103d31e5117f2d7686f77571ce87e6b1297e6f9f85dc898f37",
+  "pass1_judgments_sha256": "85ced352b8a7dce34465718895a1c418966df6568d7fd467c88673b01135e8af",
+  "pass1_qrels_tsv_sha256": "65d404e14c60b34b1135c1a8afcb521a58c8485dba2719e6df5c587d8a8049b9",
+  "case_count": 192,
+  "candidate_count": 9170,
+  "grade_counts": {"0": 7760, "1": 532, "2": 656, "3": 222},
+  "judge": "OpenAI GPT-5.6 Sol blinded deterministic criteria-assisted pass",
+  "quality_metrics_computed": false
+}
