@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "pipi-rag-benchmark-v2",
+  "decision": "expand-corpus-before-query-authoring",
+  "capacity_audit_snapshot": "f932c8191cce3b51145a525ec6d95d1a06d315d4a7f1ec5e41f93de8b059eb04",
+  "query_quota_per_family": 80,
+  "minimum_diversity_ratio": 0.40,
+  "minimum_diversity_units": {
+    "structured-data": 32,
+    "software-documentation": 32,
+    "institutional-documents": 32
+  },
+  "current_observation": {
+    "structured-data": {
+      "diversity_units": 1,
+      "total_chunks": 3,
+      "status": "insufficient"
+    },
+    "software-documentation": {
+      "diversity_units": 100,
+      "total_chunks": 1436,
+      "status": "sufficient"
+    },
+    "institutional-documents": {
+      "diversity_units": 3,
+      "total_chunks": 48,
+      "status": "insufficient"
+    }
+  },
+  "expansion_plan": {
+    "structured-data": {
+      "action": "index metadata representations for all currently cataloged Sensor Hub deployment-property datasets while keeping raw time-series payloads out of the text RAG index; keep the CSV demo as one additional structured source",
+      "target": "at least 32 distinct versioned structured datasets with non-empty RAG evidence",
+      "selection_rule": "all eligible Sensor Hub datasets present before the V2 corpus snapshot is frozen"
+    },
+    "software-documentation": {
+      "action": "no corpus expansion required before query authoring",
+      "target": "retain at least 80 distinct indexed GitHub file paths",
+      "selection_rule": "use the frozen repository corpus produced by the GitHub adapter and record repository HEAD/content provenance"
+    },
+    "institutional-documents": {
+      "action": "index a deterministic public FOI document subset before query authoring",
+      "target": "at least 40 successfully indexed distinct FOI documents",
+      "selection_rule": "rank eligible catalog identifiers by SHA-256(identifier), attempt indexing in that deterministic order, and continue until 40 documents are successfully indexed; failures are recorded and the next ranked candidate is tried"
+    }
+  },
+  "guardrails": [
+    "Do not inspect retrieval-profile results while selecting the corpus expansion subset.",
+    "Do not choose FOI documents because they produce convenient or high-performing retrieval examples.",
+    "Do not text-embed raw Sensor Hub observation streams for this benchmark; use catalog metadata as the RAG evidence representation for metadata-first sensor datasets.",
+    "Pilot P1 remains bound to its original snapshot and must not be recomputed on the expanded V2 corpus as if it were the same pilot.",
+    "After expansion, rerun the capacity audit. Query authoring begins only after all three source families pass the gate.",
+    "The final V2 corpus snapshot is frozen before confirmation queries are evaluated."
+  ]
+}
