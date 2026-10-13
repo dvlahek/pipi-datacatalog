@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "catalogs": [
+    {
+      "id": "croatia-open-data",
+      "type": "ckan",
+      "url": "https://data.gov.hr/ckan",
+      "publisher": "Portal otvorenih podataka Republike Hrvatske",
+      "enabled": true,
+      "max_datasets": 200,
+      "page_size": 100,
+      "timeout_seconds": 30
+    }
+  ],
+  "note": "Only catalog metadata and external distribution links are harvested. Source dataset payloads are not copied into PiPi by this provider. Add further CKAN portals or direct DCAT/DCAT-AP RDF catalog URLs as additional entries."
+}
