@@ -69,6 +69,18 @@ def main() -> None:
             "mean_churn_at_k": _mean([float(row["churn_at_k"]) for row in rows]),
             "mean_jaccard_at_k": _mean([float(row["jaccard_at_k"]) for row in rows]),
             "top1_change_rate": _mean([0.0 if row["top1_same"] else 1.0 for row in rows]),
+            "mean_source_retention_at_k": _mean(
+                [float(row["source_retention_at_k"]) for row in rows]
+            ),
+            "mean_source_churn_at_k": _mean(
+                [float(row["source_churn_at_k"]) for row in rows]
+            ),
+            "mean_source_jaccard_at_k": _mean(
+                [float(row["source_jaccard_at_k"]) for row in rows]
+            ),
+            "top1_source_change_rate": _mean(
+                [0.0 if row["top1_source_same"] else 1.0 for row in rows]
+            ),
             "exact_order_reproduction_rate": _mean(
                 [1.0 if row["ordered_evidence_same"] else 0.0 for row in rows]
             ),
@@ -90,23 +102,31 @@ def main() -> None:
     summary = report["summary"]
     print(f"Profiles: {args.left}  ->  {args.right}")
     print(f"Cases: {len(rows)} · top-k: {args.limit}")
+    print("CHUNK-LEVEL EVIDENCE DRIFT")
     print(
-        f"Mean retention@{args.limit}={summary['mean_retention_at_k']:.3f}  "
+        f"  Mean retention@{args.limit}={summary['mean_retention_at_k']:.3f}  "
         f"Mean churn@{args.limit}={summary['mean_churn_at_k']:.3f}  "
         f"Mean Jaccard@{args.limit}={summary['mean_jaccard_at_k']:.3f}"
     )
     print(
-        f"Top-1 change rate={summary['top1_change_rate']:.3f}  "
-        f"Exact ordered evidence match={summary['exact_order_reproduction_rate']:.3f}  "
-        f"Mean rank shift (shared evidence)={summary['mean_rank_shift_common']:.3f}"
+        f"  Top-1 chunk change rate={summary['top1_change_rate']:.3f}  "
+        f"Mean rank shift={summary['mean_rank_shift_common']:.3f}"
     )
+    print("SOURCE-LEVEL DRIFT (versioned datasets, repeated chunks collapsed)")
+    print(
+        f"  Mean retention={summary['mean_source_retention_at_k']:.3f}  "
+        f"Mean churn={summary['mean_source_churn_at_k']:.3f}  "
+        f"Mean Jaccard={summary['mean_source_jaccard_at_k']:.3f}"
+    )
+    print(f"  Top-1 source change rate={summary['top1_source_change_rate']:.3f}")
+    print(f"Exact ordered chunk evidence match={summary['exact_order_reproduction_rate']:.3f}")
     print()
     for row in rows:
         print(
-            f"{row['id']}: retention={row['retention_at_k']:.2f}  "
-            f"jaccard={row['jaccard_at_k']:.2f}  "
-            f"top1={'same' if row['top1_same'] else 'CHANGED'}  "
-            f"rank-shift={row['mean_abs_rank_shift_common']}"
+            f"{row['id']}: chunk-ret={row['retention_at_k']:.2f}  "
+            f"source-ret={row['source_retention_at_k']:.2f}  "
+            f"top1-chunk={'same' if row['top1_same'] else 'CHANGED'}  "
+            f"top1-source={'same' if row['top1_source_same'] else 'CHANGED'}"
         )
 
 
