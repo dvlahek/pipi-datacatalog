@@ -16,7 +16,7 @@ if str(ROOT) not in sys.path:
 
 from app.catalog.service import catalog_store
 from app.config import get_settings
-from app.rag.drift import compare_profiles, compare_ranked_sources
+from app.rag.drift import compare_profiles
 from app.rag.profiles import catalog_snapshot_hash, get_retrieval_profile
 
 DEFAULT_CASES = ROOT / "config" / "rag_eval_queries.json"
@@ -107,10 +107,9 @@ def main() -> None:
         if comparison["catalog_snapshot_hash"] != frozen_snapshot:
             raise SystemExit("Catalog snapshot changed while freezing the pilot. Run again on a stable catalog.")
 
-        chunk = dict(comparison["drift"])
+        drift = dict(comparison["drift"])
         left_data = list(comparison["left"].get("data") or [])
         right_data = list(comparison["right"].get("data") or [])
-        source = compare_ranked_sources(left_data, right_data, limit=args.limit)
         tag = taxonomy.get(case_id, {})
         rows.append(
             {
@@ -121,17 +120,17 @@ def main() -> None:
                     for key in ("source_family", "language", "language_relation", "query_type")
                     if tag.get(key) is not None
                 },
-                "chunk_retention": chunk["retention_at_k"],
-                "chunk_churn": chunk["churn_at_k"],
-                "chunk_jaccard": chunk["jaccard_at_k"],
-                "chunk_top1_same": chunk["top1_same"],
-                "chunk_mean_rank_shift": chunk["mean_abs_rank_shift_common"],
-                "chunk_left_evidence_hash": chunk["left_evidence_hash"],
-                "chunk_right_evidence_hash": chunk["right_evidence_hash"],
-                "source_retention": source["retention_at_k"],
-                "source_churn": source["churn_at_k"],
-                "source_jaccard": source["jaccard_at_k"],
-                "source_top1_same": source["top1_same"],
+                "chunk_retention": drift["retention_at_k"],
+                "chunk_churn": drift["churn_at_k"],
+                "chunk_jaccard": drift["jaccard_at_k"],
+                "chunk_top1_same": drift["top1_same"],
+                "chunk_mean_rank_shift": drift["mean_abs_rank_shift_common"],
+                "chunk_left_evidence_hash": drift["left_evidence_hash"],
+                "chunk_right_evidence_hash": drift["right_evidence_hash"],
+                "source_retention": drift["source_retention_at_k"],
+                "source_churn": drift["source_churn_at_k"],
+                "source_jaccard": drift["source_jaccard_at_k"],
+                "source_top1_same": drift["top1_source_same"],
                 "left_top1": left_data[0] if left_data else None,
                 "right_top1": right_data[0] if right_data else None,
             }
