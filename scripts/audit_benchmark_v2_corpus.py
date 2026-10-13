@@ -21,6 +21,7 @@ TARGETS = {
     "software-documentation": 80,
     "institutional-documents": 80,
 }
+MIN_DIVERSITY_RATIO = 0.40
 
 
 def source_family(dataset_identifier: str) -> str | None:
@@ -47,13 +48,18 @@ def main() -> None:
     rag = RagStore(store)
     snapshot = catalog_snapshot_hash(store)
     statuses = rag.list_index_statuses()
+    disabled_datasets = {
+        str(resource.get("dataset_identifier") or "")
+        for resource in store.list_resources()
+        if not bool(resource.get("enabled")) and resource.get("dataset_identifier")
+    }
 
     datasets_by_family: dict[str, list[dict[str, Any]]] = defaultdict(list)
     unclassified: list[str] = []
 
     for status in statuses:
         identifier = str(status.get("dataset_identifier") or "")
-        if status.get("status") != "indexed":
+        if status.get("status") != "indexed" or identifier in disabled_datasets:
             continue
         family = source_family(identifier)
         if family is None:
@@ -63,8 +69,10 @@ def main() -> None:
 
     print(f"CATALOG_SNAPSHOT={snapshot}")
     print("Benchmark V2 corpus-capacity audit")
+    print(f"MIN_DIVERSITY_RATIO={MIN_DIVERSITY_RATIO:.2f}")
     print()
 
+    overall_pass = True
     for family in TARGETS:
         statuses_for_family = datasets_by_family.get(family, [])
         chunk_counts: list[int] = []
@@ -120,11 +128,14 @@ def main() -> None:
         ratio = diversity_units / TARGETS[family] if TARGETS[family] else 0.0
         print(f"  coarse_diversity_units={diversity_units} ({label}; ratio_to_query_quota={ratio:.2f})")
         if diversity_units == 0:
-            print("  capacity_flag=FAIL_NO_EVIDENCE")
-        elif ratio < 0.10:
-            print("  capacity_flag=REVIEW_HIGH_TARGET_REUSE_RISK")
+            flag = "FAIL_NO_EVIDENCE"
+            overall_pass = False
+        elif ratio < MIN_DIVERSITY_RATIO:
+            flag = "FAIL_CAPACITY_EXPANSION_REQUIRED"
+            overall_pass = False
         else:
-            print("  capacity_flag=REVIEW_MANUALLY")
+            flag = "PASS_CAPACITY_GATE"
+        print(f"  capacity_flag={flag}")
         print()
 
     if unclassified:
@@ -134,8 +145,9 @@ def main() -> None:
     else:
         print("UNCLASSIFIED_INDEXED_DATASETS=0")
 
-    print()
-    print("AUDIT_NOTE=This is a capacity gate, not a benchmark result. Review target reuse before query authoring.")
+    print(f"DISABLED_DATASETS_EXCLUDED={len(disabled_datasets)}")
+    print(f"CAPACITY_GATE={'PASS' if overall_pass else 'FAIL'}")
+    print("AUDIT_NOTE=This is a pre-authoring capacity gate, not a benchmark result.")
 
 
 if __name__ == "__main__":
