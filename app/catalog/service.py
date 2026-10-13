@@ -9,6 +9,7 @@ from app.models.catalog import CanonicalDataset
 from app.providers.base import CatalogProvider
 from app.providers.csv_file import CsvFileProvider
 from app.providers.foi_documents import FoiDocumentsProvider, preserve_foi_document_enrichment
+from app.providers.open_data_catalog import OpenDataCatalogProvider
 from app.providers.registry import ProviderStatus, discover_from_providers
 from app.providers.sensor_hub import SensorHubProvider
 from app.providers.static_web import StaticWebProvider
@@ -37,6 +38,14 @@ def configured_providers(
             FoiDocumentsProvider(
                 settings.foi_documents_base_url,
                 settings.foi_documents_timeout_seconds,
+            )
+        )
+    if settings.provider_open_data_catalogs_enabled:
+        providers.append(
+            OpenDataCatalogProvider(
+                settings.open_data_catalogs_config,
+                default_timeout_seconds=settings.open_data_catalogs_timeout_seconds,
+                allowed_ports=settings.allowed_resource_ports,
             )
         )
 
