@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     open_data_catalogs_config: str = "config/open_data_catalogs.json"
     open_data_catalogs_timeout_seconds: float = 30.0
     catalog_public_base_url: str = "http://127.0.0.1:8000"
-    foi_documents_base_url: str = "https://dokumenti.foi.unizg.hr/document/"
+    foi_documents_base_url: str = "https://dokumenti.foi.hr/document/"
     foi_documents_timeout_seconds: float = 20.0
 
     # GitHub repository resources. Public repositories work without a token, but
