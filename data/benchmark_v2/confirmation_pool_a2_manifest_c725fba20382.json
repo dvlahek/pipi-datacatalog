@@ -1,0 +1,31 @@
+{
+  "artifact": "pipi-benchmark-v2-confirmation-pool-a2-manifest",
+  "schema_version": 1,
+  "catalog_snapshot_hash": "068e1b0df74acd8b91d04a5161f4413d57d07bfef5c8c9ce2b8d1100ae780419",
+  "corpus_fingerprint_sha256": "f04239fe6df52ab2604ab45a8c08cc83d5bafe79203a4b16c20a2d2a307e2dc6",
+  "base_protocol_sha256": "d277465bb9572bf6bbff82a5d5bf6f29fd1d9ebd9a5b9940d890d87b87df2dde",
+  "confirmation_cases_sha256": "c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5",
+  "amendment_2_sha256": "08cb585921d5cd70aaee3705d71df1d8d2a40034e3730ff4646a72c8ef0ecc65",
+  "input_annotation_pool_sha256": "cb25ae1a315df2f3652c6d23b81a6d1624f93350aeb546a4716bc11082a07ded",
+  "retrieval_ledger_sha256": "335555045685798fc27f781b39092d1b1b9f17af8c53dd16d0e2f757db18a1c0",
+  "frozen_confirmation_queries_file_sha256": "c0d8131c9cfe97280b6d997dd76f2ce1b186c99c8384d9c84393cc9d3485ce36",
+  "augmented_pool_sha256": "04e8a7b25d0a38d8412d6e2e7ff91887848d1ce04943f6e2c20b0cea605f1a4c",
+  "retrieval_runs": 960,
+  "pool_depth_per_profile": 20,
+  "candidate_count_before": 9146,
+  "resolved_seed_specs": 262,
+  "unique_seed_candidates_across_confirmation": 146,
+  "seed_specs_already_present": 238,
+  "seed_candidates_added": 24,
+  "cases_with_added_seed_candidates": 15,
+  "candidate_count_after": 9170,
+  "automatic_relevance_grades_assigned": 0,
+  "retrieval_ranks_modified": false,
+  "quality_metrics_computed": false,
+  "derivation": {
+    "method": "session-side exact augmentation from frozen confirmation pool",
+    "absent_seed_payload_source": "same dataset/version/chunk payload as observed elsewhere in the same frozen confirmation pool",
+    "retrieval_provenance_copied_into_seeded_case": false,
+    "note": "The repository augmentation script resolves the same seeds directly from the frozen current catalog/RAG store."
+  }
+}
