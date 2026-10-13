@@ -1,3 +1,5 @@
+import pytest
+
 from app.rag.drift import compare_ranked_evidence, evidence_key, ordered_evidence_hash
 
 
@@ -38,7 +40,7 @@ def test_profile_change_can_preserve_set_but_change_ranking() -> None:
     assert metrics["jaccard_at_k"] == 1.0
     assert metrics["top1_same"] is False
     assert metrics["ordered_evidence_same"] is False
-    assert metrics["mean_abs_rank_shift_common"] == 2 / 3
+    assert metrics["mean_abs_rank_shift_common"] == pytest.approx(2 / 3, abs=1e-7)
     assert metrics["max_abs_rank_shift_common"] == 1
     assert ordered_evidence_hash(left) != ordered_evidence_hash(right)
 
