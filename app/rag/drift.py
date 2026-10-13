@@ -24,6 +24,26 @@ def evidence_key(item: dict[str, Any]) -> tuple[str, int, int]:
     )
 
 
+def source_key(item: dict[str, Any]) -> tuple[str, int]:
+    """Stable identity of the versioned dataset that supplied one evidence chunk."""
+
+    return (
+        str(item.get("dataset_identifier") or ""),
+        int(item.get("dataset_version") or 0),
+    )
+
+
+def _ordered_unique(values: list[tuple[str, int]]) -> list[tuple[str, int]]:
+    seen: set[tuple[str, int]] = set()
+    ordered: list[tuple[str, int]] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        ordered.append(value)
+    return ordered
+
+
 def ordered_evidence_hash(results: list[dict[str, Any]]) -> str:
     """Hash the ordered evidence identity, excluding scores and display metadata."""
 
@@ -38,11 +58,11 @@ def compare_ranked_evidence(
     *,
     limit: int,
 ) -> dict[str, Any]:
-    """Measure evidence-set and rank drift between two top-k retrieval results.
+    """Measure chunk-level and source-level drift between two top-k retrieval results.
 
-    ``retention_at_k`` answers how much of the smaller available top-k set is shared.
-    ``jaccard_at_k`` measures set agreement. Rank displacement is calculated only
-    for evidence that appears in both result sets.
+    Chunk-level metrics treat every retrieved chunk as distinct evidence. Source-level
+    metrics collapse repeated chunks from the same versioned dataset so a change of
+    paragraph within one document is not confused with a change of source document.
     """
 
     k = max(1, int(limit))
@@ -63,6 +83,16 @@ def compare_ranked_evidence(
     right_rank = {key: rank for rank, key in enumerate(right_keys, start=1)}
     shifts = [abs(left_rank[key] - right_rank[key]) for key in shared]
 
+    left_sources = _ordered_unique([source_key(item) for item in left_items])
+    right_sources = _ordered_unique([source_key(item) for item in right_items])
+    left_source_set = set(left_sources)
+    right_source_set = set(right_sources)
+    shared_sources = left_source_set & right_source_set
+    source_union = left_source_set | right_source_set
+    source_available = min(len(left_sources), len(right_sources))
+    source_retention = len(shared_sources) / source_available if source_available else 1.0
+    source_jaccard = len(shared_sources) / len(source_union) if source_union else 1.0
+
     return {
         "top_k": k,
         "left_count": len(left_keys),
@@ -79,6 +109,17 @@ def compare_ranked_evidence(
         "max_abs_rank_shift_common": max(shifts) if shifts else None,
         "left_only": [list(key) for key in left_keys if key not in right_set],
         "right_only": [list(key) for key in right_keys if key not in left_set],
+        "left_source_count": len(left_sources),
+        "right_source_count": len(right_sources),
+        "shared_source_count": len(shared_sources),
+        "source_retention_at_k": round(source_retention, 8),
+        "source_churn_at_k": round(1.0 - source_retention, 8),
+        "source_jaccard_at_k": round(source_jaccard, 8),
+        "top1_source_same": bool(
+            left_sources and right_sources and left_sources[0] == right_sources[0]
+        ),
+        "left_sources_only": [list(key) for key in left_sources if key not in right_source_set],
+        "right_sources_only": [list(key) for key in right_sources if key not in left_source_set],
     }
 
 
