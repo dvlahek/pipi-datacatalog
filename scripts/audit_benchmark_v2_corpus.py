@@ -17,9 +17,10 @@ from app.rag.store import RagStore
 
 
 TARGETS = {
-    "structured-data": 80,
-    "software-documentation": 80,
-    "institutional-documents": 80,
+    "structured-data": 60,
+    "software-documentation": 60,
+    "institutional-documents": 60,
+    "open-data-catalogs": 60,
 }
 MIN_DIVERSITY_RATIO = 0.40
 
@@ -32,6 +33,8 @@ def source_family(dataset_identifier: str) -> str | None:
         return "software-documentation"
     if value.startswith("urn:pipi:dataset:foi-document:"):
         return "institutional-documents"
+    if value.startswith("urn:pipi:dataset:open-data:"):
+        return "open-data-catalogs"
     return None
 
 
