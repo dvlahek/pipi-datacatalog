@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "pipi-rag-benchmark-v2",
+  "status": "frozen-before-confirmation-query-authoring",
+  "base_protocol_revision": 2,
+  "base_protocol_sha256": "d277465bb9572bf6bbff82a5d5bf6f29fd1d9ebd9a5b9940d890d87b87df2dde",
+  "catalog_snapshot_hash": "068e1b0df74acd8b91d04a5161f4413d57d07bfef5c8c9ce2b8d1100ae780419",
+  "corpus_fingerprint_sha256": "f04239fe6df52ab2604ab45a8c08cc83d5bafe79203a4b16c20a2d2a307e2dc6",
+  "amendment_2_path": "docs/retrieval_benchmark_v2_amendment_2.md",
+  "amendment_3_path": "docs/retrieval_benchmark_v2_amendment_3.md",
+  "amendment_4_path": "docs/retrieval_benchmark_v2_amendment_4.md",
+  "confirmation": {
+    "query_count": 192,
+    "source_family_query_type_cells": 24,
+    "queries_per_cell": 8,
+    "cross_language_per_cell": 2,
+    "same_language_per_cell": 6
+  },
+  "pooling": {
+    "depth_per_profile": 20,
+    "profiles": [
+      "lexical-v1",
+      "vector-e5-content-v1",
+      "hybrid-e5-content-v1",
+      "vector-e5-metadata-v1",
+      "hybrid-e5-metadata-v1"
+    ],
+    "include_frozen_authoring_seeds": true,
+    "deduplicate_by": [
+      "dataset_identifier",
+      "dataset_version",
+      "chunk_index"
+    ],
+    "authoring_seed_auto_grade": false,
+    "retrieval_ranks_modified_by_seed_augmentation": false
+  },
+  "judge": {
+    "provider": "OpenAI",
+    "model_label": "GPT-5.6 Sol",
+    "mode": "blinded-graded-relevance",
+    "allowed_inputs": [
+      "frozen query text",
+      "frozen information-need description",
+      "candidate source identity",
+      "candidate file path when applicable",
+      "candidate evidence text"
+    ],
+    "hidden_inputs": [
+      "retrieval-profile identity",
+      "retrieval rank",
+      "retrieval score",
+      "lexical/vector component ranks",
+      "authoring-seed status",
+      "frozen target identifiers",
+      "frozen target chunk hints",
+      "aggregate confirmation retrieval-quality results",
+      "grades from other judging passes"
+    ],
+    "candidate_order_independent_of_retrieval_rank": true
+  },
+  "relevance_scale": {
+    "3": "directly answers the information need or contains decisive evidence needed for the answer",
+    "2": "clearly contributes useful evidence but is incomplete on its own",
+    "1": "related to the topic or entity but insufficient for the information need",
+    "0": "does not provide useful evidence for the information need"
+  },
+  "relation_comparison_rule": {
+    "one_side_clear_support_may_receive": 2,
+    "grade_3_requires_direct_satisfaction_of_information_need": true
+  },
+  "replicate_judgment": {
+    "query_count": 48,
+    "selection_rule": {
+      "per_source_family_query_type_cell": 2,
+      "cell_positions": [1, 3],
+      "position_1_language_relation": "cross-language",
+      "position_3_language_relation": "same-language"
+    },
+    "pass_2": {
+      "same_model_and_rubric": true,
+      "separate_context": true,
+      "independent_candidate_order": true,
+      "first_pass_grades_visible": false
+    },
+    "agreement_metrics": [
+      "exact_grade_agreement",
+      "within_one_grade_agreement",
+      "quadratic_weighted_cohens_kappa",
+      "4x4_grade_confusion_matrix"
+    ],
+    "reporting_term": "replicate-judge consistency",
+    "not_reported_as": "human inter-annotator agreement"
+  },
+  "disagreement_resolution": {
+    "apply_to": "all pass-1/pass-2 disagreements in the 48-query replicate subset",
+    "third_pass": {
+      "independent_blinded_pass": true,
+      "first_two_grades_visible": false
+    },
+    "final_grade_rule": "median of the three ordinal grades",
+    "when_pass_1_equals_pass_2": "use the agreed grade without a third pass"
+  },
+  "final_qrels": {
+    "non_replicate_queries": "primary-pass grade",
+    "replicate_queries_agreement": "agreed pass-1/pass-2 grade",
+    "replicate_queries_disagreement": "median of pass 1, pass 2, and blinded pass 3",
+    "freeze_and_hash_before_metrics": true
+  },
+  "metrics": {
+    "primary": ["nDCG@10"],
+    "secondary": ["MRR", "Recall@10", "Hit@1", "Hit@3", "Hit@10"],
+    "binary_relevance_threshold_for_mrr_recall_hit": 2
+  },
+  "boundary": {
+    "confirmation_query_wording_frozen_before_retrieval": true,
+    "no_profile_tuning_after_confirmation_results": true,
+    "no_corpus_changes_after_snapshot_freeze": true,
+    "development_results_not_confirmatory": true
+  }
+}
