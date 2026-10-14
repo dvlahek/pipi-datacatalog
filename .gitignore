@@ -26,3 +26,7 @@ dist/
 *.egg-info/
 .coverage
 htmlcov/
+
+# Local RQ3 model weights and generated answer artifacts
+models/
+results/rq3/
