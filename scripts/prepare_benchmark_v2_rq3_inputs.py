@@ -56,9 +56,8 @@ def serialize_evidence(items: list[dict[str, Any]]) -> str:
 def main() -> None:
     if not PROTOCOL_PATH.is_file():
         raise SystemExit(f"Missing frozen RQ3 protocol: {PROTOCOL_PATH}")
-    protocol_bytes = PROTOCOL_PATH.read_bytes()
-    protocol_sha = sha256_bytes(protocol_bytes)
-    protocol = json.loads(protocol_bytes)
+    protocol = json.loads(PROTOCOL_PATH.read_text(encoding="utf-8"))
+    protocol_sha = canonical_sha(protocol)
     if protocol.get("status") != "frozen-before-any-benchmark-answer-generation":
         raise SystemExit("RQ3 protocol is not in the required frozen pre-generation state.")
     if int(protocol.get("top_k") or 0) != TOP_K:
