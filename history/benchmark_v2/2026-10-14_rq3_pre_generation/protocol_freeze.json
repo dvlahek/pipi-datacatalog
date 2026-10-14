@@ -1,0 +1,18 @@
+{
+  "artifact": "pipi-benchmark-v2-rq3-protocol-freeze",
+  "schema_version": 1,
+  "status": "frozen-before-any-benchmark-answer-generation",
+  "date": "2026-10-14",
+  "protocol_path": "config/rq3_answer_drift_protocol.json",
+  "canonical_json_sha256": "6cbb8b07be1d759ca609260e5af5ffc708416e1e54673f135ccb859fbfd61082",
+  "canonicalization": "UTF-8 JSON parsed then serialized with sort_keys=true and separators=(',', ':'); independent of LF/CRLF checkout",
+  "primary_generator": "qwen3-8b-q4km",
+  "replication_generators": [
+    "ministral3-8b-q4km",
+    "gemma3-4b-q4km"
+  ],
+  "main_generation_count": 1152,
+  "same_evidence_control_count": 144,
+  "generation_permitted": false,
+  "next_gate": "prepare RQ3 inputs, record input SHA256 + llama.cpp version + GGUF hashes, then commit matching input-freeze manifest"
+}
