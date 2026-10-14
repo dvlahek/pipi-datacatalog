@@ -1,0 +1,41 @@
+{
+  "artifact": "pipi-benchmark-v2-rq3-all-models-generation-complete",
+  "schema_version": 1,
+  "status": "complete-and-hashed-before-formal-blinded-judging",
+  "date": "2026-10-14",
+  "repository": "dvlahek/pipi-datacatalog",
+  "branch": "feature/sensor-hub-bootstrap",
+  "repository_head_before_manifest": "11c7d373053ce1c688a80f2a874100fc608a55bd",
+  "rq3_protocol_sha256": "6cbb8b07be1d759ca609260e5af5ffc708416e1e54673f135ccb859fbfd61082",
+  "rq3_input_sha256": "e554461b90cdfe8f01c944b4164984c53a1e2c088d82cb6fe30cd2d6417d8bcf",
+  "planned_total": 1296,
+  "completed_total": 1296,
+  "models": [
+    {
+      "model_key": "qwen3-8b-q4km",
+      "role": "primary",
+      "gguf_sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+      "main": 384,
+      "same_evidence_control": 48,
+      "answers_jsonl_sha256": "0c2105db2802b667d236d65ac56b4e7932bf307cb05c8d61a62f720be57a977e",
+      "generation_note": "Resumed after a Vulkan device-loss runtime failure at 207 completed rows; scientific configuration was unchanged and only missing rows were generated."
+    },
+    {
+      "model_key": "ministral3-8b-q4km",
+      "role": "replication",
+      "gguf_sha256": "33e7a72cf5e6e2cfc2f2847075acc013d68bba023e35310cef86b5cf8fdca761",
+      "main": 384,
+      "same_evidence_control": 48,
+      "answers_jsonl_sha256": "b90d496cf6d44d1208345495b2ca61b552fd8832f1a310b0d5d925bf07eb837d"
+    },
+    {
+      "model_key": "gemma3-4b-q4km",
+      "role": "replication",
+      "gguf_sha256": "882e8d2db44dc554fb0ea5077cb7e4bc49e7342a1f0da57901c0802ea21a0863",
+      "main": 384,
+      "same_evidence_control": 48,
+      "answers_jsonl_sha256": "94d59217a01d4268e4b13dee990059e95b2ec71514ef7e02ed669b5c956b7a36"
+    }
+  ],
+  "procedural_note": "Exploratory answer-content inspection of Qwen and Ministral occurred before Gemma completed; this deviation was separately recorded before Gemma generation completed. No frozen generation, retrieval, model, prompt, or endpoint parameter was changed in response. Formal blinded ordinal judging had not begun when all three outputs were completed and hashed."
+}
