@@ -1,0 +1,28 @@
+{
+  "artifact": "pipi-benchmark-v2-confirmation-strict-replay-history-record",
+  "schema_version": 1,
+  "status": "pass",
+  "recorded_date": "2026-10-14",
+  "source_artifact": "benchmark_v2_confirmation_strict_replay_c725fba20382.json",
+  "source_sha256": "e68bcdf2b1538d644f0988542552d332b11ea37d4edfcc74da194fdfb1d41ea1",
+  "expected_run_count": 960,
+  "evaluated_run_count": 960,
+  "failure_count": 0,
+  "exact_replay_count": 960,
+  "all_exact_replay": true,
+  "unique_cases": 192,
+  "profiles_per_case": 5,
+  "catalog_snapshot_hash": "068e1b0df74acd8b91d04a5161f4413d57d07bfef5c8c9ce2b8d1100ae780419",
+  "corpus_fingerprint_sha256": "f04239fe6df52ab2604ab45a8c08cc83d5bafe79203a4b16c20a2d2a307e2dc6",
+  "confirmation_cases_sha256": "c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5",
+  "retrieval_ledger_sha256": "335555045685798fc27f781b39092d1b1b9f17af8c53dd16d0e2f757db18a1c0",
+  "audit": {
+    "all_profile_identity_ok": true,
+    "all_profile_hash_ok": true,
+    "all_ledger_stored_evidence_identity_ok": true,
+    "all_exact_ordered_evidence_reproduced": true,
+    "all_stored_replayed_evidence_hashes_equal": true,
+    "stored_replayed_evidence_count_mismatches": 0
+  },
+  "interpretation": "All 960 frozen confirmation retrieval runs reproduced the exact ordered evidence under the same catalog snapshot and frozen retrieval-profile hashes. This closes the strict computational-replay gate for Benchmark V2 RQ2."
+}
