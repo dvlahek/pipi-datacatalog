@@ -1,0 +1,70 @@
+{
+  "artifact": "pipi-benchmark-v2-rq3-input-freeze",
+  "schema_version": 1,
+  "status": "frozen-before-answer-generation",
+  "date": "2026-10-14",
+  "repository": "dvlahek/pipi-datacatalog",
+  "branch": "feature/sensor-hub-bootstrap",
+  "protocol_commit_before_input_freeze": "a9ce46c40a5df5322d22b30ad30da527bac4d416",
+  "rq3_protocol_sha256": "6cbb8b07be1d759ca609260e5af5ffc708416e1e54673f135ccb859fbfd61082",
+  "rq3_input_sha256": "e554461b90cdfe8f01c944b4164984c53a1e2c088d82cb6fe30cd2d6417d8bcf",
+  "rq3_input_local_filename": "results/benchmark_v2_rq3_inputs_unfrozen_c725fba20382.json",
+  "rq3_input_committed": false,
+  "rq3_input_commit_policy": "not committed because it contains frozen chunk text; identity is fixed by SHA-256",
+  "confirmation_cases_sha256": "c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5",
+  "catalog_snapshot_hash": "068e1b0df74acd8b91d04a5161f4413d57d07bfef5c8c9ce2b8d1100ae780419",
+  "corpus_fingerprint_sha256": "f04239fe6df52ab2604ab45a8c08cc83d5bafe79203a4b16c20a2d2a307e2dc6",
+  "retrieval_conditions": [
+    "hybrid-e5-content-v1",
+    "hybrid-e5-metadata-v1"
+  ],
+  "case_count": 192,
+  "condition_count": 384,
+  "top_k": 10,
+  "input_preparation": {
+    "status": "pass",
+    "completed_searches": 384,
+    "expected_searches": 384,
+    "terminal_marker": "RQ3_INPUT_PREPARED_STOP_BEFORE_GENERATION"
+  },
+  "runtime": {
+    "backend": "llama.cpp OpenAI-compatible local server",
+    "llama_cpp_version": "0.6.0-dev",
+    "llama_cpp_build": 11580,
+    "llama_cpp_commit": "4413a1924",
+    "compiler": "Clang 20.1.8",
+    "platform": "Windows x86_64"
+  },
+  "models": {
+    "qwen3-8b-q4km": {
+      "gguf_file": "Qwen3-8B-Q4_K_M.gguf",
+      "gguf_sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+      "smoke_test": "PASS",
+      "smoke_expected": "PIPI_RQ3_OK",
+      "smoke_observed": "PIPI_RQ3_OK"
+    },
+    "ministral3-8b-q4km": {
+      "gguf_file": "Ministral-3-8B-Instruct-2512-Q4_K_M.gguf",
+      "gguf_sha256": "33e7a72cf5e6e2cfc2f2847075acc013d68bba023e35310cef86b5cf8fdca761",
+      "smoke_test": "PASS",
+      "smoke_expected": "PIPI_RQ3_OK",
+      "smoke_observed": "PIPI_RQ3_OK"
+    },
+    "gemma3-4b-q4km": {
+      "gguf_file": "gemma-3-4b-it-Q4_K_M.gguf",
+      "gguf_sha256": "882e8d2db44dc554fb0ea5077cb7e4bc49e7342a1f0da57901c0802ea21a0863",
+      "smoke_test": "PASS",
+      "smoke_expected": "PIPI_RQ3_OK",
+      "smoke_observed": "PIPI_RQ3_OK"
+    }
+  },
+  "planned_generation": {
+    "main_generations": 1152,
+    "same_evidence_control_generations": 144,
+    "total_generations": 1296,
+    "per_model_main": 384,
+    "per_model_same_evidence_control": 48,
+    "per_model_total": 432
+  },
+  "generation_gate": "No benchmark answer generation occurred before this manifest was committed. The generator must verify this manifest, the frozen protocol hash, the frozen input hash, and the selected model GGUF hash before producing answers."
+}
