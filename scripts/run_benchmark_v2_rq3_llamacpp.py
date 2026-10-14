@@ -21,6 +21,12 @@ def canonical_sha(value: Any) -> str:
     return sha256_bytes(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
 
 
+def frozen_pretty_json_sha(value: Any) -> str:
+    """Hash the frozen JSON serialization independent of host newline translation."""
+    payload = json.dumps(value, ensure_ascii=False, indent=2) + "\n"
+    return sha256_bytes(payload.encode("utf-8"))
+
+
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -43,9 +49,8 @@ def main() -> None:
 
     protocol = load_json(PROTOCOL_PATH)
     protocol_sha = canonical_sha(protocol)
-    input_bytes = args.input.read_bytes()
-    input_sha = sha256_bytes(input_bytes)
-    inputs = json.loads(input_bytes)
+    inputs = load_json(args.input)
+    input_sha = frozen_pretty_json_sha(inputs)
     manifest = load_json(args.freeze_manifest)
 
     if manifest.get("artifact") != "pipi-benchmark-v2-rq3-input-freeze":
@@ -107,6 +112,7 @@ def main() -> None:
     print(f"SERVER_MODEL_ID={server_model_id}")
     print(f"RQ3_PROTOCOL_SHA256={protocol_sha}")
     print(f"RQ3_INPUT_SHA256={input_sha}")
+    print("RQ3_INPUT_HASH_SCHEME=normalized-json-indent2-lf-final-newline")
     print(f"PLANNED={len(planned)} ALREADY_COMPLETED={len(completed)}")
 
     started = time.time()
@@ -188,6 +194,7 @@ def main() -> None:
         "gguf_sha256": model_cfg["gguf_sha256"],
         "rq3_protocol_sha256": protocol_sha,
         "rq3_input_sha256": input_sha,
+        "rq3_input_hash_scheme": "normalized-json-indent2-lf-final-newline",
         "main_count": len(main_rows),
         "same_evidence_control_count": len(control_rows),
         "expected_main_count": expected_main,
