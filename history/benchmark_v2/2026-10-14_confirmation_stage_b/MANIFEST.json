@@ -1,0 +1,49 @@
+{
+  "artifact": "pipi-v2-confirmation-stage-b-github-history-archive",
+  "schema_version": 1,
+  "date": "2026-10-14",
+  "status": "frozen-confirmation-stage-b-history-record",
+  "repository": "dvlahek/pipi-datacatalog",
+  "branch": "feature/sensor-hub-bootstrap",
+  "parent_head_before_archive": "15fb84414098e738638706e8288888808afa5233",
+  "source_zip": {
+    "filename": "PIPI_V2_CONFIRMATION_STAGE_B_FINAL_20261014.zip",
+    "size_bytes": 1006058,
+    "sha256": "589aaf562b7e0fa2608db9d0f82ccc3b431fb719a900da2ef1aa48b58a4f5c71",
+    "binary_committed_by_connector": false,
+    "reason": "GitHub connector write surface accepts UTF-8 repository contents but not binary container-file upload"
+  },
+  "frozen_chain": {
+    "pass1_judgments_sha256": "85ced352b8a7dce34465718895a1c418966df6568d7fd467c88673b01135e8af",
+    "pass1_qrels_sha256": "65d404e14c60b34b1135c1a8afcb521a58c8485dba2719e6df5c587d8a8049b9",
+    "normalized_pass2_judgments_sha256": "2a974b8d4e9a23f1d9cd8ffd565fc333f865223bc1909e57790def019fd455d5",
+    "replicate_consistency_sha256": "1ce9efa1cbbbdbd3f2451bcff00b35b77ffecb9dc4e07ce96c8f83d3644b7c62",
+    "pass3_judgments_sha256": "34b93aacc236e76a37f9cc986f763eb4cc302f7bc375ac86ed14f80be352be08",
+    "final_qrels_sha256": "a0946546b7b0109bfc8f0920b7cd8de6412c210cbe26ffb36f155f4a0a5637ad",
+    "final_judgments_sha256": "a2d742e9b685735ed40f9f26a45ab7fd5389716f68ff9620b1861ba7d19c93e4",
+    "final_results_sha256": "8a1b601906eb52539cf36dae6b7c1c02a5493e1c0801b6fbff1f02a7f1be84e9"
+  },
+  "canonical_package_files": [
+    {"path":"README_CONFIRMATION_STAGE_B.md","size_bytes":1934,"sha256":"05b8e32ab4cb357858c6e4463faea78aed8003b4a73ac42dd6dc9c2708d70f3e"},
+    {"path":"benchmark_v2_confirmation_final_qrels_c725fba20382.tsv","size_bytes":1316427,"sha256":"a0946546b7b0109bfc8f0920b7cd8de6412c210cbe26ffb36f155f4a0a5637ad"},
+    {"path":"benchmark_v2_confirmation_pass1_qrels_c725fba20382.tsv","size_bytes":1316427,"sha256":"65d404e14c60b34b1135c1a8afcb521a58c8485dba2719e6df5c587d8a8049b9"},
+    {"path":"benchmark_v2_confirmation_query_metrics_final_c725fba20382.tsv","size_bytes":137949,"sha256":"e9407dc41290b8a2a617f03f888e2526a36935bb6fd3fdd6a2f512f85d27b5d7"},
+    {"path":"benchmark_v2_confirmation_results_final_c725fba20382.json","size_bytes":10709,"sha256":"8a1b601906eb52539cf36dae6b7c1c02a5493e1c0801b6fbff1f02a7f1be84e9"},
+    {"path":"benchmark_v2_confirmation_results_final_c725fba20382.md","size_bytes":2026,"sha256":"bd276181b488f36cdb73e21068f647d1ccd2fed06b4b40ff7d3f4c461a85822f"},
+    {"path":"finalize_pipi_v2_confirmation_qrels.py","size_bytes":7987,"sha256":"6265cf857f95c84351eccdd3b3285222367632c4a005a1d8347d1cd60f348d51"},
+    {"path":"pipi_benchmark_v2_confirmation_final_judgments_frozen.json","size_bytes":2738999,"sha256":"a2d742e9b685735ed40f9f26a45ab7fd5389716f68ff9620b1861ba7d19c93e4"},
+    {"path":"pipi_benchmark_v2_confirmation_final_qrels_freeze_audit.json","size_bytes":2362,"sha256":"d61d9e7f1edd2549b982bfd1cd7faa50e636bd5898daff9afabf10817bf6e2d3"},
+    {"path":"pipi_benchmark_v2_confirmation_pass2_judgments_frozen_normalized.json","size_bytes":667437,"sha256":"2a974b8d4e9a23f1d9cd8ffd565fc333f865223bc1909e57790def019fd455d5"},
+    {"path":"pipi_benchmark_v2_confirmation_pass3_blinded_input.json","size_bytes":755487,"sha256":"e2ade8be0e244066c058c882844711e7a84e2ef2920b7664af75a78b3e368734"},
+    {"path":"pipi_benchmark_v2_confirmation_pass3_judgments_frozen.json","size_bytes":140625,"sha256":"34b93aacc236e76a37f9cc986f763eb4cc302f7bc375ac86ed14f80be352be08"},
+    {"path":"pipi_benchmark_v2_confirmation_replicate_consistency.json","size_bytes":1468,"sha256":"1ce9efa1cbbbdbd3f2451bcff00b35b77ffecb9dc4e07ce96c8f83d3644b7c62"},
+    {"path":"run_pipi_v2_confirmation_metrics.py","size_bytes":13814,"sha256":"1b4f558fbf3e0e04d1c39496ed0f8384597601894f82fb508054fa1b94beb5a4"}
+  ],
+  "github_readable_copies": [
+    "README.md",
+    "MANIFEST.json",
+    "confirmation_results.json",
+    "replicate_consistency.json",
+    "final_qrels_freeze_audit.json"
+  ]
+}
