@@ -17,6 +17,10 @@ def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def canonical_sha(value: Any) -> str:
+    return sha256_bytes(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+
+
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -37,9 +41,8 @@ def main() -> None:
     parser.add_argument("--timeout", type=float, default=300.0)
     args = parser.parse_args()
 
-    protocol_bytes = PROTOCOL_PATH.read_bytes()
-    protocol_sha = sha256_bytes(protocol_bytes)
-    protocol = json.loads(protocol_bytes)
+    protocol = load_json(PROTOCOL_PATH)
+    protocol_sha = canonical_sha(protocol)
     input_bytes = args.input.read_bytes()
     input_sha = sha256_bytes(input_bytes)
     inputs = json.loads(input_bytes)
