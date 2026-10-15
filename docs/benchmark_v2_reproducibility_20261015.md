@@ -8,128 +8,120 @@ This document records the frozen identifiers and public result artifacts used fo
 - corpus fingerprint SHA-256: `f04239fe6df52ab2604ab45a8c08cc83d5bafe79203a4b16c20a2d2a307e2dc6`
 - 192-query confirmation-set SHA-256: `c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5`
 - original frozen confirmation qrels SHA-256: `a0946546b7b0109bfc8f0920b7cd8de6412c210cbe26ffb36f155f4a0a5637ad`
-- E5 retrieval ledger SHA-256: `335555045685798fc27f781b39092d1b1b9f17af8c53dd16d0e2f757db18a1c0`
-- E5 strict replay result SHA-256: `e68bcdf2b1538d644f0988542552d332b11ea37d4edfcc74da194fdfb1d41ea1`
+- original retrieval protocol SHA-256: `d277465bb9572bf6bbff82a5d5bf6f29fd1d9ebd9a5b9940d890d87b87df2dde`
 
-The primary E5 result remains frozen. Later robustness artifacts do not modify these identifiers.
+The confirmation protocol was pre-specified and frozen before confirmation evaluation. No external preregistration registry was used, so public documentation should not describe this protocol as preregistered.
 
-## Frozen E5 retrieval-profile hashes
+## Frozen E5 retrieval profiles
 
-- lexical-v1: `4234a9a6691d7f0c004eb7b6469662675db35f66fe04dd8eb5b053b1d7a31a54`
-- vector-e5-content-v1: `8c00e6326839a8e0e798083197225d1fd90b60db7d6a9e974fe8667de5f0562f`
-- hybrid-e5-content-v1: `04fd11fb3c56e9273f7b312a376d5c975a852489276f87fc796f7e0c716f7a45`
-- vector-e5-metadata-v1: `e250344e567f85c3dc8ac36b0cd68663f570e322bed7686de99a270ffa0e1628`
-- hybrid-e5-metadata-v1: `7b63711593b091d1c21a1548f1b672f4572c69b4fca380779114cad6163211e4`
+- `lexical-v1`: `4234a9a6691d7f0c004eb7b6469662675db35f66fe04dd8eb5b053b1d7a31a54`
+- `vector-e5-content-v1`: `8c00e6326839a8e0e798083197225d1fd90b60db7d6a9e974fe8667de5f0562f`
+- `hybrid-e5-content-v1`: `04fd11fb3c56e9273f7b312a376d5c975a852489276f87fc796f7e0c716f7a45`
+- `vector-e5-metadata-v1`: `e250344e567f85c3dc8ac36b0cd68663f570e322bed7686de99a270ffa0e1628`
+- `hybrid-e5-metadata-v1`: `7b63711593b091d1c21a1548f1b672f4572c69b4fca380779114cad6163211e4`
 
-Primary embedding model: `intfloat/multilingual-e5-small`, normalized 384-dimensional embeddings with E5 query/passage prefixes.
+The built-in profiles are immutable by profile ID. Reusing an existing ID with a different configuration hash is treated as an error.
 
-Hybrid retrieval uses lexical plus exact pgvector cosine retrieval, RRF `k=60`, deterministic ties and a source/file soft cap of 2.
+## Primary retrieval results
 
-## BGE-M3 robustness protocol
+Overall nDCG@10:
 
-Model:
+- lexical: 0.4891
+- vector E5 content: 0.7013
+- hybrid E5 content: 0.6712
+- vector E5 metadata: 0.7759
+- hybrid E5 metadata: 0.6996
 
-- `BAAI/bge-m3`
-- pinned revision: `5617a9f61b028005a4858fdac845db406aefb181`
+Pre-specified frozen hybrid metadata-minus-content contrast:
+
+- mean ΔnDCG@10: +0.0284
+- 95% paired-bootstrap CI: [0.0134, 0.0441]
+- Wilcoxon p: 0.000967
+- rank-biserial: 0.369
+
+Vector metadata-minus-content contrast:
+
+- mean ΔnDCG@10: +0.0745
+- 95% CI: [0.0429, 0.1087]
+- Wilcoxon p: 1.20e-05
+- rank-biserial: 0.451
+
+## Retrieval drift and replay
+
+For the frozen hybrid content-versus-metadata intervention:
+
+- chunk retention@10: 0.7698
+- chunk churn@10: 0.2302
+- chunk Jaccard@10: 0.6550
+- top-1 chunk change rate: 0.2604
+- source churn: 0.1037
+- source Jaccard: 0.8383
+- relevant-evidence retention for grades 2/3: 0.9584
+
+Strict replay reproduced the exact ordered evidence set for 960/960 frozen runs, corresponding to 192 queries under five frozen retrieval profiles.
+
+Because exact deterministic replay is expected when all frozen inputs match, a separate post-hoc negative-control audit checks the provenance gates themselves:
+
+- same profile ID with RRF `k` changed from 60 to 61
+- same profile ID with a changed embedding revision
+- changed chunk boundaries in a publication-safe fixture hashed with the same chunk-manifest fields as the frozen corpus
+- foreign catalog-snapshot and corpus-fingerprint anchors
+
+These controls are implemented in `scripts/audit_retrieval_provenance_negative_controls.py` and tested by `tests/test_retrieval_provenance_negative_controls.py`. They are systems validation and do not alter the frozen RQ1–RQ4 results.
+
+## Primary relevance judging
+
+The frozen candidate pool contained 9,170 query-candidate pairs. Pass 1 used a blinded deterministic criteria-assisted OpenAI GPT-5.6 Sol judgment pass. A fresh-context replicate pass was run independently on a stratified 48-query subset containing 2,252 pairs.
+
+Agreement on the replicate subset:
+
+- exact agreement: 0.7886
+- within-one-grade agreement: 0.9307
+- quadratic weighted kappa: 0.6482
+
+The final qrels were frozen and hashed before retrieval-quality metrics were computed.
+
+## RQ3 answer-drift protocol
+
+The answer-drift protocol was frozen before benchmark answer generation. It used:
+
+- Qwen3-8B Q4_K_M as the primary generator
+- Ministral-3-8B-Instruct Q4_K_M as replication
+- Gemma-3-4B-it Q4_K_M as replication
+- local llama.cpp OpenAI-compatible server
+- temperature 0
+- top-p 1
+- seed 20261014
+- max 384 tokens
+- context size 16,384
+- grounded-only prompt with no retrieval-profile identity exposed to the generator
+
+Changing only the frozen hybrid retrieval profile produced material semantic answer differences in 10.4–11.5% of confirmation queries across the three generator families. Same-evidence deterministic controls were exact in 144/144 runs.
+
+The semantic-drift endpoint is symmetric. It establishes material difference, not that one answer is more correct or better grounded.
+
+## BGE-M3 second-backbone robustness
+
+BGE-M3 is a post-hoc robustness analysis. It does not replace or relabel the frozen E5 confirmation experiment.
+
+- model: `BAAI/bge-m3`
+- revision: `5617a9f61b028005a4858fdac845db406aefb181`
 - dense component only
-- 1,024 dimensions
-- normalized embeddings
-- maximum sequence length 512
-- no query instruction
+- 1024 dimensions
+- exact cosine retrieval
+- same 192 frozen confirmation queries and corpus
 
-Frozen BGE profile hashes:
+BGE-M3 produced 1,090 novel top-10 query-candidate pairs outside the original E5 judged pool. These were judged in a separate blinded supplementary process. Initial S1/S2 agreement was 42.3% exact, 77.3% within one grade, with quadratic weighted kappa 0.156. Every one of the 629 disagreements then received fresh blinded third-pass adjudication. Final BGE top-10 qrels coverage was 7,680/7,680 slots.
 
-- vector content: `b05535cf87b152862aaafb7cdce5da96c9bacb59ef95cc49ad77450305a64cc9`
-- vector metadata: `1c0a559e20eef4f2a216b20db38bdcda477e0b8269a48baedcfb582e2e270568`
-- hybrid content: `4a9571e8cda92a7dc111a04d1281e74a574e3a2eab74ce9638ee4b68e2491763`
-- hybrid metadata: `6bc3569eb2028b63a2e1e2e94284db679f46a7b2963a2b26d112de08ad9bcb08`
+Final BGE-M3 contrasts:
 
-Observed frozen artifact hashes:
+- vector metadata-minus-content ΔnDCG@10 = +0.0937, 95% CI [0.0678, 0.1209]
+- hybrid metadata-minus-content ΔnDCG@10 = +0.0349, 95% CI [0.0217, 0.0484]
 
-- BGE embedding preparation: `46d0380ba73c40351e3b99cd576a60d10654e37494616f1125ce5ca248ae4c70`
-- BGE retrieval ledger: `e969c644a45796552ff2d0279ec8a70b457351841f9eb31a75c1c17bda6c949f`
-- final supplementary judgments: `826609e7a5c3ba2a87b3c08d99f5f53fe2899cd4c87ae2ba82e2ca05db288d4e`
-- final supplementary qrels: `2713de9adfb02d6a06dd0025403ab702f96d5994250246b90da474061b08a9ad`
-- extended BGE qrels: `80532a1d2ac657efd261baf6cb38dde48f4b0f5b9bf6d720e6a85cf4b6d297f7`
-- final BGE results: `6b7a6c54d7f2651a14a638f2ba2d28f5e0730609574aaa8c064d00d96b971385`
-- final BGE manifest: `9a19e24aa23512725d7ea853a332c75741e5fb557bfd0bbe6b017fdeb39c77cb`
+The original E5 qrels remain unchanged.
 
-The robustness protocol file itself is stored in `config/rag_benchmark_v2_bge_m3_robustness.json`. The observed protocol file SHA during the run was `67b01d18a9f7ac70a3dff9002955530e3ad55f9af540fa0a4732da86257258a3`.
+## Public reproducibility boundary
 
-## Supplementary judging
+The repository can publish profile configurations, query definitions, hashes, qrels, publication-safe retrieval ledgers, judging manifests, aggregate results, and replay/audit code. Source or chunk text is not automatically redistributable. Institutional documents, sensor data, and third-party content remain subject to their original access and licensing conditions.
 
-BGE-M3 retrieved candidates outside the original frozen E5 judging pool. Unjudged candidates were never treated as non-relevant.
-
-Coverage before supplementary judging:
-
-- 6,080 / 7,680 top-10 slots already judged
-- 1,090 unique novel query-candidate pairs
-- 37 / 192 vector query pairs fully judged
-- 79 / 192 hybrid query pairs fully judged
-
-The 1,090 novel candidates were judged in two independent blinded passes. Exact S1/S2 agreement was 461/1,090. All 629 disagreements were adjudicated by a third fresh blinded judge. Final BGE top-10 qrels coverage was 7,680/7,680.
-
-The original E5 qrels were not rewritten. Supplementary judgments are an extension used only for the post-hoc BGE-M3 robustness analysis.
-
-## BGE-M3 result
-
-Metadata representation retained the same positive direction as the primary E5 experiment.
-
-Vector metadata minus content:
-
-- ΔnDCG@10 = `+0.093699`
-- 95% bootstrap CI = `[+0.067815, +0.120893]`
-- Wilcoxon p = `1.468e-10`
-- rank-biserial = `0.620`
-
-Hybrid metadata minus content:
-
-- ΔnDCG@10 = `+0.034890`
-- 95% bootstrap CI = `[+0.021656, +0.048405]`
-- Wilcoxon p = `1.405e-07`
-- rank-biserial = `0.563`
-
-This analysis is post-hoc robustness evidence and must not be described as a second preregistered confirmation experiment.
-
-## Running the BGE-M3 runner
-
-Install embedding dependencies:
-
-```bash
-python -m pip install -r requirements-embeddings.txt
-```
-
-Preflight:
-
-```bash
-python scripts/run_benchmark_v2_bge_m3_robustness.py \
-  --phase preflight \
-  --qrels <path-to-frozen-primary-qrels>
-```
-
-Prepare embeddings:
-
-```bash
-python scripts/run_benchmark_v2_bge_m3_robustness.py \
-  --phase embed \
-  --device cpu \
-  --batch-size 8
-```
-
-Run retrieval:
-
-```bash
-python scripts/run_benchmark_v2_bge_m3_robustness.py \
-  --phase retrieve \
-  --device cpu \
-  --batch-size 8 \
-  --qrels <path-to-frozen-primary-qrels>
-```
-
-The runner deliberately stops before qrels-based quality metrics if any retrieved top-10 candidate is unjudged.
-
-## Public result artifacts
-
-The `data/benchmark_v2` directory contains the lightweight public artifacts needed to inspect the frozen statistical result without publishing retrieved chunk text.
-
-Chunk text used in blinded judging is intentionally not included in the public result export. Retrieval ledgers are publication-safe only when stored without chunk text.
+The open-data cohort is frozen by identity for the benchmark. A future fresh upstream “first 200” harvest is not assumed to reproduce the same cohort if the provider changes result ordering.
