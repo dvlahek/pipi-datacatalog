@@ -1,0 +1,21 @@
+{
+  "artifact": "pipi-benchmark-v2-rq3-qwen-primary-final-judgments-freeze",
+  "schema_version": 1,
+  "status": "frozen-before-unblinding",
+  "pair_count": 192,
+  "judge1_sha256": "78b82cda3ebf4826a326e9b30300d4d7f3ba4e850cd41a5559b9e479ac9f9b2d",
+  "judge2_sha256": "c760fddb66904552657d9170964633bada3f36a2bcad23284857bf401e14a3e6",
+  "pass3_gemini_sha256": "f58a9b5224a07024a99966d56c89abab2c3fc4a4f249b0ef2c041e0501fdfc93",
+  "judge1_judge2_exact_agreement_count": 101,
+  "pass3_adjudicated_count": 91,
+  "final_grade_counts": {
+    "0": 110,
+    "1": 60,
+    "2": 12,
+    "3": 10
+  },
+  "final_judgments_file": "pipi_rq3_qwen_primary_final_judgments_v1.jsonl",
+  "final_judgments_sha256": "829e78d82e69989e583d82ee1ce79754bf124123cc196044f2c5f61556c3d6c0",
+  "blind_key_opened": false,
+  "note": "Exact agreements from Judge 1 and Judge 2 were preserved. All and only disagreements were resolved by the independent Gemini Pass-3 judge."
+}
