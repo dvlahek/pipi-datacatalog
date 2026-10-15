@@ -139,7 +139,9 @@ Hybrid retrieval uses deterministic reciprocal-rank fusion and a source/file sof
 
 The frozen confirmation benchmark contains 192 queries over a heterogeneous 274-dataset / 3,974-chunk corpus spanning structured sensor data, software documentation, institutional documents and Croatian open-data records.
 
-Primary E5 confirmation results:
+The main provenance finding is below the source-document level. Under the frozen hybrid E5 profile intervention, **23.0%** of top-10 chunks changed while source-level churn was only **10.4%**. The top-ranked chunk changed for **26.0%** of queries. These evidence changes propagated to material answer differences in **10.4–11.5%** of queries across three generator families, while identical-evidence controls were exact in **144/144** runs.
+
+Retrieval effectiveness for the primary E5 confirmation experiment:
 
 | Profile | nDCG@10 |
 |---|---:|
@@ -149,16 +151,14 @@ Primary E5 confirmation results:
 | vector metadata | **0.7759** |
 | hybrid metadata | **0.6996** |
 
-The preregistered hybrid metadata-minus-content contrast was:
+The pre-specified frozen hybrid metadata-minus-content contrast was:
 
 - ΔnDCG@10 = **+0.0284**
 - 95% bootstrap CI = **[+0.0134, +0.0441]**
 - Wilcoxon p = **0.000967**
 - rank-biserial = **0.369**
 
-Strict replay reproduced the exact ordered evidence set for **960/960** frozen retrieval runs.
-
-Across three local generator families, changing only the frozen retrieval profile produced material semantic answer differences in approximately **10.4–11.5%** of confirmation queries, while same-evidence deterministic controls were exact in **144/144** runs.
+Strict replay reproduced the exact ordered evidence set for **960/960** frozen retrieval runs (192 queries × 5 profiles). Because exact deterministic replay is expected when all frozen inputs match, a separate post-hoc provenance-gate audit tests negative controls: same-ID RRF mutation, embedding-revision mutation, chunk-boundary mutation, and foreign catalog/corpus anchors. Each change is expected to invalidate at least one frozen provenance anchor rather than being silently accepted as the same execution.
 
 ### BGE-M3 robustness
 
@@ -179,13 +179,15 @@ See:
 - `docs/benchmark_v2_reproducibility_20261015.md`
 - `config/rag_benchmark_v2_bge_m3_robustness.json`
 - `scripts/run_benchmark_v2_bge_m3_robustness.py`
+- `scripts/audit_retrieval_provenance_negative_controls.py`
+- `docs/benchmark_v2_retrieval_provenance_negative_controls_20261015.md`
 - `data/benchmark_v2/`
 
 ## Reproducibility boundaries
 
 The repository separates three evidence layers:
 
-1. **Primary frozen confirmation** — preregistered E5 retrieval profiles, frozen query set, frozen qrels and strict replay.
+1. **Primary frozen confirmation** — pre-specified frozen E5 retrieval profiles, frozen query set, frozen qrels and strict replay.
 2. **Answer-drift replication** — three local generator families under deterministic generation settings.
 3. **Post-hoc robustness** — BGE-M3 second-backbone retrieval analysis.
 
