@@ -1,0 +1,29 @@
+{
+  "artifact": "pipi-benchmark-v2-rq3-secondary-replication-blind-package",
+  "schema_version": 1,
+  "status": "frozen-before-secondary-replication-judging",
+  "pair_count_per_model": 192,
+  "judging_policy": "One fresh independent blinded Gemini pass per replication model using the same frozen rubric. Primary Qwen uses the stronger two-judge-plus-adjudication procedure.",
+  "pair_alignment": "Reuses frozen Qwen pair_id order and A/B profile assignment for case-aligned cross-model comparison.",
+  "qwen_blind_key_sha256": "f73f8f9d12f46b54a536a4b37cbc41efd1e2f59bd64c883b183b13749d8a1898",
+  "judge_prompt_file": "PIPI_RQ3_REPLICATION_JUDGE_PROMPT_V1.md",
+  "judge_prompt_sha256": "542da9e1cd7b55b78b26877f0a3d650959e5d1bd9acdd7c49ad7090a7ea4343c",
+  "models": {
+    "ministral": {
+      "model_key": "ministral3-8b-q4km",
+      "source_answers_file": "rq3_answers_ministral3-8b-q4km_e554461b90cd.jsonl",
+      "source_answers_sha256": "b90d496cf6d44d1208345495b2ca61b552fd8832f1a310b0d5d925bf07eb837d",
+      "blinded_pairs_file": "pipi_rq3_ministral_replication_blinded_pairs_v1.jsonl",
+      "blinded_pairs_sha256": "d519562b4be1639e243076402f5e3409f6caaf3c16a9d6d46a7aab776710f5a9",
+      "expected_judgments_file": "pipi_rq3_ministral_replication_judgments_v1.jsonl"
+    },
+    "gemma": {
+      "model_key": "gemma3-4b-q4km",
+      "source_answers_file": "rq3_answers_gemma3-4b-q4km_e554461b90cd.jsonl",
+      "source_answers_sha256": "94d59217a01d4268e4b13dee990059e95b2ec71514ef7e02ed669b5c956b7a36",
+      "blinded_pairs_file": "pipi_rq3_gemma_replication_blinded_pairs_v1.jsonl",
+      "blinded_pairs_sha256": "3f48a8a4bb45c15539167cf5c51b7aacc5e6e00032ef4169758d64724ec464ef",
+      "expected_judgments_file": "pipi_rq3_gemma_replication_judgments_v1.jsonl"
+    }
+  }
+}
