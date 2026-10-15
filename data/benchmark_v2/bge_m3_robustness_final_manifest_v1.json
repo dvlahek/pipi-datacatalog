@@ -1,0 +1,47 @@
+{
+  "artifact": "pipi-v2-bge-m3-robustness-final-manifest",
+  "schema_version": 1,
+  "status": "frozen",
+  "original_e5_qrels_unchanged_sha256": "a0946546b7b0109bfc8f0920b7cd8de6412c210cbe26ffb36f155f4a0a5637ad",
+  "retrieval_ledger_sha256": "e969c644a45796552ff2d0279ec8a70b457351841f9eb31a75c1c17bda6c949f",
+  "inputs": {
+    "s1_chatgpt_sha256": "9f54f07ea63b78c6dc5ce5c46d796eb745de81f28a6dd75b96019b0e67e20f00",
+    "s2_claude_sha256": "b71995d605cc0f36732f9683b6a3253b3508c869a3e1b4609b039cf8c3c5202b",
+    "gemini_initial_partial_sha256": "0cf94fe90a86f0a5b8495fef4fa18108579c357762ad8194a8ce843769d922e3",
+    "gemini_reissued_record146_sha256": "7bd9d40d0d518b7aa27683b2a22214c1fe606df8b4db07b6320a14eb15f757e1",
+    "gemini_remaining_chunk1_result_sha256": "1f2c850b23ddd310a669d1d16263cb1ae787a9ac34235e9d8151fab9d67fb2d1",
+    "gemini_remaining_chunk2_result_sha256": "476950cf5b202a173b7f074185670d869d18ef498d3068654a06468a77d8e76c",
+    "gemini_remaining_chunk3_result_sha256": "db945d0bed8d239160bb26012871ea227e35cf53b162e96ebd447dcb78a87e6c",
+    "gemini_remaining_chunk4_canonical_result_sha256": "f8734327704f7ec322891f616c66d23f2b59fc4335c1160a9b040eeb6af55f66"
+  },
+  "outputs": {
+    "pipi_v2_bge_m3_supplementary_adjudication_gemini_final_v1.jsonl": {
+      "sha256": "5b5b5a3d4ac0d38e0fa6b3dc10a663cea73f8b6025ec69d9ea8d970b8ce56093",
+      "bytes": 122291
+    },
+    "pipi_v2_bge_m3_supplementary_judgments_final_v1.jsonl": {
+      "sha256": "826609e7a5c3ba2a87b3c08d99f5f53fe2899cd4c87ae2ba82e2ca05db288d4e",
+      "bytes": 197186
+    },
+    "benchmark_v2_bge_m3_supplementary_qrels_final_v1.tsv": {
+      "sha256": "2713de9adfb02d6a06dd0025403ab702f96d5994250246b90da474061b08a9ad",
+      "bytes": 148778
+    },
+    "benchmark_v2_bge_m3_extended_qrels_final_v1.tsv": {
+      "sha256": "80532a1d2ac657efd261baf6cb38dde48f4b0f5b9bf6d720e6a85cf4b6d297f7",
+      "bytes": 1465128
+    },
+    "benchmark_v2_bge_m3_robustness_query_metrics_final_v1.csv": {
+      "sha256": "cece639a72e53bdd687a1ec8f2f8d78e7c819c4f1b2adcd3d4cf643e716b19a6",
+      "bytes": 69531
+    },
+    "benchmark_v2_bge_m3_robustness_results_final_v1.json": {
+      "sha256": "6b7a6c54d7f2651a14a638f2ba2d28f5e0730609574aaa8c064d00d96b971385",
+      "bytes": 5042
+    },
+    "PIPI_V2_BGE_M3_ROBUSTNESS_RESULTS_V1.md": {
+      "sha256": "362c484837f06d3d1fcea0c09f307ffa676b1e756b8f3989be016d7d3fd6f01e",
+      "bytes": 1930
+    }
+  }
+}

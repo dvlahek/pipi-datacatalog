@@ -1,63 +1,84 @@
 # PiPi Data Catalog
 
-Semantic metadata catalog for the PiPi project (*Podatkovna Infrastruktura i Proširena Inteligencija za održivi razvoj*).
+Semantic Data Space catalog and reproducible RAG research prototype for the PiPi project (*Podatkovna Infrastruktura i Proširena Inteligencija za održivi razvoj*).
 
-The catalog is separated from source systems. Sensor Hub and future providers keep their operational data, while this service harvests or registers descriptive metadata and exposes a common catalog layer.
+PiPi keeps source systems independent. Providers keep their operational data, while the catalog harvests or registers descriptive metadata, versions the catalog state, exposes common DCAT-oriented metadata, and supports retrieval over heterogeneous resources.
 
 ## Current scope
 
-The current vertical slice provides:
+The branch `feature/sensor-hub-bootstrap` currently includes:
 
-- FastAPI service with a health endpoint
-- configurable Sensor Hub client
-- Bearer-token authentication against `POST /auth/tokens`
-- paginated metadata retrieval from locations, sources, deployments, properties, and deployment-properties
-- metadata-only harvesting without copying sensor readings
-- one initial Sensor Hub dataset per deployment-property
-- a provider-neutral canonical dataset core with optional domain extensions
-- explicit `Distribution` objects for API, file, image, audio, video and future access modes
-- stable dataset identifiers such as `urn:pipi:dataset:sensor-hub:deployment-property:51`
-- PostgreSQL-backed persistent metadata catalog with idempotent upsert
-- immutable catalog version snapshots when normalized metadata or source fingerprints change
-- explicit source provenance fields for URL, ETag, Last-Modified, content SHA-256 and provider-native version
-- versioned SQL schema migrations with checksum protection
-- automatic schema update when the persistent catalog store is initialized
-- explicit catalog synchronization from configured providers
-- DCAT/DCAT-AP-oriented JSON-LD serialization
-- QUDT links for known quantity kinds and units
-- lightweight text search across heterogeneous catalog metadata
-- RDFLib + pySHACL validation against a local PiPi DCAT core profile
-- a manually registered external live webcam dataset for Varaždin
-- tests that do not require the remote FOI test service
+- FastAPI catalog API and browser portal
+- provider-neutral `CanonicalDataset` and `Distribution` models
+- Sensor Hub, CSV/file, document, static-web and registered external-resource ingestion
+- PostgreSQL persistence with immutable dataset-version history
+- source provenance fields for URL, ETag, Last-Modified, content SHA-256 and provider-native versions
+- versioned SQL migrations with checksum protection
+- authenticated resource registration and refresh
+- bounded remote fetching and SSRF-oriented URL validation
+- DCAT/DCAT-AP-oriented JSON-LD
+- QUDT links for known quantities and units
+- local SHACL validation against the PiPi DCAT core profile
+- RAG document/chunk storage
+- lexical, dense-vector and hybrid retrieval
+- immutable retrieval profiles and embedding identities
+- exact pgvector cosine retrieval and deterministic RRF fusion
+- retrieval ledgers and strict replay checks
+- PiPi Benchmark V2 for retrieval-provenance and answer-drift experiments
 
-The local `pipi-dcat-core-shacl-v2` profile checks the provider-neutral structural contract used by this catalog, including Dataset, Distribution and optional DataService links. It is a baseline profile. Passing this local profile must not be reported as full DCAT-AP conformance. Validation against the official DCAT-AP profile and controlled-vocabulary requirements remains a later semantic milestone.
+The local `pipi-dcat-core-shacl-v2` profile is a project structural profile. Passing it must not be reported as full DCAT-AP conformance.
 
 ## Architecture
 
 ```text
 Sensor Hub API ---------\
 REST/JSON APIs ----------\
-CSV/files ----------------> provider adapters --> CanonicalDataset --> version-aware sync/upsert
-Text/document sources ---/                                                   |
-Audio/video streams ----/                                                    v
-Static web resources ---/                                               PostgreSQL
-                                                                            |
-                                                 +--------------------------+------------------+
-                                                 |                          |                  |
-                                              catalog API                 search            DCAT/SHACL
-                                                                                                |
-                                                                                            later RAG
+CSV/files ----------------> provider adapters --> CanonicalDataset --> version-aware catalog
+Documents/web ----------/                                             |
+External resources -----/                                              v
+                                                                  PostgreSQL
+                                                                      |
+                        +----------------------+-----------------------+------------------+
+                        |                      |                       |                  |
+                   catalog API             DCAT/SHACL             RAG chunks       provenance
+                                                                      |
+                                             +------------------------+------------------+
+                                             |                        |                  |
+                                          lexical                 dense vector        hybrid RRF
+                                             \                        |                  /
+                                              +---- immutable RetrievalProfile --------+
+                                                                 |
+                                                           retrieval ledger
+                                                                 |
+                                                           grounded context
 ```
 
-Operational content is not copied into the metadata catalog by default. PostgreSQL stores normalized metadata, provenance, version snapshots and distribution descriptors. Sensor readings remain in Sensor Hub, HLS video remains on the external CDN, and future CSV/audio/text payloads can remain at their source unless a provider explicitly implements content ingestion.
+A central research principle of this repository is that reproducible RAG requires provenance for the retrieval configuration that selected the evidence, not only provenance for the underlying data.
 
-For the current Sensor Hub model, each `deployment-property` is treated as one initial dataset candidate because it binds a deployment to one measured property and carries the measurement configuration.
+## Database migrations
 
-The canonical model is no longer sensor-specific. Sensor metadata is an optional extension. Other providers can describe datasets using the common fields plus one or more distributions, for example JSON API access, CSV download, text document, audio file, HLS video stream or image snapshot.
+Applied migrations are immutable. A changed applied migration is treated as an error instead of silently rewriting schema history.
 
-## Persistent catalog, initialization and schema migrations
+Current migration chain:
 
-Persistence is optional so the service can still run in live-discovery mode. For a local PostgreSQL installation configure `.env`:
+```text
+001_catalog_core.sql
+002_catalog_versions.sql
+003_resource_registry.sql
+004_rag_documents_chunks.sql
+005_harvest_runs.sql
+006_rag_jobs_activity.sql
+007_rag_vector_embeddings.sql
+008_retrieval_profiles_and_embeddings.sql
+```
+
+Initialize or update the local database with:
+
+```bash
+python scripts/init_database.py
+```
+
+Typical local configuration:
 
 ```env
 CATALOG_STORE_ENABLED=true
@@ -65,60 +86,11 @@ DATABASE_URL=postgresql+psycopg://pipi:pipi_dev@localhost:5432/pipi_catalog
 CATALOG_BOOTSTRAP_IF_EMPTY=true
 ```
 
-If the `pipi` role or `pipi_catalog` database do not exist yet, also add a local PostgreSQL administrator connection. Keep the real administrator password only in `.env` and never commit it:
-
-```env
-DATABASE_ADMIN_URL=postgresql+psycopg://postgres:YOUR_LOCAL_ADMIN_PASSWORD@localhost:5432/postgres
-```
-
-Initialize the database with:
-
-```bash
-python scripts/init_database.py
-```
-
-The script first tries the configured application database. If it already exists, it only applies pending schema migrations. If the role/database are missing and `DATABASE_ADMIN_URL` is configured, the script creates the target role and database, grants the required schema access, and then applies migrations.
-
-The PostgreSQL DDL is stored in Git under `database/migrations`:
-
-```text
-001_catalog_core.sql
-002_catalog_versions.sql
-```
-
-The migration runner creates and maintains `catalog_schema_migrations`. Each applied migration stores its version, file name and SHA-256 checksum. Applied migration files must never be edited. A later schema change is added as a new sequential SQL file such as `003_add_language.sql`. On initialization only pending migrations are applied. If an already-applied SQL file is modified, initialization stops on a checksum mismatch instead of silently rewriting database history.
-
-The current schema contains:
-
-- `catalog_datasets` - current provider-neutral dataset metadata and provenance
-- `catalog_distributions` - current API/file/image/audio/video access representations
-- `catalog_dataset_versions` - immutable historical snapshots with SHA-256 fingerprints
-- `catalog_schema_migrations` - applied database schema migrations
-
-The same migration runner is used whenever the PostgreSQL-backed catalog store is initialized, so deploying newer code automatically updates an existing database by applying any new migration files before catalog access.
-
-`POST /api/v1/catalog/sync` discovers all configured providers and performs a version-aware idempotent upsert. If the canonical snapshot is unchanged, no new dataset version is created. If metadata, distributions or source-version signals change, the current row is updated and a new immutable version snapshot is appended.
-
-For file-like providers such as CSV, text or audio, the provider should compute a SHA-256 of the source bytes and put it into `provenance.content_sha256`. Therefore a CSV can keep the same URL, filename and title while changed rows still produce a new catalog version at the next sync. HTTP providers can additionally preserve `ETag` and `Last-Modified`; provider-native version ids can be stored in `provenance.source_version`.
-
-For continuously changing resources such as an HLS live camera, the stream bytes are deliberately not hashed. Versioning tracks the stable catalog metadata and access configuration instead of creating a new version for every video segment.
-
-If persistence is enabled and the database is empty, `CATALOG_BOOTSTRAP_IF_EMPTY=true` allows the first read to bootstrap the store once. Later refreshes should use the explicit sync endpoint.
-
-## Registered external webcam
-
-The first non-Sensor-Hub provider is a manually registered WhatsUpCams Varaždin webcam. It is represented as one dataset with two distributions:
-
-- live HLS stream: `application/vnd.apple.mpegurl`
-- current snapshot: `image/jpeg`
-
-The original player declares the HLS source as `application/x-mpegURL`. The catalog preserves that original media-type declaration as provider metadata while using the standardized HLS media type in the DCAT distribution.
-
-The catalog does not proxy or archive the video. PostgreSQL stores only the normalized webcam metadata and the external access URLs. The license is currently recorded as `unknown` until usage terms are explicitly established.
+Keep administrator credentials and provider credentials only in `.env` or deployment secrets. Do not commit them.
 
 ## Development setup
 
-Python 3.11+ is recommended.
+Python 3.11+ is recommended for the application.
 
 ```bash
 python -m venv .venv
@@ -129,59 +101,97 @@ python scripts/init_database.py
 uvicorn app.main:app --reload
 ```
 
-On Windows PowerShell, activate the environment with:
+Windows PowerShell:
 
 ```powershell
-.venv\Scripts\Activate.ps1
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r .\requirements.txt
+python .\scripts\init_database.py
+uvicorn app.main:app --reload
 ```
 
-Swagger UI for the catalog will then be available at `http://127.0.0.1:8000/docs`.
+Swagger UI is available at `http://127.0.0.1:8000/docs`.
 
-## Sensor Hub configuration
+Embedding experiments use the separate dependency file:
 
-The FOI testing service currently exposes the Sensor Hub API below `/api/v1`. Configure credentials only in a local `.env` file or deployment secrets. Do not commit real credentials.
-
-```env
-SENSOR_HUB_BASE_URL=http://webtesting.foi.unizg.hr:3000/api/v1
-SENSOR_HUB_USERNAME=your-test-user
-SENSOR_HUB_PASSWORD=your-test-password
-SENSOR_HUB_TIMEOUT_SECONDS=15
+```bash
+python -m pip install -r requirements-embeddings.txt
 ```
 
-The `.env` file is ignored by Git.
+## Catalog and RAG
 
-## Endpoints in this service
+Catalog synchronization is version-aware and idempotent. A changed normalized dataset snapshot creates a new immutable dataset version. File-like providers can use `provenance.content_sha256` so changed bytes create a new version even when the URL and filename do not change.
 
-```text
-GET  /health
-GET  /api/v1/providers
-GET  /api/v1/catalog/status
-POST /api/v1/catalog/sync
-GET  /api/v1/providers/sensor-hub/status
-GET  /api/v1/providers/sensor-hub/sources
-POST /api/v1/harvest/sensor-hub/preview
-GET  /api/v1/datasets
-GET  /api/v1/search?q=temperature
-GET  /api/v1/search?q=camera
-GET  /api/v1/semantic/validation
-GET  /api/v1/datasets/{dataset_ref}
-GET  /api/v1/datasets/{dataset_ref}.jsonld
-GET  /api/v1/datasets/{dataset_ref}/validation
-GET  /api/v1/datasets/{dataset_ref}/versions
-GET  /api/v1/datasets/{dataset_ref}/versions/{version}
-```
+RAG storage is separated from the canonical catalog. Documents and chunks retain the dataset/version identity from which they were derived. Embeddings are keyed by an explicit embedding identity, allowing multiple representations and embedding families to coexist for the same chunk.
 
-`dataset_ref` can be a Sensor Hub deployment-property id such as `1`, an external id such as `hr_varazdin1`, or a catalog id such as `webcam:whatsupcams:hr_varazdin1`.
+The frozen Benchmark V2 E5 profiles compare:
 
-When PostgreSQL is enabled, `/datasets`, `/search`, `/semantic/validation` and individual dataset endpoints read the persisted catalog. `POST /api/v1/catalog/sync` refreshes that catalog from Sensor Hub plus registered external providers. Version endpoints expose the immutable history retained by the store.
+- lexical retrieval
+- dense vector retrieval over content
+- dense vector retrieval over content plus semantic/catalog metadata
+- hybrid lexical + vector retrieval over content
+- hybrid lexical + vector retrieval over content plus semantic/catalog metadata
 
-The search endpoint performs a small transparent weighted search over title, keywords, observed property, location, source, provider, dataset type, media type and description. It can later be moved to PostgreSQL full-text/trigram indexing without changing the public API.
+Hybrid retrieval uses deterministic reciprocal-rank fusion and a source/file soft cap. Retrieval profiles are versioned and hashed.
 
-Live search validation against the original 25 Sensor Hub datasets returned 6 matches for `temperature`, 5 for `humidity`, 16 for `FOI`, and 2 for `ucionica`. The external webcam adds a new heterogeneous dataset without changing the Sensor Hub source system.
+## PiPi Benchmark V2
 
-The semantic validation endpoints serialize canonical datasets to JSON-LD, parse them into RDF, and validate them with SHACL. `/api/v1/semantic/validation` checks the complete current multi-provider catalog.
+The frozen confirmation benchmark contains 192 queries over a heterogeneous 274-dataset / 3,974-chunk corpus spanning structured sensor data, software documentation, institutional documents and Croatian open-data records.
 
-The Sensor Hub `GET /readings` endpoint remains paginated as provided by the source system. Dataset-scoped reading filters are not required for the current catalog milestone. The JSON-LD keeps `datasetScopedFilteringAvailable=false` for those distributions so the catalog does not advertise functionality the source API does not provide.
+Primary E5 confirmation results:
+
+| Profile | nDCG@10 |
+|---|---:|
+| lexical | 0.4891 |
+| vector content | 0.7013 |
+| hybrid content | 0.6712 |
+| vector metadata | **0.7759** |
+| hybrid metadata | **0.6996** |
+
+The preregistered hybrid metadata-minus-content contrast was:
+
+- ΔnDCG@10 = **+0.0284**
+- 95% bootstrap CI = **[+0.0134, +0.0441]**
+- Wilcoxon p = **0.000967**
+- rank-biserial = **0.369**
+
+Strict replay reproduced the exact ordered evidence set for **960/960** frozen retrieval runs.
+
+Across three local generator families, changing only the frozen retrieval profile produced material semantic answer differences in approximately **10.4–11.5%** of confirmation queries, while same-evidence deterministic controls were exact in **144/144** runs.
+
+### BGE-M3 robustness
+
+A post-hoc robustness analysis repeated the representation comparison using a second multilingual embedding family, `BAAI/bge-m3`, while preserving the frozen corpus, 192 confirmation queries, evaluation depth, diversity rule and hybrid RRF parameters.
+
+| Backbone | Retrieval | Content nDCG@10 | Metadata nDCG@10 | Δ metadata-content |
+|---|---|---:|---:|---:|
+| E5 | vector | 0.7013 | 0.7759 | +0.0745 |
+| E5 | hybrid | 0.6712 | 0.6996 | +0.0284 |
+| BGE-M3 | vector | 0.7393 | **0.8330** | **+0.0937** |
+| BGE-M3 | hybrid | 0.6686 | **0.7035** | **+0.0349** |
+
+For BGE-M3, the vector contrast had a 95% bootstrap CI of `[+0.0678, +0.1209]` and the hybrid contrast `[+0.0217, +0.0484]`. The BGE-M3 analysis is explicitly post-hoc robustness evidence. It does not replace the frozen E5 confirmation experiment.
+
+See:
+
+- `docs/benchmark_v2_results_ready_synthesis_20261015.md`
+- `docs/benchmark_v2_reproducibility_20261015.md`
+- `config/rag_benchmark_v2_bge_m3_robustness.json`
+- `scripts/run_benchmark_v2_bge_m3_robustness.py`
+- `data/benchmark_v2/`
+
+## Reproducibility boundaries
+
+The repository separates three evidence layers:
+
+1. **Primary frozen confirmation** — preregistered E5 retrieval profiles, frozen query set, frozen qrels and strict replay.
+2. **Answer-drift replication** — three local generator families under deterministic generation settings.
+3. **Post-hoc robustness** — BGE-M3 second-backbone retrieval analysis.
+
+The semantic-drift endpoint is symmetric: it establishes that the answer changed materially, not that one answer was necessarily more correct.
+
+The benchmark is still based on one deployed heterogeneous Data Space. BGE-M3 reduces dependence on one embedding family but does not establish corpus-independent generalization.
 
 ## Tests
 
@@ -189,12 +199,26 @@ The Sensor Hub `GET /readings` endpoint remains paginated as provided by the sou
 pytest
 ```
 
-Remote Sensor Hub connectivity can be checked after creating `.env` with valid test credentials:
+Remote provider checks require local credentials and are intentionally separate from the offline test suite.
 
-```bash
-python scripts/check_sensor_hub.py
+## Research roadmap
+
+The current paper line focuses on retrieval provenance and reproducible RAG over an evolving Data Space.
+
+The next research phase is a controlled executable-analytics layer:
+
+```text
+natural-language request
+    -> Data Space discovery
+    -> dataset/schema selection
+    -> versioned analysis specification
+    -> sandboxed SQL/Python execution
+    -> result hash and computational provenance
+    -> grounded answer
 ```
 
-## Next milestones
+This phase will extend the provenance chain from data and retrieval provenance to computational provenance, including aggregation, statistical analysis and controlled machine-learning tasks. Generated code will not execute directly against the Data Space without validation, resource limits and an isolated execution environment.
 
-The next architectural step is configuration-driven provider registration and provider-failure isolation so one unavailable external API does not take down catalog synchronization. After that, add concrete providers for CSV/files, generic REST/JSON, text/document sources and audio. Search can move into PostgreSQL full-text/trigram indexing when catalog size justifies it. Official DCAT-AP validation and controlled vocabularies remain the main semantic milestone. RAG routing comes after the provider-neutral catalog and sync interfaces are stable.
+## Security
+
+Read `SECURITY.md` before deploying the service. Production deployment should use HTTPS, secret storage, private database networking and network-level outbound-egress controls in addition to application-level URL checks.

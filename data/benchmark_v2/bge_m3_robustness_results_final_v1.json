@@ -1,0 +1,153 @@
+{
+  "artifact": "pipi-v2-bge-m3-robustness-results-final",
+  "schema_version": 1,
+  "status": "post-hoc-robustness-final-after-supplementary-judging",
+  "judging": {
+    "supplementary_records": 1090,
+    "s1_s2_consensus": 461,
+    "gemini_adjudicated": 629,
+    "final_grade_distribution": {
+      "0": 708,
+      "1": 210,
+      "2": 122,
+      "3": 50
+    },
+    "all_bge_top10_slots_judged": true,
+    "top10_slots_covered": 7680,
+    "top10_slots_total": 7680
+  },
+  "overall_metrics": {
+    "vector-bge-m3-content-v1": {
+      "ndcg_at_10": 0.739346591642675,
+      "mrr_at_10": 0.8860739087301588,
+      "recall_at_10": 0.6872026038432586,
+      "hit_at_1": 0.8333333333333334,
+      "hit_at_3": 0.9375,
+      "hit_at_10": 0.96875
+    },
+    "vector-bge-m3-metadata-v1": {
+      "ndcg_at_10": 0.8330452054586077,
+      "mrr_at_10": 0.9345486111111111,
+      "recall_at_10": 0.7784683940174492,
+      "hit_at_1": 0.9010416666666666,
+      "hit_at_3": 0.9583333333333334,
+      "hit_at_10": 0.9895833333333334
+    },
+    "hybrid-bge-m3-content-v1": {
+      "ndcg_at_10": 0.6685921408256568,
+      "mrr_at_10": 0.820229828042328,
+      "recall_at_10": 0.6567420334410247,
+      "hit_at_1": 0.7291666666666666,
+      "hit_at_3": 0.8854166666666666,
+      "hit_at_10": 0.96875
+    },
+    "hybrid-bge-m3-metadata-v1": {
+      "ndcg_at_10": 0.7034821966708181,
+      "mrr_at_10": 0.8500640707671958,
+      "recall_at_10": 0.6933083633129112,
+      "hit_at_1": 0.7708333333333334,
+      "hit_at_3": 0.9114583333333334,
+      "hit_at_10": 0.9791666666666666
+    }
+  },
+  "metadata_minus_content_contrasts": {
+    "vector": {
+      "mean_delta_ndcg_at_10": 0.0936986138159328,
+      "bootstrap_95_ci": [
+        0.06781500067573033,
+        0.12089288295536192
+      ],
+      "wilcoxon_statistic": 1929.5,
+      "wilcoxon_p": 1.4679530120393005e-10,
+      "rank_biserial": 0.619915295971634,
+      "positive_queries": 99,
+      "negative_queries": 43,
+      "ties": 50,
+      "subgroups": {
+        "source_family": {
+          "institutional-documents": 0.19551194603267907,
+          "open-data-catalogs": -0.001405821259787006,
+          "software-documentation": 0.13117222472764709,
+          "structured-data": 0.04951610576319199
+        },
+        "query_type": {
+          "constraint-filtered-lookup": 0.03919624100404633,
+          "entity-document-lookup": 0.10064859111911655,
+          "exact-lookup": 0.12373539232238359,
+          "relation-comparison": 0.07151478400408143,
+          "semantic-paraphrase": 0.08745595563442896,
+          "topic-discovery": 0.1396407188115399
+        },
+        "language_relation": {
+          "cross-language": 0.05470646749292608,
+          "same-language": 0.1066959959236017
+        }
+      }
+    },
+    "hybrid": {
+      "mean_delta_ndcg_at_10": 0.034890055845161395,
+      "bootstrap_95_ci": [
+        0.02165586287972042,
+        0.04840486974988291
+      ],
+      "wilcoxon_statistic": 1482.0,
+      "wilcoxon_p": 1.4048524771313753e-07,
+      "rank_biserial": 0.5632183908045977,
+      "positive_queries": 85,
+      "negative_queries": 31,
+      "ties": 76,
+      "subgroups": {
+        "source_family": {
+          "institutional-documents": 0.08885787400402839,
+          "open-data-catalogs": -0.014519891091013865,
+          "software-documentation": 0.04704073273658901,
+          "structured-data": 0.01818150773104205
+        },
+        "query_type": {
+          "constraint-filtered-lookup": 0.022480371493605482,
+          "entity-document-lookup": 0.047472781795428,
+          "exact-lookup": 0.03765595007808155,
+          "relation-comparison": 0.008567784211972808,
+          "semantic-paraphrase": 0.0436796234748251,
+          "topic-discovery": 0.04948382401705543
+        },
+        "language_relation": {
+          "cross-language": 0.02983752707421777,
+          "same-language": 0.0365742321021426
+        }
+      }
+    }
+  },
+  "drift_summary": {
+    "hybrid": {
+      "chunk_retention_at_10": 0.8010416666666668,
+      "chunk_churn_at_10": 0.19895833333333335,
+      "chunk_jaccard_at_10": 0.6931275168867082,
+      "top1_chunk_changed": 0.13541666666666666,
+      "source_churn": 0.11771866732804233,
+      "source_jaccard": 0.8552761619167869
+    },
+    "vector": {
+      "chunk_retention_at_10": 0.6765625000000001,
+      "chunk_churn_at_10": 0.3234375,
+      "chunk_jaccard_at_10": 0.5578507651117945,
+      "top1_chunk_changed": 0.1875,
+      "source_churn": 0.1801132605820106,
+      "source_jaccard": 0.789272720913346
+    }
+  },
+  "directional_replication_against_frozen_e5": {
+    "e5_vector_delta_ndcg_at_10": 0.074540694121748,
+    "bge_m3_vector_delta_ndcg_at_10": 0.0936986138159328,
+    "vector_direction_retained": true,
+    "e5_hybrid_delta_ndcg_at_10": 0.0283585729001961,
+    "bge_m3_hybrid_delta_ndcg_at_10": 0.034890055845161395,
+    "hybrid_direction_retained": true
+  },
+  "protocol": {
+    "bootstrap_replicates": 10000,
+    "bootstrap_seed": 20261015,
+    "graded_ndcg_gain": "2^rel - 1",
+    "binary_relevance_threshold": "rel>=2"
+  }
+}
