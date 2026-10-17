@@ -36,3 +36,9 @@ results/rq3/
 results/second_corpus_dataeuropa_v1/raw/
 results/second_corpus_bootstrap_v1.log
 results/SECOND_CORPUS_PREQUERY_FREEZE_SHA256.txt
+results/second_corpus_dataeuropa_v2/raw/
+results/second_corpus_dataeuropa_v2/canonical_text/
+results/second_corpus_dataeuropa_v2/candidate_universe.jsonl
+results/second_corpus_dataeuropa_v2/candidate_order.jsonl
+results/second_corpus_dataeuropa_v2/chunk_manifest.jsonl
+results/second_corpus_bootstrap_v2.log
