@@ -75,7 +75,43 @@ def main() -> None:
         flush=True,
     )
     core.select(config, args.out, args.protocol, args.config)
+
+    final_freeze = args.out / "corpus_freeze.json"
+    summary = json.loads(final_freeze.read_text(encoding="utf-8"))
+    core_path = Path(core.__file__).resolve()
+    core_sha = core.base.sha_file(core_path)
+    summary["parser_environment_manifest_sha256"] = manifest_sha
+    summary["selector_driver_sha256"] = driver_sha
+    summary["selector_core_sha256"] = core_sha
+    final_freeze.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    sha_paths = [
+        args.protocol,
+        args.config,
+        Path(__file__),
+        core_path,
+        args.out / "candidate_universe.jsonl",
+        args.out / "candidate_order.jsonl",
+        args.out / "candidate_universe_freeze.json",
+        manifest_path,
+        args.out / "metadata_detail_manifest.jsonl",
+        args.out / "selected_corpus_manifest.jsonl",
+        args.out / "attrition_ledger.jsonl",
+        args.out / "chunk_manifest.jsonl",
+        args.out / "environment_manifest.json",
+        final_freeze,
+    ]
+    sha_path = args.out / "SHA256SUMS.prequery.txt"
+    sha_path.write_text(
+        "\n".join(
+            f"{core.base.sha_file(path)}  {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}"
+            for path in sha_paths
+        ) + "\n",
+        encoding="utf-8",
+    )
+
     print("SECOND_CORPUS_V2_3_FROZEN", flush=True)
+    print(json.dumps(summary, indent=2, sort_keys=True), flush=True)
 
 
 if __name__ == "__main__":
