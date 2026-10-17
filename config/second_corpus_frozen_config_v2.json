@@ -89,10 +89,10 @@
     "page_rows": 1000,
     "sort": "id asc",
     "themes": {
-      "ECON": "econ",
-      "ENVI": "envi",
-      "HEAL": "heal",
-      "TRAN": "tran"
+      "ECON": "economy-and-finance",
+      "ENVI": "environment",
+      "HEAL": "health",
+      "TRAN": "transport"
     }
   },
   "protocol_id": "SECOND_CORPUS_DATAEUROPA_V2",
