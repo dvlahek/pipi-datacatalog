@@ -155,6 +155,17 @@ def detail_record(wrapper: dict, config: dict) -> dict:
     return payload
 
 
+def detail_dataset_id(detail: dict) -> str:
+    """Return the canonical modern-search dataset id used by GET /datasets/{id}.
+
+    Do not use base.stable_id() here: that generic helper intentionally prefers
+    resource/URI identifiers, while the detail endpoint identity contract is its
+    explicit top-level `id` field.
+    """
+    values = base.as_strings(detail.get("id"))
+    return values[0] if values else ""
+
+
 def fetch_bounded_retry(
     session: requests.Session,
     url: str,
@@ -237,11 +248,20 @@ def select(config: dict, out: Path, protocol_path: Path, config_path: Path) -> N
                     break
                 dsid = candidate["dataset_id"]
                 attempted_counts[theme] += 1
+                if attempted_counts[theme] == 1 or attempted_counts[theme] % 100 == 0:
+                    print(
+                        f"PROGRESS {theme} attempted={attempted_counts[theme]} selected={selected_counts[theme]} rank={rank}",
+                        flush=True,
+                    )
                 wrapper, detail_path = fetch_detail_cached(session, config, out, theme, rank, dsid)
                 used_detail_paths[(theme, rank, dsid)] = detail_path
                 detail = detail_record(wrapper, config)
-                detail_id = base.stable_id(detail)
-                if detail_id and detail_id != dsid:
+                detail_id = detail_dataset_id(detail)
+                if not detail_id:
+                    raise RuntimeError(
+                        f"detail response missing canonical id: theme={theme} rank={rank} dataset={dsid}"
+                    )
+                if detail_id != dsid:
                     append_events(af, [{
                         "level": "dataset", "theme": theme, "candidate_rank": rank,
                         "dataset_id": dsid, "reason": "detail_identity_mismatch", "detail_id": detail_id,
