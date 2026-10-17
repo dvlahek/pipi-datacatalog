@@ -1,0 +1,163 @@
+[
+  {
+    "id": "csv-temperature-b",
+    "query": "temperature demo-site-b",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:csv:pipi-demo-environment",
+      "text_contains_any": ["demo-site-b", "18.7"]
+    }
+  },
+  {
+    "id": "csv-temperature-a",
+    "query": "temperature demo-site-a",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:csv:pipi-demo-environment",
+      "text_contains_any": ["demo-site-a", "20.1"]
+    }
+  },
+  {
+    "id": "csv-humidity-a",
+    "query": "humidity demo-site-a",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:csv:pipi-demo-environment",
+      "text_contains_any": ["humidity", "55.0"]
+    }
+  },
+  {
+    "id": "csv-temperature-b-hr",
+    "query": "temperatura na demo-site-b",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:csv:pipi-demo-environment",
+      "text_contains_any": ["demo-site-b", "18.7"]
+    }
+  },
+  {
+    "id": "csv-humidity-a-hr",
+    "query": "vlaga na demo-site-a",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:csv:pipi-demo-environment",
+      "text_contains_any": ["humidity", "55.0"]
+    }
+  },
+  {
+    "id": "rea-runtime-ownership",
+    "query": "runtime ownership",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:resource:2",
+      "file_path_contains_any": [
+        "docs/testing.md",
+        "docs/web-runtime.md",
+        "docs/mcp-contracts.md",
+        "docs/native-investigation.md",
+        "docs/installation.md"
+      ]
+    }
+  },
+  {
+    "id": "rea-browser-source-ownership",
+    "query": "browser runtime source ownership",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:resource:2",
+      "file_path_contains_any": [
+        "docs/web-runtime.md",
+        "docs/browser-observation.md",
+        "docs/testing.md",
+        "docs/mcp-contracts.md"
+      ]
+    }
+  },
+  {
+    "id": "rea-reverse-engineer-source",
+    "query": "reverse engineer source code",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:resource:2",
+      "file_path_contains_any": [
+        "README",
+        "docs/javascript",
+        "docs/native",
+        "docs/firmware",
+        "docs/browser",
+        "docs/mcp-contracts.md"
+      ]
+    }
+  },
+  {
+    "id": "rea-javascript-application",
+    "query": "reverse engineering JavaScript application",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:resource:2",
+      "file_path_contains_any": [
+        "README",
+        "docs/javascript-artifact-reconstruction.md",
+        "docs/javascript-recovery.md"
+      ]
+    }
+  },
+  {
+    "id": "rea-electron-runtime",
+    "query": "how does REA inspect Electron applications",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:resource:2",
+      "file_path_contains_any": [
+        "README",
+        "docs/electron-observation.md",
+        "docs/installation.md"
+      ]
+    }
+  },
+  {
+    "id": "rea-firmware-ghidra",
+    "query": "firmware binary analysis with Ghidra",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:resource:2",
+      "file_path_contains_any": [
+        "docs/firmware-analysis.md",
+        "docs/native-investigation.md",
+        "docs/installation.md"
+      ]
+    }
+  },
+  {
+    "id": "rea-windows-ghidra",
+    "query": "Windows Ghidra setup",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:resource:2",
+      "file_path_contains_any": [
+        "docs/installation.md",
+        "docs/windows-ghidra-p0.md"
+      ]
+    }
+  },
+  {
+    "id": "rea-mcp-provider-failure",
+    "query": "MCP provider startup failure",
+    "relevant": {
+      "dataset_identifier": "urn:pipi:dataset:resource:2",
+      "file_path_contains_any": [
+        "docs/mcp-contracts.md",
+        "docs/installation.md"
+      ]
+    }
+  },
+  {
+    "id": "foi-gender-equality",
+    "query": "rodna ravnopravnost studenata",
+    "relevant": {
+      "dataset_identifier_contains": "rodne_ravnopravnosti"
+    }
+  },
+  {
+    "id": "foi-equal-opportunities",
+    "query": "jednake mogućnosti za studentice i studente",
+    "relevant": {
+      "dataset_identifier_contains": "rodne_ravnopravnosti"
+    }
+  },
+  {
+    "id": "foi-gender-commissioner",
+    "query": "povjerenica za rodnu ravnopravnost",
+    "relevant": {
+      "dataset_identifier_contains": "Odluka_o_imenovanju_povjerenice_za_rodnu_ravnopravnost"
+    }
+  }
+]

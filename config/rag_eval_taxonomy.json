@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "benchmark": "rag_eval_queries-v1-pilot",
+  "note": "Taxonomy labels are kept separate from the frozen query/relevance definitions so analysis metadata can evolve without rewriting the pilot benchmark.",
+  "cases": {
+    "csv-temperature-b": {
+      "source_family": "structured-data",
+      "language": "en",
+      "language_relation": "same-language",
+      "query_type": "exact-lookup"
+    },
+    "csv-temperature-a": {
+      "source_family": "structured-data",
+      "language": "en",
+      "language_relation": "same-language",
+      "query_type": "exact-lookup"
+    },
+    "csv-humidity-a": {
+      "source_family": "structured-data",
+      "language": "en",
+      "language_relation": "same-language",
+      "query_type": "exact-lookup"
+    },
+    "csv-temperature-b-hr": {
+      "source_family": "structured-data",
+      "language": "hr",
+      "language_relation": "cross-language",
+      "query_type": "cross-language-lookup"
+    },
+    "csv-humidity-a-hr": {
+      "source_family": "structured-data",
+      "language": "hr",
+      "language_relation": "cross-language",
+      "query_type": "cross-language-lookup"
+    },
+    "rea-runtime-ownership": {
+      "source_family": "software-documentation",
+      "language": "en",
+      "language_relation": "same-language",
+      "query_type": "technical-concept"
+    },
+    "rea-browser-source-ownership": {
+      "source_family": "software-documentation",
+      "language": "en",
+      "language_relation": "same-language",
+      "query_type": "technical-concept"
+    },
+    "rea-reverse-engineer-source": {
+      "source_family": "software-documentation",
+      "language": "en",
+      "language_relation": "same-language",
+      "query_type": "topic-discovery"
+    },
+    "rea-javascript-application": {
+      "source_family": "software-documentation",
+      "language": "en",
+      "language_relation": "same-language",
+      "query_type": "topic-discovery"
+    },
+    "rea-electron-runtime": {
+      "source_family": "software-documentation",
+      "language": "en",
+      "language_relation": "same-language",
+      "query_type": "technical-procedure"
+    },
+    "rea-firmware-ghidra": {
+      "source_family": "software-documentation",
+      "language": "en",
+      "language_relation": "same-language",
+      "query_type": "technical-procedure"
+    },
+    "rea-windows-ghidra": {
+      "source_family": "software-documentation",
+      "language": "en",
+      "language_relation": "same-language",
+      "query_type": "technical-procedure"
+    },
+    "rea-mcp-provider-failure": {
+      "source_family": "software-documentation",
+      "language": "en",
+      "language_relation": "same-language",
+      "query_type": "troubleshooting"
+    },
+    "foi-gender-equality": {
+      "source_family": "institutional-documents",
+      "language": "hr",
+      "language_relation": "same-language",
+      "query_type": "topic-discovery"
+    },
+    "foi-equal-opportunities": {
+      "source_family": "institutional-documents",
+      "language": "hr",
+      "language_relation": "same-language",
+      "query_type": "semantic-paraphrase"
+    },
+    "foi-gender-commissioner": {
+      "source_family": "institutional-documents",
+      "language": "hr",
+      "language_relation": "same-language",
+      "query_type": "role-document-lookup"
+    }
+  }
+}

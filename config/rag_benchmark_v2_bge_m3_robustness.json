@@ -1,0 +1,187 @@
+{
+  "artifact": "pipi-benchmark-v2-bge-m3-embedding-backbone-robustness-protocol",
+  "schema_version": 1,
+  "status": "frozen-before-robustness-run",
+  "analysis_role": "post-hoc robustness analysis; does not modify or replace frozen RQ1-RQ3 primary results",
+  "scientific_question": "Does the content-versus-metadata retrieval-profile effect persist with a second multilingual embedding backbone?",
+  "frozen_parent": {
+    "catalog_snapshot_sha256": "068e1b0df74acd8b91d04a5161f4413d57d07bfef5c8c9ce2b8d1100ae780419",
+    "corpus_fingerprint_sha256": "f04239fe6df52ab2604ab45a8c08cc83d5bafe79203a4b16c20a2d2a307e2dc6",
+    "confirmation_cases_sha256": "c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5",
+    "original_retrieval_protocol_sha256": "d277465bb9572bf6bbff82a5d5bf6f29fd1d9ebd9a5b9940d890d87b87df2dde",
+    "final_qrels_sha256": "a0946546b7b0109bfc8f0920b7cd8de6412c210cbe26ffb36f155f4a0a5637ad",
+    "confirmation_queries": 192,
+    "current_chunks": 3974
+  },
+  "embedding_backbone": {
+    "model_id": "BAAI/bge-m3",
+    "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "library": "sentence-transformers",
+    "dense_component_only": true,
+    "dimensions": 1024,
+    "normalize_embeddings": true,
+    "query_instruction": null,
+    "max_seq_length": 512,
+    "note": "BGE-M3 dense embeddings are used only as an independent embedding-family robustness check. Sparse and multi-vector BGE-M3 modes are intentionally excluded."
+  },
+  "profiles": [
+    {
+      "profile_id": "vector-bge-m3-content-v1",
+      "config_hash": "b05535cf87b152862aaafb7cdce5da96c9bacb59ef95cc49ad77450305a64cc9",
+      "config": {
+        "profile_id": "vector-bge-m3-content-v1",
+        "version": 1,
+        "mode": "vector",
+        "embedding": {
+          "provider": "sentence-transformers-bge-m3",
+          "model": "BAAI/bge-m3",
+          "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+          "dimensions": 1024,
+          "input_profile": "content-v1",
+          "normalize_embeddings": true,
+          "query_instruction": null,
+          "max_seq_length": 512
+        },
+        "fusion": null,
+        "diversity": {
+          "algorithm": "source-file-soft-cap-v1",
+          "max_per_file": 2
+        },
+        "reranker": null
+      }
+    },
+    {
+      "profile_id": "vector-bge-m3-metadata-v1",
+      "config_hash": "1c0a559e20eef4f2a216b20db38bdcda477e0b8269a48baedcfb582e2e270568",
+      "config": {
+        "profile_id": "vector-bge-m3-metadata-v1",
+        "version": 1,
+        "mode": "vector",
+        "embedding": {
+          "provider": "sentence-transformers-bge-m3",
+          "model": "BAAI/bge-m3",
+          "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+          "dimensions": 1024,
+          "input_profile": "metadata-v1",
+          "normalize_embeddings": true,
+          "query_instruction": null,
+          "max_seq_length": 512
+        },
+        "fusion": null,
+        "diversity": {
+          "algorithm": "source-file-soft-cap-v1",
+          "max_per_file": 2
+        },
+        "reranker": null
+      }
+    },
+    {
+      "profile_id": "hybrid-bge-m3-content-v1",
+      "config_hash": "4a9571e8cda92a7dc111a04d1281e74a574e3a2eab74ce9638ee4b68e2491763",
+      "config": {
+        "profile_id": "hybrid-bge-m3-content-v1",
+        "version": 1,
+        "mode": "hybrid",
+        "embedding": {
+          "provider": "sentence-transformers-bge-m3",
+          "model": "BAAI/bge-m3",
+          "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+          "dimensions": 1024,
+          "input_profile": "content-v1",
+          "normalize_embeddings": true,
+          "query_instruction": null,
+          "max_seq_length": 512
+        },
+        "fusion": {
+          "algorithm": "rrf-v1",
+          "k": 60
+        },
+        "diversity": {
+          "algorithm": "source-file-soft-cap-v1",
+          "max_per_file": 2
+        },
+        "reranker": null
+      }
+    },
+    {
+      "profile_id": "hybrid-bge-m3-metadata-v1",
+      "config_hash": "6bc3569eb2028b63a2e1e2e94284db679f46a7b2963a2b26d112de08ad9bcb08",
+      "config": {
+        "profile_id": "hybrid-bge-m3-metadata-v1",
+        "version": 1,
+        "mode": "hybrid",
+        "embedding": {
+          "provider": "sentence-transformers-bge-m3",
+          "model": "BAAI/bge-m3",
+          "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+          "dimensions": 1024,
+          "input_profile": "metadata-v1",
+          "normalize_embeddings": true,
+          "query_instruction": null,
+          "max_seq_length": 512
+        },
+        "fusion": {
+          "algorithm": "rrf-v1",
+          "k": 60
+        },
+        "diversity": {
+          "algorithm": "source-file-soft-cap-v1",
+          "max_per_file": 2
+        },
+        "reranker": null
+      }
+    }
+  ],
+  "retrieval": {
+    "pool_depth_per_profile": 20,
+    "evaluation_depth": 10,
+    "candidate_depth": 100,
+    "hybrid_fusion": {
+      "algorithm": "rrf-v1",
+      "k": 60
+    },
+    "diversity": {
+      "algorithm": "source-file-soft-cap-v1",
+      "max_per_file": 2
+    },
+    "reranker": null
+  },
+  "qrels_policy": {
+    "rule": "Never treat a newly retrieved unjudged candidate as nonrelevant.",
+    "coverage_audit": "Audit every BGE-M3 top-10 result against the frozen final qrels.",
+    "augmentation": "If any top-10 candidates are unjudged, create a supplementary blinded judging pool containing all unique novel top-10 candidates before computing qrels-based quality metrics.",
+    "main_results_immutability": "Supplementary BGE-M3 judgments extend only the robustness analysis. They do not retroactively change the frozen primary E5 results."
+  },
+  "planned_analysis": {
+    "paired_contrasts": [
+      "vector-bge-m3-metadata-v1 minus vector-bge-m3-content-v1",
+      "hybrid-bge-m3-metadata-v1 minus hybrid-bge-m3-content-v1"
+    ],
+    "metrics": [
+      "nDCG@10",
+      "MRR",
+      "Recall@10",
+      "Hit@1",
+      "Hit@3",
+      "Hit@10"
+    ],
+    "drift": [
+      "chunk retention@10",
+      "chunk churn@10",
+      "chunk Jaccard@10",
+      "top-1 chunk change",
+      "source churn@10"
+    ],
+    "statistics": {
+      "paired_bootstrap_replicates": 10000,
+      "bootstrap_seed": 20261015,
+      "wilcoxon": "two-sided",
+      "effect_size": "rank-biserial"
+    },
+    "interpretation": "Robustness/supporting analysis only. Directional agreement with the frozen E5 result is more important than reproducing the exact E5 effect size."
+  },
+  "generation": {
+    "run_llm_generation": false,
+    "reason": "The robustness target is the embedding-backbone limitation. RQ3 is already frozen across three generator families."
+  }
+}

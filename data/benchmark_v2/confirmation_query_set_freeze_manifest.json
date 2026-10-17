@@ -1,0 +1,34 @@
+{
+  "artifact": "pipi-benchmark-v2-confirmation-query-set-freeze-manifest",
+  "schema_version": 1,
+  "status": "hash-committed-before-confirmation-retrieval",
+  "catalog_snapshot_hash": "068e1b0df74acd8b91d04a5161f4413d57d07bfef5c8c9ce2b8d1100ae780419",
+  "corpus_fingerprint_sha256": "f04239fe6df52ab2604ab45a8c08cc83d5bafe79203a4b16c20a2d2a307e2dc6",
+  "base_protocol_sha256": "d277465bb9572bf6bbff82a5d5bf6f29fd1d9ebd9a5b9940d890d87b87df2dde",
+  "development_cases_sha256": "c60d2f6083873bb76591ffdd10d19cfe32f4900c20a4117ca39ecc3d2c40b4e9",
+  "confirmation_cases_sha256": "c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5",
+  "confirmation_query_count": 192,
+  "source_family_counts": {
+    "structured-data": 48,
+    "software-documentation": 48,
+    "institutional-documents": 48,
+    "open-data-catalogs": 48
+  },
+  "query_type_counts": {
+    "exact-lookup": 32,
+    "semantic-paraphrase": 32,
+    "topic-discovery": 32,
+    "entity-document-lookup": 32,
+    "relation-comparison": 32,
+    "constraint-filtered-lookup": 32
+  },
+  "language_relation_counts": {
+    "cross-language": 48,
+    "same-language": 144
+  },
+  "replicate_judgment_query_count": 48,
+  "confirmation_judging_config_git_blob_sha": "8b475c71b890589f0cb02736a7c5191a77a3a97d",
+  "protocol_amendment_4_git_blob_sha": "252affb873c9ad19f9aa923accfbc23f95ba2995",
+  "retrieval_output_inspected_during_authoring": false,
+  "note": "The complete 192-query artifact is retained locally and is cryptographically committed by confirmation_cases_sha256. It may be published later; any published artifact must reproduce this exact canonical query-set hash."
+}

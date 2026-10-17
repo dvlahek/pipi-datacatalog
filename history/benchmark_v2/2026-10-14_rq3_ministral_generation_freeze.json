@@ -1,0 +1,34 @@
+{
+  "artifact": "pipi-benchmark-v2-rq3-model-generation-freeze",
+  "schema_version": 1,
+  "status": "frozen-after-generation-before-formal-rq3-judging",
+  "date": "2026-10-14",
+  "repository": "dvlahek/pipi-datacatalog",
+  "branch": "feature/sensor-hub-bootstrap",
+  "repository_head_before_freeze": "55e3d8157019615142717b6799569bcc13c5f557",
+  "model_key": "ministral3-8b-q4km",
+  "model_role": "replication",
+  "gguf_file": "Ministral-3-8B-Instruct-2512-Q4_K_M.gguf",
+  "gguf_sha256": "33e7a72cf5e6e2cfc2f2847075acc013d68bba023e35310cef86b5cf8fdca761",
+  "rq3_protocol_sha256": "6cbb8b07be1d759ca609260e5af5ffc708416e1e54673f135ccb859fbfd61082",
+  "rq3_input_sha256": "e554461b90cdfe8f01c944b4164984c53a1e2c088d82cb6fe30cd2d6417d8bcf",
+  "rq3_input_hash_scheme": "normalized-json-indent2-lf-final-newline",
+  "answers_jsonl_local_filename": "results/rq3/rq3_answers_ministral3-8b-q4km_e554461b90cd.jsonl",
+  "answers_jsonl_sha256": "b90d496cf6d44d1208345495b2ca61b552fd8832f1a310b0d5d925bf07eb837d",
+  "generation_counts": {
+    "planned_total": 432,
+    "main": 384,
+    "same_evidence_control": 48,
+    "status": "complete"
+  },
+  "elapsed_seconds_reported": 7148.566649436951,
+  "runtime": {
+    "backend": "llama.cpp OpenAI-compatible local server",
+    "llama_cpp_version": "0.6.0-dev",
+    "llama_cpp_build": 11580,
+    "llama_cpp_commit": "4413a1924",
+    "compiler": "Clang 20.1.8",
+    "platform": "Windows x86_64"
+  },
+  "formal_analysis_gate": "Do not perform frozen blinded RQ3 semantic judging or final inferential analysis until Gemma generation is also complete and hashed."
+}

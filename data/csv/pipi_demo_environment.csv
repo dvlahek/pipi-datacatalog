@@ -1,0 +1,4 @@
+record_id,site,metric,value,unit
+1,demo-site-a,temperature,20.1,C
+2,demo-site-a,humidity,55.0,percent
+3,demo-site-b,temperature,18.7,C

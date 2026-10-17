@@ -1,0 +1,22 @@
+{
+  "artifact": "pipi-benchmark-v2-confirmation-pass1-input-manifest",
+  "schema_version": 1,
+  "status": "frozen-before-pass1-judging",
+  "confirmation_cases_sha256": "c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5",
+  "augmented_pool_sha256": "04e8a7b25d0a38d8412d6e2e7ff91887848d1ce04943f6e2c20b0cea605f1a4c",
+  "pass1_blinded_input_sha256": "6f47c16eb59de2179c1d300e6c2e9ab929f858ea5ae4d6896fbaed977b46655d",
+  "case_count": 192,
+  "candidate_count": 9170,
+  "candidate_order_rule": "pipi-v2-confirmation-pass1-v1",
+  "hidden_fields": [
+    "retrieval profile identity",
+    "retrieval rank",
+    "retrieval score",
+    "lexical/vector component ranks",
+    "authoring-seed status",
+    "frozen target identifiers",
+    "frozen target chunk hints",
+    "aggregate confirmation retrieval-quality results"
+  ],
+  "quality_metrics_computed_before_judging": false
+}

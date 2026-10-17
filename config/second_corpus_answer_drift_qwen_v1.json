@@ -1,0 +1,72 @@
+{
+  "artifact": "SECOND_CORPUS_C2_ANSWER_DRIFT_QWEN_V1",
+  "status": "FROZEN_BEFORE_ANY_C2_ANSWER_GENERATION",
+  "freeze_date": "2026-10-17",
+  "scientific_status": "post-confirmatory descriptive extension",
+  "frozen_inputs": {
+    "query_count": 96,
+    "queries_sha256": "4257116b4d9ec417217b2030df58b5de3ba479fe0125f021a3ca50b7022699f7",
+    "primary_retrieval_runs_sha256": "5138ae7d90906709b1b5f8792560c8ddde95b57a01614cafbc951e7542294383",
+    "confirmation_freeze_sha256": "e7bbe1bfd048103de047a816ebd48ae359a5a74b38f2462463e1a9be752ff841",
+    "retrieval_profile_ids": [
+      "hybrid-e5-content-v1",
+      "hybrid-e5-metadata-v1"
+    ],
+    "top_k": 10
+  },
+  "generator": {
+    "model_key": "qwen3-8b-q4km",
+    "family": "Qwen3",
+    "gguf_file": "Qwen3-8B-Q4_K_M.gguf",
+    "gguf_sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+    "reasoning_mode": "off",
+    "backend": "llama.cpp OpenAI-compatible local server",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20261014,
+    "max_tokens": 384,
+    "max_answer_words": 180,
+    "context_size": 16384,
+    "sampling": false
+  },
+  "prompt": {
+    "system": "You are a retrieval-grounded research assistant. Answer the question using only the supplied evidence. If the evidence is insufficient, say so. Do not use outside knowledge. Answer in the language of the question, in at most 180 words. Cite supporting evidence inline as [E1], [E2], etc. Every factual claim must be supported by the supplied evidence. Do not mention retrieval profiles, model names, or the experiment.",
+    "user_template": "Question:\n{query}\n\nEvidence:\n{evidence}\n\nReturn only the grounded answer."
+  },
+  "evidence_adapter": {
+    "fields": [
+      "evidence_label",
+      "dataset_identifier",
+      "distribution_identifier",
+      "chunk_index",
+      "file_path",
+      "text"
+    ],
+    "profile_identity_exposed_to_generator": false
+  },
+  "generation_plan": {
+    "main_generation_count": 192,
+    "same_evidence_control": false,
+    "replication_generators_in_v1": []
+  },
+  "judging": {
+    "blinding_seed": "SECOND_CORPUS_C2_ANSWER_DRIFT_BLIND_V1",
+    "profile_identity_hidden": true,
+    "ordinal_scale": {
+      "0": "semantically the same answer; wording-only differences",
+      "1": "minor difference; same substantive conclusion",
+      "2": "materially different content, support, qualification, or conclusion",
+      "3": "substantially different or contradictory answer"
+    },
+    "material_threshold": [2, 3]
+  },
+  "planned_descriptive_outputs": [
+    "overall material-drift count/rate and Wilson interval",
+    "grade distribution 0-3",
+    "exact-text-change rate",
+    "theme and query-type breakdowns",
+    "hidden-retrieval-drift subset answer impact",
+    "exploratory association with frozen chunk churn"
+  ],
+  "guardrail": "No answer-level p-value is a C2 confirmatory endpoint. This extension was frozen after C2 retrieval results were inspected but before any C2 answer was generated."
+}

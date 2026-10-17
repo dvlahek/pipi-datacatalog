@@ -1,0 +1,45 @@
+{
+  "artifact": "pipi-benchmark-v2-rq3-qwen-primary-two-judge-consistency-and-pass3-freeze",
+  "schema_version": 1,
+  "status": "frozen-before-pass3-adjudication",
+  "date": "2026-10-15",
+  "repository": "dvlahek/pipi-datacatalog",
+  "branch": "feature/sensor-hub-bootstrap",
+  "repository_head_before_freeze": "bfc3e959290c7b840fb852a2e058cf17df675b0c",
+  "judge1": {
+    "label": "fresh ChatGPT blinded judge",
+    "file": "pipi_rq3_qwen_judge1_chatgpt_v1.jsonl",
+    "sha256": "78b82cda3ebf4826a326e9b30300d4d7f3ba4e850cd41a5559b9e479ac9f9b2d",
+    "row_count": 192,
+    "grade_counts": {"0": 45, "1": 74, "2": 62, "3": 11}
+  },
+  "judge2": {
+    "label": "fresh Claude blinded judge",
+    "file": "pipi_rq3_qwen_judge2_claude_v1.jsonl",
+    "sha256": "c760fddb66904552657d9170964633bada3f36a2bcad23284857bf401e14a3e6",
+    "row_count": 192,
+    "grade_counts": {"0": 81, "1": 85, "2": 13, "3": 13}
+  },
+  "consistency": {
+    "exact_agreement_n": 101,
+    "exact_agreement_rate": 0.5260416666666666,
+    "within_one_n": 177,
+    "within_one_rate": 0.921875,
+    "quadratic_weighted_kappa": 0.551044776119403,
+    "disagreement_count": 91,
+    "absolute_grade_distance_counts": {"0": 101, "1": 76, "2": 14, "3": 1},
+    "confusion_matrix_rows_judge1_cols_judge2": [[42,3,0,0],[28,43,2,1],[10,36,10,6],[1,3,1,6]]
+  },
+  "pass3": {
+    "policy": "All and only exact disagreements are sent to a third fresh blinded judge without prior grades or reasons. Exact agreements remain frozen.",
+    "pair_count": 91,
+    "pairs_file": "pipi_rq3_qwen_pass3_blinded_disagreements_v1.jsonl",
+    "pairs_sha256": "f7c58722e6d683f221fd4c39757566c9da63fc36604952c95ee79845568997f7",
+    "judge_prompt_file": "PIPI_RQ3_PRIMARY_PASS3_JUDGE_PROMPT_V1.md",
+    "judge_prompt_sha256": "8d7f95fa8c25003c058dfd25591db6cea0602481918fc9ef1be727db4788bb20",
+    "blind_key_opened": false
+  },
+  "local_consistency_report_sha256": "d683376c0fba8b9c501cb10dd8737fbd60f3ccaf93e9ee1feb5e1f5c49eafde0",
+  "local_pass3_manifest_sha256": "b2ab3a64bd7ee55a6c58a4335f7d9cedda0cd9cc1f78454ae0591c6820c25882",
+  "analysis_gate": "Do not open the retrieval-profile blind key or compute profile-direction RQ3 statistics until Pass-3 adjudication has been completed and frozen."
+}

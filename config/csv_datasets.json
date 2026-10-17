@@ -1,0 +1,22 @@
+{
+  "datasets": [
+    {
+      "id": "pipi-demo-environment",
+      "file_path": "data/csv/pipi_demo_environment.csv",
+      "title": "PiPi synthetic CSV provider demo",
+      "description": "Synthetic tabular data used only to validate CSV catalog registration, download access and content-hash versioning in the PiPi dataspace prototype.",
+      "publisher": "PiPi project",
+      "license": "unknown",
+      "dataset_type": "tabular-data",
+      "source_system": "csv-file",
+      "synthetic": true,
+      "keywords": [
+        "CSV",
+        "tabular data",
+        "synthetic",
+        "environment",
+        "versioning demo"
+      ]
+    }
+  ]
+}

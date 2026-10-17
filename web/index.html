@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PiPi Data Space</title>
+  <link rel="stylesheet" href="/portal/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">PiPi</div>
+        <h1>Data Space</h1>
+      </div>
+      <div class="top-actions">
+        <a class="button-link" href="/portal/tutorial.html">How PiPi works</a>
+        <span id="userLabel" class="muted"></span>
+        <button id="logoutButton" class="secondary hidden" type="button">Log out</button>
+      </div>
+    </header>
+
+    <section id="loginPanel" class="card login-card">
+      <h2>Sign in</h2>
+      <p class="muted">Authentication is required before catalog resources can be viewed or changed.</p>
+      <form id="loginForm">
+        <label>Username<input id="username" autocomplete="username" required></label>
+        <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Sign in</button>
+      </form>
+      <p id="loginMessage" class="message"></p>
+    </section>
+
+    <section id="dashboard" class="hidden">
+      <div class="stats">
+        <article class="card stat"><span>Datasets</span><strong id="datasetCount">–</strong></article>
+        <article class="card stat"><span>Registered resources</span><strong id="resourceCount">–</strong></article>
+        <article class="card stat"><span>Providers</span><strong id="providerCount">–</strong></article>
+      </div>
+
+      <section class="card">
+        <div class="section-head">
+          <div>
+            <h2>Harvest activity</h2>
+            <p class="muted">Recent provider synchronizations and registered-resource refreshes. Scheduled and manual runs use the same audit trail.</p>
+          </div>
+          <button id="reloadHarvestRuns" class="secondary" type="button">Reload</button>
+        </div>
+        <p id="harvestMessage" class="message"></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Started</th><th>Run</th><th>Trigger</th><th>Status</th><th>Summary</th><th>Duration</th></tr></thead>
+            <tbody id="harvestRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <div>
+            <h2>Activity & errors</h2>
+            <p class="muted">Background indexing actions and failures are logged here. Errors remain visible after the operation finishes.</p>
+          </div>
+          <button id="reloadActivity" class="secondary" type="button">Reload</button>
+        </div>
+        <p id="activityMessage" class="message"></p>
+        <div class="table-wrap">
+          <table class="activity-table">
+            <thead><tr><th>Time</th><th>Level</th><th>Category</th><th>Activity</th><th>Message</th></tr></thead>
+            <tbody id="activityRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <div><h2>Search catalog</h2><p class="muted">Search normalized metadata across all providers.</p></div>
+        </div>
+        <form id="searchForm" class="inline-form">
+          <input id="searchQuery" placeholder="temperature, Varaždin, CSV, camera..." required>
+          <button type="submit">Search</button>
+        </form>
+        <div id="searchResults" class="results"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <div>
+            <h2>Search indexed content</h2>
+            <p class="muted">Choose a frozen retrieval profile. Each profile keeps its own configuration and vector representation so experiments do not overwrite earlier baselines.</p>
+          </div>
+          <div class="vector-actions">
+            <span id="embeddingStatus" class="muted">Vectors: checking…</span>
+            <button id="buildEmbeddings" class="secondary" type="button">Build/update selected vectors</button>
+          </div>
+        </div>
+        <form id="ragSearchForm" class="inline-form rag-search-form">
+          <input id="ragSearchQuery" placeholder="temperature demo-site-b" required minlength="2">
+          <select id="ragRetrievalProfile" aria-label="Retrieval profile">
+            <option value="">Loading retrieval profiles…</option>
+          </select>
+          <button type="submit">Search indexed content</button>
+        </form>
+        <p id="retrievalProfileNote" class="muted retrieval-note">Profiles freeze embedding input, fusion and diversity settings. The stable content-v1 hybrid profile remains the default baseline.</p>
+        <p id="ragSearchMessage" class="message"></p>
+        <div id="ragSearchResults" class="results"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <div>
+            <h2>Add resource</h2>
+            <p class="muted">Register a source, describe how it may be shared, and let PiPi track provenance and changes.</p>
+          </div>
+        </div>
+        <form id="resourceForm" class="resource-form">
+          <label class="wide">Resource URL<input id="resourceUrl" type="url" placeholder="https://example.org/data.csv or https://github.com/owner/repo" required></label>
+          <label>Name<input id="resourceName" placeholder="Optional display name"></label>
+          <label>Type
+            <select id="resourceType">
+              <option value="auto">Auto detect</option>
+              <option value="csv">CSV</option>
+              <option value="json">JSON</option>
+              <option value="document">Document</option>
+              <option value="text">Text</option>
+              <option value="image">Image</option>
+              <option value="audio">Audio</option>
+              <option value="video">Video</option>
+              <option value="github">GitHub repository</option>
+              <option value="generic">Generic</option>
+            </select>
+          </label>
+          <label>Publisher<input id="resourcePublisher" placeholder="Optional"></label>
+          <label>License<input id="resourceLicense" placeholder="unknown"></label>
+          <label>Access level
+            <select id="resourceAccessLevel">
+              <option value="public">Public</option>
+              <option value="authenticated">Registered users</option>
+              <option value="approval-required">Approval required</option>
+              <option value="private">Private</option>
+            </select>
+          </label>
+          <label>Commercial terms
+            <select id="resourceCommercialModel">
+              <option value="free">Free</option>
+              <option value="paid">Paid</option>
+              <option value="negotiable">Negotiable</option>
+              <option value="not-for-sale">Not for sale</option>
+            </select>
+          </label>
+          <label id="resourcePriceLabel" class="hidden">Price
+            <input id="resourcePriceAmount" type="number" min="0" step="0.01" placeholder="0.00">
+          </label>
+          <label id="resourceCurrencyLabel" class="hidden">Currency
+            <select id="resourcePriceCurrency">
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+            </select>
+          </label>
+          <label class="wide">Access / usage note<input id="resourceAccessNote" placeholder="Optional conditions, contact or approval note"></label>
+          <label class="wide">Keywords<input id="resourceKeywords" placeholder="comma, separated, keywords"></label>
+          <p class="wide policy-note">Sharing terms are catalog metadata in this MVP. Marking an already-public URL as private does not hide or protect the source itself. Enforcement will be handled by the identity, authorization and data-contract layer.</p>
+          <div class="wide"><button type="submit">Analyze and add</button></div>
+        </form>
+        <p id="resourceMessage" class="message"></p>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <div>
+            <h2>Registered resources</h2>
+            <p class="muted">Refresh re-checks source content and creates a new catalog version only when relevant metadata or content changed. Disable retains history.</p>
+          </div>
+          <div class="actions">
+            <button id="refreshAllResources" class="secondary" type="button">Refresh enabled</button>
+            <button id="reloadResources" class="secondary" type="button">Reload</button>
+          </div>
+        </div>
+        <p id="resourceListMessage" class="message"></p>
+        <div class="table-wrap"><table class="resource-table"><thead><tr><th>ID</th><th>Name / URL</th><th>Type</th><th>Sharing</th><th>Status</th><th>Last check</th><th>Actions</th></tr></thead><tbody id="resourceRows"></tbody></table></div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <div>
+            <h2>Catalog datasets</h2>
+            <p class="muted">Provider-managed datasets stay in the catalog. Sync providers discovers new datasets and versions changed metadata.</p>
+          </div>
+          <div class="actions">
+            <button id="syncCatalog" class="secondary" type="button">Sync providers</button>
+            <button id="reloadDatasets" class="secondary" type="button">Reload</button>
+          </div>
+        </div>
+        <p id="datasetMessage" class="message"></p>
+        <div class="table-wrap"><table class="catalog-table"><thead><tr><th>Catalog ID</th><th>Title</th><th>Type</th><th>Source</th><th>Format</th><th>RAG</th><th>Sharing</th><th>Actions</th></tr></thead><tbody id="datasetRows"></tbody></table></div>
+      </section>
+    </section>
+  </main>
+
+  <div id="busyOverlay" class="busy-overlay hidden" role="status" aria-live="polite" aria-busy="true">
+    <div class="busy-dialog">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="busy-copy">
+        <h2 id="busyTitle">Working…</h2>
+        <p id="busyMessage" class="muted">Please wait. Actions are temporarily disabled while this operation runs.</p>
+        <div class="progress-track" aria-hidden="true"><div id="busyProgress" class="progress-bar indeterminate"></div></div>
+        <p id="busyDetail" class="busy-detail"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/portal/app.js" defer></script>
+  <script src="/portal/harvest.js?v=retrieval-profiles-v1" defer></script>
+</body>
+</html>

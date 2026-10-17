@@ -1,0 +1,105 @@
+{
+  "artifact": "pipi-benchmark-v2-rq3-answer-drift-protocol",
+  "schema_version": 1,
+  "status": "frozen-before-any-benchmark-answer-generation",
+  "date": "2026-10-14",
+  "research_question": "Does retrieval-profile-induced evidence drift propagate into materially different grounded answers, and is the effect robust across distinct compact generator families?",
+  "confirmation_cases_sha256": "c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5",
+  "catalog_snapshot_hash": "068e1b0df74acd8b91d04a5161f4413d57d07bfef5c8c9ce2b8d1100ae780419",
+  "corpus_fingerprint_sha256": "f04239fe6df52ab2604ab45a8c08cc83d5bafe79203a4b16c20a2d2a307e2dc6",
+  "retrieval_profiles": [
+    "hybrid-e5-content-v1",
+    "hybrid-e5-metadata-v1"
+  ],
+  "top_k": 10,
+  "primary_generator": "qwen3-8b-q4km",
+  "replication_generators": [
+    "ministral3-8b-q4km",
+    "gemma3-4b-q4km"
+  ],
+  "models": {
+    "qwen3-8b-q4km": {
+      "family": "Qwen3",
+      "role": "primary",
+      "hf_repo": "Qwen/Qwen3-8B-GGUF",
+      "gguf_file": "Qwen3-8B-Q4_K_M.gguf",
+      "quantization": "Q4_K_M",
+      "gguf_sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+      "download_url": "https://huggingface.co/Qwen/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q4_K_M.gguf",
+      "reasoning_mode": "off",
+      "license": "Apache-2.0"
+    },
+    "ministral3-8b-q4km": {
+      "family": "Ministral 3",
+      "role": "replication",
+      "hf_repo": "mistralai/Ministral-3-8B-Instruct-2512-GGUF",
+      "gguf_file": "Ministral-3-8B-Instruct-2512-Q4_K_M.gguf",
+      "quantization": "Q4_K_M",
+      "gguf_sha256": "33e7a72cf5e6e2cfc2f2847075acc013d68bba023e35310cef86b5cf8fdca761",
+      "download_url": "https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512-GGUF/resolve/main/Ministral-3-8B-Instruct-2512-Q4_K_M.gguf",
+      "reasoning_mode": "not-applicable-instruct",
+      "license": "Apache-2.0"
+    },
+    "gemma3-4b-q4km": {
+      "family": "Gemma 3",
+      "role": "replication",
+      "hf_repo": "ggml-org/gemma-3-4b-it-GGUF",
+      "gguf_file": "gemma-3-4b-it-Q4_K_M.gguf",
+      "quantization": "Q4_K_M",
+      "gguf_sha256": "882e8d2db44dc554fb0ea5077cb7e4bc49e7342a1f0da57901c0802ea21a0863",
+      "download_url": "https://huggingface.co/ggml-org/gemma-3-4b-it-GGUF/resolve/main/gemma-3-4b-it-Q4_K_M.gguf",
+      "reasoning_mode": "not-applicable-instruct",
+      "license": "Gemma"
+    }
+  },
+  "generation": {
+    "backend": "llama.cpp OpenAI-compatible local server",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20261014,
+    "max_tokens": 384,
+    "max_answer_words": 180,
+    "context_size": 16384,
+    "sampling": false
+  },
+  "prompt": {
+    "system": "You are a retrieval-grounded research assistant. Answer the question using only the supplied evidence. If the evidence is insufficient, say so. Do not use outside knowledge. Answer in the language of the question, in at most 180 words. Cite supporting evidence inline as [E1], [E2], etc. Every factual claim must be supported by the supplied evidence. Do not mention retrieval profiles, model names, or the experiment.",
+    "user_template": "Question:\n{query}\n\nEvidence:\n{evidence}\n\nReturn only the grounded answer."
+  },
+  "main_generation_count": 1152,
+  "same_evidence_stability_control": {
+    "enabled": true,
+    "case_subset": "the 48 frozen double_annotation confirmation cases",
+    "repeat_condition": "repeat the hybrid-e5-content-v1 context once per model after the main run",
+    "additional_generation_count": 144,
+    "interpretation": "deterministic platform/reproducibility control, not a sampling-variance estimate"
+  },
+  "analysis_plan": {
+    "primary_endpoint": "blinded ordinal material-answer-change grade between content-context and metadata-context answers for the primary generator",
+    "ordinal_scale": {
+      "0": "semantically the same answer; wording-only differences",
+      "1": "minor difference; same substantive conclusion",
+      "2": "materially different content, support, qualification, or conclusion",
+      "3": "substantially different or contradictory answer"
+    },
+    "secondary_endpoints": [
+      "groundedness/support against supplied evidence",
+      "evidence-reference/citation-trace change",
+      "deterministic text and semantic similarity",
+      "association between chunk churn and answer drift",
+      "association between absolute nDCG change and answer drift"
+    ],
+    "cross_model_status": "secondary robustness/heterogeneity analysis; all three model results must be reported",
+    "subgroup_status": "descriptive only unless already preregistered elsewhere"
+  },
+  "blinding": {
+    "answer_pair_judging": "content-vs-metadata identity must be hidden and A/B order randomized deterministically before judging",
+    "generator_does_not_receive_profile_identity": true
+  },
+  "prohibitions": [
+    "Do not tune prompt, decoding, retrieval profile, top-k, or model selection after benchmark answer generation starts.",
+    "Do not discard a model because its answer-drift result is weak or inconvenient.",
+    "Do not inspect benchmark answer differences before the RQ3 input artifact and its freeze manifest are hashed and committed.",
+    "Do not use external knowledge in generation; the supplied evidence is the only allowed factual source."
+  ]
+}

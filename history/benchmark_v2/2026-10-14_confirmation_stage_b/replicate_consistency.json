@@ -1,0 +1,21 @@
+{
+  "artifact": "pipi-benchmark-v2-confirmation-replicate-consistency",
+  "schema_version": 1,
+  "confirmation_cases_sha256": "c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5",
+  "pass1_judgments_sha256": "85ced352b8a7dce34465718895a1c418966df6568d7fd467c88673b01135e8af",
+  "pass2_original_assistant_artifact_sha256": "05ede3bb06210510625e051194416ea9f8546f3e379e4b3f1e2b83a7fc479f12",
+  "pass2_normalized_judgments_sha256": "2a974b8d4e9a23f1d9cd8ffd565fc333f865223bc1909e57790def019fd455d5",
+  "candidate_identity_join": ["case_id", "dataset_identifier", "dataset_version", "chunk_index"],
+  "candidate_count": 2252,
+  "exact_agreement_count": 1776,
+  "exact_agreement": 0.7886323268206039,
+  "within_one_grade_count": 2096,
+  "within_one_grade_agreement": 0.9307282415630551,
+  "quadratic_weighted_cohen_kappa": 0.6481765239638568,
+  "disagreement_count": 476,
+  "absolute_grade_difference_counts": {"0":1776,"1":320,"2":128,"3":28},
+  "confusion_matrix_rows_pass1_cols_pass2": [[1587,223,73,27],[35,79,2,51],[4,11,51,46],[1,0,3,59]],
+  "pass1_grade_counts": {"0":1910,"1":167,"2":112,"3":63},
+  "pass2_grade_counts": {"0":1627,"1":313,"2":129,"3":183},
+  "quality_metrics_computed": false
+}
