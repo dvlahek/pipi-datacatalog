@@ -16,10 +16,13 @@ python scripts/second_corpus_dataeuropa_bootstrap_v1.py \
   --per-theme 200 \
   --max-file-mib 5 \
   --raw-budget-gib 8 \
+  --page-rows 500 \
+  --max-sparql-rows-per-theme 40000 \
   2>&1 | tee results/second_corpus_bootstrap_v1.log
 
 sha256sum \
   docs/second_corpus_confirmation_protocol_v1.md \
+  docs/second_corpus_confirmation_amendment_1_transport.md \
   config/second_corpus_frozen_config_v1.json \
   scripts/second_corpus_dataeuropa_bootstrap_v1.py \
   results/second_corpus_dataeuropa_v1/dataeuropa_snapshot_manifest.jsonl \
