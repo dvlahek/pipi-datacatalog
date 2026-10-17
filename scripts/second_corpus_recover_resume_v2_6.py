@@ -139,7 +139,15 @@ def resume(config,source_out,recovery_out,rows,ordered):
         k=(r['theme'],int(r['candidate_rank']))
         if k in seen: raise RuntimeError(f'duplicate outcome {k}')
         seen.add(k); last[r['theme']]=max(last.get(r['theme'],-1),int(r['candidate_rank']))
-    for r in sels: counts[r['theme']]+=1; pubs[r['theme']][r['publisher_key']]+=1
+    # Selected manifest is written before candidate outcome. If a process dies in that
+    # narrow window, repair the missing outcome instead of reprocessing the rank.
+    for r in sels:
+        counts[r['theme']]+=1; pubs[r['theme']][r['publisher_key']]+=1
+        k=(r['theme'],int(r['candidate_rank']))
+        if k not in seen:
+            repaired={'theme':r['theme'],'candidate_rank':int(r['candidate_rank']),'dataset_id':r['dataset_id'],'outcome':'selected','selection_number':int(r['selection_number']),'dataset_chunk_count':int(r['dataset_chunk_count']),'recovered_missing_outcome':True}
+            appendj(op,repaired); outcomes.append(repaired); seen.add(k)
+        last[r['theme']]=max(last.get(r['theme'],-1),int(r['candidate_rank']))
     sess=requests.Session(); sess.headers.update({'User-Agent':base.UA})
     print('RECOVERY_RESUME_START',json.dumps(stat(recovery_out,rows,themes),sort_keys=True),flush=True)
     for t in themes:
