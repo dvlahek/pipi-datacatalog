@@ -9,6 +9,7 @@ __pycache__/
 .venv/
 venv/
 .venv-second-corpus/
+.venv-c2-retrieval/
 
 # Local configuration and secrets
 .env
@@ -48,3 +49,6 @@ results/second_corpus_select_v2_2.log
 results/second_corpus_select_v2_3.log
 results/second_corpus_select_v2_4.log
 results/second_corpus_select_v2_5.log
+
+# C2 retrieval embeddings are reproducible local checkpoint artifacts, not source-controlled results.
+results/second_corpus_retrieval_v1/embeddings/
