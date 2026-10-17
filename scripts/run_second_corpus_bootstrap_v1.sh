@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(git rev-parse --show-toplevel)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
 mkdir -p results
 
-python3 -m venv .venv-second-corpus
+if [[ ! -d .venv-second-corpus ]]; then
+  python3 -m venv .venv-second-corpus
+fi
 source .venv-second-corpus/bin/activate
-python -m pip install --upgrade pip
-python -m pip install requests
+python -m pip install 'requests==2.34.2'
 
 python scripts/second_corpus_dataeuropa_bootstrap_v1.py \
   --out results/second_corpus_dataeuropa_v1 \
