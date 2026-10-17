@@ -1,0 +1,107 @@
+{
+  "answer_drift_role": "secondary_descriptive",
+  "chunking": {
+    "csv_mode": "one_nonempty_data_row_per_chunk_with_header_value_pairs",
+    "generic_chunk_size_chars": 1200,
+    "generic_overlap_chars": 200,
+    "max_chunks_per_distribution": 512
+  },
+  "confirmatory": {
+    "H1": "paired chunk_churn_at_10 vs dataset_churn_at_10; two-sided Wilcoxon; expected chunk > dataset",
+    "H2": "Spearman between query-source mean log1p(chunks_per_dataset) and chunk-minus-dataset churn gap; expected positive",
+    "H3": "100% exact ordered-evidence replay",
+    "multiplicity_adjustment": "Holm across H1 and H2, familywise alpha 0.05",
+    "primary_profile_a": "hybrid-e5-content-v1",
+    "primary_profile_b": "hybrid-e5-metadata-v1",
+    "top_k": 10
+  },
+  "dependencies": {
+    "pypdf": "6.21.0",
+    "requests": "2.34.2"
+  },
+  "distribution": {
+    "allowed_formats": [
+      "pdf",
+      "txt",
+      "csv",
+      "json",
+      "html",
+      "xhtml"
+    ],
+    "download_url_only": true,
+    "max_bytes": 5242880,
+    "max_chunks": 512,
+    "xml_allowed": false
+  },
+  "freeze_date": "2026-10-17",
+  "licenses": {
+    "accepted_exact_or_prefixes": [
+      "https://creativecommons.org/publicdomain/zero/1.0",
+      "http://creativecommons.org/publicdomain/zero/1.0",
+      "https://creativecommons.org/licenses/by/4.0",
+      "http://creativecommons.org/licenses/by/4.0",
+      "https://creativecommons.org/licenses/by/3.0",
+      "http://creativecommons.org/licenses/by/3.0",
+      "https://creativecommons.org/licenses/by-sa/4.0",
+      "http://creativecommons.org/licenses/by-sa/4.0",
+      "https://opendatacommons.org/licenses/by/1.0",
+      "http://opendatacommons.org/licenses/by/1.0",
+      "https://opendatacommons.org/licenses/pddl/1-0",
+      "http://opendatacommons.org/licenses/pddl/1-0",
+      "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3",
+      "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3",
+      "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/2",
+      "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/2",
+      "http://publications.europa.eu/resource/authority/licence/CC0",
+      "http://publications.europa.eu/resource/authority/licence/CC_BY_4_0",
+      "http://publications.europa.eu/resource/authority/licence/CC_BY_3_0",
+      "http://publications.europa.eu/resource/authority/licence/CC_BY_SA_4_0",
+      "http://publications.europa.eu/resource/authority/licence/ODC_BY",
+      "http://publications.europa.eu/resource/authority/licence/PDDL",
+      "http://publications.europa.eu/resource/authority/licence/OGL_3_0",
+      "http://publications.europa.eu/resource/authority/licence/OGL_2_0"
+    ],
+    "accepted_normalized_labels": [
+      "creative commons zero 1.0",
+      "cc0 1.0",
+      "creative commons attribution 4.0 international",
+      "creative commons attribution 4.0",
+      "cc by 4.0",
+      "creative commons attribution 3.0",
+      "cc by 3.0",
+      "creative commons attribution-sharealike 4.0 international",
+      "cc by-sa 4.0",
+      "open data commons attribution license 1.0",
+      "odc-by 1.0",
+      "open data commons public domain dedication and license 1.0",
+      "pddl 1.0",
+      "open government licence version 3.0",
+      "ogl 3.0",
+      "open government licence version 2.0",
+      "ogl 2.0"
+    ],
+    "inherit_dataset_license_if_distribution_license_missing": true
+  },
+  "metadata_api": {
+    "candidate_cap_per_theme": 20000,
+    "endpoint": "https://data.europa.eu/api/hub/search/ckan/package_search",
+    "fq_template": "groups:{theme_query}",
+    "page_rows": 1000,
+    "sort": "id asc",
+    "themes": {
+      "ECON": "econ",
+      "ENVI": "envi",
+      "HEAL": "heal",
+      "TRAN": "tran"
+    }
+  },
+  "protocol_id": "SECOND_CORPUS_DATAEUROPA_V2",
+  "query_target": 96,
+  "selection": {
+    "min_eligible_distributions": 2,
+    "publisher_cap_per_theme": 20,
+    "retained_distributions": 2,
+    "seed": "SECOND_CORPUS_DATAEUROPA_V2",
+    "target_per_theme": 200
+  }
+}
