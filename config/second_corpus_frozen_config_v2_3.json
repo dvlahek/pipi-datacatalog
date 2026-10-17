@@ -100,7 +100,7 @@
     "manifest_relpath": "parser_environment_v2_3.json",
     "manifest_sha256": "364acb942bb5ef2323a2725a849fdeb62000a80ffd4ee6bdf1208b6ccb56d5df",
     "selector_driver_path": "scripts/second_corpus_dataeuropa_select_v2_3.py",
-    "selector_driver_sha256": "57b45bcd1e6426481eeb3b16a04f0defb64fe060e3ebeb1c6bd443a92eb36d55"
+    "selector_driver_sha256": "7791a661bdb26ee16a1e59f4c0db7a0a68246edf1bf138e80c1d115c70b16e87"
   },
   "protocol_id": "SECOND_CORPUS_DATAEUROPA_V2",
   "transport_revision": "V2.3",
