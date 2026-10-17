@@ -52,3 +52,7 @@ results/second_corpus_select_v2_5.log
 
 # C2 retrieval embeddings are reproducible local checkpoint artifacts, not source-controlled results.
 results/second_corpus_retrieval_v1/embeddings/
+
+# C2 answer-drift inputs contain third-party chunk text and generated answers.
+results/second_corpus_answer_drift_v1/
+results/c2_llama_cpp_version.txt
