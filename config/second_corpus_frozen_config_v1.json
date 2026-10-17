@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "status": "frozen-before-second-corpus-retrieval",
+  "freeze_date": "2026-10-17",
+  "primary_generator": {
+    "model": "Qwen3-8B",
+    "quantization": "Q4_K_M",
+    "runtime": "llama.cpp OpenAI-compatible server",
+    "temperature": 0,
+    "top_p": 1,
+    "seed": 20261014,
+    "context_size": 16384,
+    "max_generated_tokens": 384
+  },
+  "robustness_generators": [
+    {
+      "model": "Ministral-3-8B-Instruct",
+      "quantization": "Q4_K_M",
+      "runtime": "llama.cpp OpenAI-compatible server",
+      "temperature": 0,
+      "top_p": 1,
+      "seed": 20261014,
+      "context_size": 16384,
+      "max_generated_tokens": 384
+    },
+    {
+      "model": "Gemma-3-4B-it",
+      "quantization": "Q4_K_M",
+      "runtime": "llama.cpp OpenAI-compatible server",
+      "temperature": 0,
+      "top_p": 1,
+      "seed": 20261014,
+      "context_size": 16384,
+      "max_generated_tokens": 384
+    }
+  ],
+  "answer_drift": {
+    "ordinal_scale": [0, 1, 2, 3],
+    "material_grades": [2, 3]
+  },
+  "retrieval": {
+    "evaluation_depth": 10,
+    "hybrid_fusion": {"algorithm": "rrf-v1", "k": 60},
+    "diversity": {"algorithm": "source-file-soft-cap-v1", "max_per_file": 2},
+    "dense_search": "exact cosine",
+    "reranker": null,
+    "lexical_baseline": "Unicode word-like tokenization, case-folded substring query-term coverage plus fixed exact-phrase bonus"
+  },
+  "e5": {
+    "provider": "multilingual-e5",
+    "model": "intfloat/multilingual-e5-small",
+    "revision": null,
+    "dimensions": 384,
+    "input_profiles": ["content-v1", "metadata-v1"],
+    "known_gap": "Primary C1 E5 profile did not pin an immutable upstream model revision. C2 preserves this frozen historical configuration; do not retroactively guess a revision."
+  },
+  "bge_m3": {
+    "provider": "sentence-transformers-bge-m3",
+    "model": "BAAI/bge-m3",
+    "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "dimensions": 1024,
+    "normalize_embeddings": true,
+    "query_instruction": null,
+    "max_seq_length": 512,
+    "input_profiles": ["content-v1", "metadata-v1"]
+  },
+  "profile_families": [
+    "lexical-v1",
+    "vector-e5-content-v1",
+    "hybrid-e5-content-v1",
+    "vector-e5-metadata-v1",
+    "hybrid-e5-metadata-v1",
+    "vector-bge-m3-content-v1",
+    "hybrid-bge-m3-content-v1",
+    "vector-bge-m3-metadata-v1",
+    "hybrid-bge-m3-metadata-v1"
+  ]
+}
