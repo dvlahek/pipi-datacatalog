@@ -10,10 +10,12 @@ Start here:
 2. `benchmark_v2_reproducibility_20261015.md` — frozen C1 identifiers, result anchors and publication boundary.
 3. `second_corpus_confirmation_results_20261018.md` — C2 independent-corpus confirmatory retrieval results and C1–C2 comparison.
 4. `second_corpus_answer_drift_results_20261018.md` — final C2 Qwen answer-drift extension, context-feasible coverage, blinded judging and hidden-drift answer propagation.
-5. `second_corpus_confirmation_protocol_v2.md` — prospective C2 confirmation protocol.
-6. `second_corpus_v2_preretrieval_adapter_10_distribution_identity.md` — C2 dataset/distribution/chunk identity adapter frozen before retrieval.
-7. `second_corpus_c2_answer_drift_extension_v1.md` — original post-confirmatory Qwen answer-drift extension boundary.
-8. `second_corpus_c2_answer_drift_context_feasible_amendment_v2.md` — frozen technical amendment after the 16,384-token feasibility audit.
+5. `second_corpus_c2_secondary_judge_results_20261018.md` — independent Gemini/Claude judging robustness over the same 81 blinded C2 answer pairs.
+6. `second_corpus_confirmation_protocol_v2.md` — prospective C2 confirmation protocol.
+7. `second_corpus_v2_preretrieval_adapter_10_distribution_identity.md` — C2 dataset/distribution/chunk identity adapter frozen before retrieval.
+8. `second_corpus_c2_answer_drift_extension_v1.md` — original post-confirmatory Qwen answer-drift extension boundary.
+9. `second_corpus_c2_answer_drift_context_feasible_amendment_v2.md` — frozen technical amendment after the 16,384-token feasibility audit.
+10. `second_corpus_c2_secondary_judge_replication_protocol_v1.md` — frozen secondary-judge protocol and analysis rules.
 
 ## C1 benchmark support records
 
@@ -35,13 +37,17 @@ The C2 confirmatory retrieval result is frozen:
 
 The Qwen C2 answer-drift result is a separate post-confirmatory descriptive extension. The unchanged 16,384-token C1 generation contract was feasible for 81/96 complete query pairs. Within that context-feasible subset, material answer drift occurred in 31/81 pairs (38.27%). Under the strict hidden-drift condition of an identical retrieved dataset set with changed chunk evidence, 9/19 pairs (47.37%) produced material answer drift.
 
+Two additional independent blinded judges were then applied as post-hoc judging robustness, without access to the original grades or aggregate answer results. Material rates were 32/81 (39.51%) for Gemini and 33/81 (40.74%) for Claude. The pre-specified three-judge median/majority sensitivity was 32/81 (39.51%), and binary material/non-material unanimity across all three judges was 75/81 (92.59%).
+
 These answer-level values must not be relabeled as prospectively confirmatory or generalized to all 96 C2 queries without the context-feasible qualification.
 
 ## Publication-safe answer-drift reproduction
 
 `../scripts/second_corpus_answer_drift_reporting_v2.py` verifies the frozen local input hashes and recomputes aggregate C2 answer-drift results without emitting answer text, evidence text or the private A/B orientation.
 
-The raw local answer/evidence artifacts are intentionally outside the publication surface because publicly accessible source material does not automatically imply redistribution rights.
+`../scripts/second_corpus_secondary_judge_analysis_v1.py` verifies the three local blinded judgment files and recomputes publication-safe judge agreement and median/majority sensitivity results.
+
+The raw local answer/evidence and external-judge artifacts are intentionally outside the publication surface because publicly accessible source material does not automatically imply redistribution rights.
 
 ## Implementation / deployment notes
 
