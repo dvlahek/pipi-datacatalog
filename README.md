@@ -25,6 +25,7 @@ The branch `feature/sensor-hub-bootstrap` currently includes:
 - exact pgvector cosine retrieval and deterministic RRF fusion
 - retrieval ledgers and strict replay checks
 - PiPi Benchmark V2 for retrieval-provenance and answer-drift experiments
+- an independent balanced second-corpus confirmation over public data.europa.eu distributions
 
 The local `pipi-dcat-core-shacl-v2` profile is a project structural profile. Passing it must not be reported as full DCAT-AP conformance.
 
@@ -137,6 +138,8 @@ Hybrid retrieval uses deterministic reciprocal-rank fusion and a source/file sof
 
 ## PiPi Benchmark V2
 
+### C1 — deployed heterogeneous corpus
+
 The frozen confirmation benchmark contains 192 queries over a heterogeneous 274-dataset / 3,974-chunk corpus spanning structured sensor data, software documentation, institutional documents and Croatian open-data records.
 
 The main provenance finding is below the source-document level. Under the frozen hybrid E5 profile intervention, **23.0%** of top-10 chunks changed while source-level churn was only **10.4%**. The top-ranked chunk changed for **26.0%** of queries. These evidence changes propagated to material answer differences in **10.4–11.5%** of queries across three generator families, while identical-evidence controls were exact in **144/144** runs.
@@ -160,9 +163,29 @@ The pre-specified frozen hybrid metadata-minus-content contrast was:
 
 Strict replay reproduced the exact ordered evidence set for **960/960** frozen retrieval runs (192 queries × 5 profiles). Because exact deterministic replay is expected when all frozen inputs match, a separate post-hoc provenance-gate audit tests negative controls: same-ID RRF mutation, embedding-revision mutation, chunk-boundary mutation, and foreign catalog/corpus anchors. Each change is expected to invalidate at least one frozen provenance anchor rather than being silently accepted as the same execution.
 
+### C2 — independent balanced second corpus
+
+C2 tests the same frozen hybrid content-versus-metadata intervention on independently harvested public distribution contents from data.europa.eu. The final balanced corpus has **400 theme-stratum records**, **397 unique dataset IDs**, **800 retained distributions**, **44,520 physical chunks** and **96 frozen queries** across ECON, ENVI, HEAL and TRAN.
+
+The granularity effect reproduced strongly:
+
+| C2 identity level | Mean churn@10 |
+|---|---:|
+| dataset | **20.89%** |
+| distribution | **24.07%** |
+| chunk | **39.38%** |
+
+For the confirmatory H1 comparison, the mean chunk-minus-dataset churn gap was **+18.48 percentage points**, the paired rank-biserial effect was **0.928**, and the Holm-adjusted Wilcoxon p-value was **1.08 × 10^-13**. H1 was supported.
+
+The pre-specified H2 multiplicity mechanism had the expected positive direction but was not statistically supported (`Spearman ρ = 0.155`, Holm-adjusted `p = 0.131`). It is reported as not confirmed rather than replaced by a post-hoc mechanism.
+
+Exact ordered-evidence replay passed for **192/192** C2 retrieval runs. In **27/96 (28.1%)** queries, the dataset set remained stable while chunk evidence changed, directly illustrating hidden fine-grained evidence drift under a coarser provenance identity.
+
+See `docs/second_corpus_confirmation_results_20261018.md` for the frozen C2 result record and C1–C2 comparison.
+
 ### BGE-M3 robustness
 
-A post-hoc robustness analysis repeated the representation comparison using a second multilingual embedding family, `BAAI/bge-m3`, while preserving the frozen corpus, 192 confirmation queries, evaluation depth, diversity rule and hybrid RRF parameters.
+A post-hoc robustness analysis repeated the representation comparison using a second multilingual embedding family, `BAAI/bge-m3`, while preserving the frozen C1 corpus, 192 confirmation queries, evaluation depth, diversity rule and hybrid RRF parameters.
 
 | Backbone | Retrieval | Content nDCG@10 | Metadata nDCG@10 | Δ metadata-content |
 |---|---|---:|---:|---:|
@@ -175,25 +198,33 @@ For BGE-M3, the vector contrast had a 95% bootstrap CI of `[+0.0678, +0.1209]` a
 
 See:
 
+- `docs/README.md`
 - `docs/benchmark_v2_results_ready_synthesis_20261015.md`
 - `docs/benchmark_v2_reproducibility_20261015.md`
+- `docs/second_corpus_confirmation_results_20261018.md`
+- `docs/second_corpus_confirmation_protocol_v2.md`
+- `config/second_corpus_target100_amendment_v2_7.json`
+- `config/second_corpus_retrieval_v1.json`
+- `scripts/second_corpus_confirmatory_analysis_v1.py`
+- `scripts/second_corpus_reporting_v1.py`
 - `config/rag_benchmark_v2_bge_m3_robustness.json`
 - `scripts/run_benchmark_v2_bge_m3_robustness.py`
 - `scripts/audit_retrieval_provenance_negative_controls.py`
-- `docs/benchmark_v2_retrieval_provenance_negative_controls_20261015.md`
 - `data/benchmark_v2/`
 
 ## Reproducibility boundaries
 
-The repository separates three evidence layers:
+The repository separates distinct evidence layers rather than merging them into one claim:
 
-1. **Primary frozen confirmation** — pre-specified frozen E5 retrieval profiles, frozen query set, frozen qrels and strict replay.
-2. **Answer-drift replication** — three local generator families under deterministic generation settings.
-3. **Post-hoc robustness** — BGE-M3 second-backbone retrieval analysis.
+1. **C1 primary frozen confirmation** — pre-specified frozen E5 retrieval profiles, frozen query set, frozen qrels and strict replay.
+2. **C1 answer-drift replication** — three local generator families under deterministic generation settings.
+3. **C1 post-hoc backbone robustness** — BGE-M3 second-backbone retrieval analysis.
+4. **C2 independent-corpus confirmation** — balanced public-distribution corpus with frozen H1/H2/H3 endpoints and exact replay.
+5. **C2 answer-drift extension** — Qwen-only post-confirmatory descriptive analysis, explicitly outside the C2 confirmatory family.
 
 The semantic-drift endpoint is symmetric: it establishes that the answer changed materially, not that one answer was necessarily more correct.
 
-The benchmark is still based on one deployed heterogeneous Data Space. BGE-M3 reduces dependence on one embedding family but does not establish corpus-independent generalization.
+C1 provides ecological realism under a naturally heterogeneous deployed Data Space. C2 provides composition control through an independently constructed balanced public-distribution corpus. The repeated granularity ordering strengthens cross-corpus evidence, but it does not establish universal, corpus-independent, embedding-independent or generator-independent behavior.
 
 ## Tests
 
