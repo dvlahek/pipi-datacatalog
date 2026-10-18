@@ -179,9 +179,27 @@ For the confirmatory H1 comparison, the mean chunk-minus-dataset churn gap was *
 
 The pre-specified H2 multiplicity mechanism had the expected positive direction but was not statistically supported (`Spearman ρ = 0.155`, Holm-adjusted `p = 0.131`). It is reported as not confirmed rather than replaced by a post-hoc mechanism.
 
-Exact ordered-evidence replay passed for **192/192** C2 retrieval runs. In **27/96 (28.1%)** queries, the dataset set remained stable while chunk evidence changed, directly illustrating hidden fine-grained evidence drift under a coarser provenance identity.
+Exact ordered-evidence replay passed for **192/192** C2 retrieval runs. In **27/96 (28.1%)** queries, dataset-level stability coexisted with changed chunk evidence, directly illustrating hidden fine-grained evidence drift under a coarser provenance identity.
 
-See `docs/second_corpus_confirmation_results_20261018.md` for the frozen C2 result record and C1–C2 comparison.
+#### Post-confirmatory C2 answer propagation
+
+The C2 Qwen answer-drift extension preserves the original C1 generator contract, including the 16,384-token context window. A frozen context audit found 27 oversized retrieval conditions, so the analysis retained only query pairs for which **both** evidence conditions fit unchanged. This yielded **81/96 complete query pairs (84.38% coverage)**; no evidence was truncated and the context window was not increased.
+
+Across those 81 blinded pairs, **31/81 = 38.27%** produced material answer drift (Wilson 95% CI **28.45–49.16%**).
+
+The direct hidden-drift join is the main answer-level provenance result:
+
+- `dataset churn@10 = 0` and `chunk churn@10 > 0`: **9/24 = 37.50%** material answer drift
+- exact same retrieved dataset set (`dataset Jaccard@10 = 1`) with changed chunk evidence: **9/19 = 47.37%** material answer drift
+
+The second condition is the clearest operational example: the coarse dataset provenance is exactly unchanged, yet finer evidence changes propagate to a materially different answer in 9 of 19 answer-evaluable cases.
+
+This extension is **post-confirmatory and descriptive**. Its 81-query rate is not an estimate for all 96 C2 queries without the context-feasible qualification, and the symmetric semantic-change endpoint does not establish that one retrieval profile is more correct.
+
+See:
+
+- `docs/second_corpus_confirmation_results_20261018.md`
+- `docs/second_corpus_answer_drift_results_20261018.md`
 
 ### BGE-M3 robustness
 
@@ -202,11 +220,14 @@ See:
 - `docs/benchmark_v2_results_ready_synthesis_20261015.md`
 - `docs/benchmark_v2_reproducibility_20261015.md`
 - `docs/second_corpus_confirmation_results_20261018.md`
+- `docs/second_corpus_answer_drift_results_20261018.md`
 - `docs/second_corpus_confirmation_protocol_v2.md`
+- `docs/second_corpus_c2_answer_drift_context_feasible_amendment_v2.md`
 - `config/second_corpus_target100_amendment_v2_7.json`
 - `config/second_corpus_retrieval_v1.json`
 - `scripts/second_corpus_confirmatory_analysis_v1.py`
 - `scripts/second_corpus_reporting_v1.py`
+- `scripts/second_corpus_answer_drift_reporting_v2.py`
 - `config/rag_benchmark_v2_bge_m3_robustness.json`
 - `scripts/run_benchmark_v2_bge_m3_robustness.py`
 - `scripts/audit_retrieval_provenance_negative_controls.py`
@@ -220,7 +241,7 @@ The repository separates distinct evidence layers rather than merging them into 
 2. **C1 answer-drift replication** — three local generator families under deterministic generation settings.
 3. **C1 post-hoc backbone robustness** — BGE-M3 second-backbone retrieval analysis.
 4. **C2 independent-corpus confirmation** — balanced public-distribution corpus with frozen H1/H2/H3 endpoints and exact replay.
-5. **C2 answer-drift extension** — Qwen-only post-confirmatory descriptive analysis, explicitly outside the C2 confirmatory family.
+5. **C2 answer-drift extension** — Qwen-only post-confirmatory descriptive analysis over an 81/96 context-feasible paired subset, explicitly outside the C2 confirmatory family.
 
 The semantic-drift endpoint is symmetric: it establishes that the answer changed materially, not that one answer was necessarily more correct.
 
