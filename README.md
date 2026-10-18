@@ -194,12 +194,15 @@ The direct hidden-drift join is the main answer-level provenance result:
 
 The second condition is the clearest operational example: the coarse dataset provenance is exactly unchanged, yet finer evidence changes propagate to a materially different answer in 9 of 19 answer-evaluable cases.
 
-This extension is **post-confirmatory and descriptive**. Its 81-query rate is not an estimate for all 96 C2 queries without the context-feasible qualification, and the symmetric semantic-change endpoint does not establish that one retrieval profile is more correct.
+Two independent blinded secondary judges were then added as post-hoc judging robustness. Their material rates were **32/81 = 39.51%** for Gemini and **33/81 = 40.74%** for Claude, compared with the frozen ChatGPT rate of **31/81 = 38.27%**. Pairwise within-one-grade agreement was 100%, quadratic weighted kappa ranged from **0.900 to 0.952**, and all three judges agreed on the binary material/non-material classification for **75/81 = 92.59%** of pairs. The pre-specified three-judge median/majority sensitivity was **32/81 = 39.51%**.
+
+This extension is **post-confirmatory and descriptive**. Its 81-query rate is not an estimate for all 96 C2 queries without the context-feasible qualification, and the symmetric semantic-change endpoint does not establish that one retrieval profile is more correct. The secondary judges test robustness to judge choice only and do not replace the original frozen ChatGPT endpoint.
 
 See:
 
 - `docs/second_corpus_confirmation_results_20261018.md`
 - `docs/second_corpus_answer_drift_results_20261018.md`
+- `docs/second_corpus_c2_secondary_judge_results_20261018.md`
 
 ### BGE-M3 robustness
 
@@ -221,6 +224,7 @@ See:
 - `docs/benchmark_v2_reproducibility_20261015.md`
 - `docs/second_corpus_confirmation_results_20261018.md`
 - `docs/second_corpus_answer_drift_results_20261018.md`
+- `docs/second_corpus_c2_secondary_judge_results_20261018.md`
 - `docs/second_corpus_confirmation_protocol_v2.md`
 - `docs/second_corpus_c2_answer_drift_context_feasible_amendment_v2.md`
 - `config/second_corpus_target100_amendment_v2_7.json`
@@ -228,6 +232,7 @@ See:
 - `scripts/second_corpus_confirmatory_analysis_v1.py`
 - `scripts/second_corpus_reporting_v1.py`
 - `scripts/second_corpus_answer_drift_reporting_v2.py`
+- `scripts/second_corpus_secondary_judge_analysis_v1.py`
 - `config/rag_benchmark_v2_bge_m3_robustness.json`
 - `scripts/run_benchmark_v2_bge_m3_robustness.py`
 - `scripts/audit_retrieval_provenance_negative_controls.py`
@@ -242,6 +247,7 @@ The repository separates distinct evidence layers rather than merging them into 
 3. **C1 post-hoc backbone robustness** — BGE-M3 second-backbone retrieval analysis.
 4. **C2 independent-corpus confirmation** — balanced public-distribution corpus with frozen H1/H2/H3 endpoints and exact replay.
 5. **C2 answer-drift extension** — Qwen-only post-confirmatory descriptive analysis over an 81/96 context-feasible paired subset, explicitly outside the C2 confirmatory family.
+6. **C2 judging robustness** — Gemini and Claude independently re-judge the same blinded 81-pair packet as post-hoc sensitivity to judge choice.
 
 The semantic-drift endpoint is symmetric: it establishes that the answer changed materially, not that one answer was necessarily more correct.
 
