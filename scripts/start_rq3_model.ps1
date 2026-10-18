@@ -4,10 +4,16 @@ param(
     [string]$Model,
     [int]$Port = 8080,
     [int]$ContextSize = 16384,
-    [string]$ModelDir = (Join-Path $PSScriptRoot "..\models\rq3")
+    [string]$ModelDir = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+# Resolve the default only after parameter binding. In some PowerShell hosts,
+# $PSScriptRoot is still empty while default parameter expressions are bound.
+if ([string]::IsNullOrWhiteSpace($ModelDir)) {
+    $ModelDir = Join-Path $PSScriptRoot "..\models\rq3"
+}
 
 $config = @{
     "qwen3-8b-q4km" = @{
