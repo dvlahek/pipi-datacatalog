@@ -59,3 +59,7 @@ results/second_corpus_answer_drift_v2_context_feasible/
 results/second_corpus_answer_drift_qwen_v1.log
 results/second_corpus_answer_drift_qwen_v2.log
 results/c2_llama_cpp_version.txt
+
+# Post-hoc C2 validation outputs remain local until publication-safe summaries are reviewed.
+results/second_corpus_same_evidence_control_v1/
+results/second_corpus_posthoc_diagnostics_v1/
