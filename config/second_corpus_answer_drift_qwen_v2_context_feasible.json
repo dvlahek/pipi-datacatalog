@@ -1,0 +1,50 @@
+{
+  "artifact": "SECOND_CORPUS_C2_ANSWER_DRIFT_QWEN_V2_CONTEXT_FEASIBLE",
+  "status": "FROZEN_BEFORE_V2_ANSWER_GENERATION",
+  "freeze_date": "2026-10-18",
+  "scientific_status": "post-confirmatory descriptive technical amendment",
+  "reason": "The frozen V1 generation contract is not executable for all C2 evidence conditions at n_ctx=16384. A token-count audit found 27/192 frozen conditions above the context limit, with a maximum of 81255 input tokens. V2 preserves the V1 generator, prompt, evidence text, evidence order, and context size, and restricts analysis to complete query pairs that fit the frozen context without truncation.",
+  "base_v1": {
+    "config_sha256": "beb99a0b4fbc523efa0556c55edd804d14b70ab8cf8a9a304cc21cff69c1bee9",
+    "answer_drift_input_sha256": "3a21273f542947289c81c7622235fa25e9f2f663e385e68454e17d37d29ba4c6",
+    "input_freeze_sha256": "1d0e88c683c5c1a52c566aaab3d564b2dac5493ee6a710f2d9b2b68e617b86e6",
+    "context_audit_sha256": "4af1779c50cc05a7a688fb08014f1a3e7f60cdd37bea1a2ec2523ed3ba7937cc",
+    "partial_v1_answers_policy": "preserve_for_provenance_only; do not reuse in V2 generation or analysis"
+  },
+  "unchanged_generation_contract": {
+    "model_key": "qwen3-8b-q4km",
+    "gguf_sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+    "reasoning_mode": "off",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20261014,
+    "max_tokens": 384,
+    "context_size": 16384,
+    "prompt_and_evidence_serialization": "exactly V1"
+  },
+  "context_feasibility_rule": {
+    "unit": "query_pair",
+    "required_conditions": [
+      "hybrid-e5-content-v1",
+      "hybrid-e5-metadata-v1"
+    ],
+    "include_query_if": "both frozen conditions satisfy input_tokens + 384 <= 16384 under the audited Qwen llama.cpp tokenizer",
+    "exclude_query_if": "either frozen condition fails the inclusion inequality",
+    "evidence_truncation": false,
+    "context_size_change": false,
+    "query_replacement": false,
+    "retrieval_change": false,
+    "answer_outcome_used_for_selection": false
+  },
+  "reporting": {
+    "denominator": "number of context-feasible complete query pairs",
+    "required_coverage_reporting": [
+      "included query count and rate",
+      "excluded query count and rate",
+      "excluded conditions by profile",
+      "descriptive breakdown of excluded queries by theme and query type"
+    ],
+    "answer_drift_status": "descriptive only",
+    "guardrail": "Do not generalize the V2 answer-drift rate to the 96-query C2 set without explicitly stating the context-feasible subset restriction."
+  }
+}
