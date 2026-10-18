@@ -1,0 +1,43 @@
+{
+  "artifact": "pipi-benchmark-v2-rq3-model-generation-freeze",
+  "schema_version": 1,
+  "status": "frozen-before-answer-inspection-and-analysis",
+  "date": "2026-10-14",
+  "repository": "dvlahek/pipi-datacatalog",
+  "branch": "feature/sensor-hub-bootstrap",
+  "repository_head_before_freeze": "564097c474a54d9835758be263e689c061474368",
+  "model_key": "qwen3-8b-q4km",
+  "model_role": "primary",
+  "gguf_file": "Qwen3-8B-Q4_K_M.gguf",
+  "gguf_sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+  "rq3_protocol_sha256": "6cbb8b07be1d759ca609260e5af5ffc708416e1e54673f135ccb859fbfd61082",
+  "rq3_input_sha256": "e554461b90cdfe8f01c944b4164984c53a1e2c088d82cb6fe30cd2d6417d8bcf",
+  "rq3_input_hash_scheme": "normalized-json-indent2-lf-final-newline",
+  "answers_jsonl_local_filename": "results/rq3/rq3_answers_qwen3-8b-q4km_e554461b90cd.jsonl",
+  "answers_jsonl_sha256": "0c2105db2802b667d236d65ac56b4e7932bf307cb05c8d61a62f720be57a977e",
+  "generation_counts": {
+    "planned_total": 432,
+    "main": 384,
+    "same_evidence_control": 48,
+    "status": "complete"
+  },
+  "resume_provenance": {
+    "resumed": true,
+    "completed_before_resume": 207,
+    "new_completions_after_resume": 225,
+    "final_total": 432,
+    "interruption_type": "runtime-backend-failure",
+    "interruption_observed": "ggml_vulkan device lost on Vulkan1; vk::Queue::submit: ErrorDeviceLost",
+    "scientific_configuration_changed_for_resume": false,
+    "note": "The failed request was not recorded as completed. The existing JSONL was resumed using the runner's completed-key logic, preserving previously completed rows and generating only missing rows."
+  },
+  "runtime": {
+    "backend": "llama.cpp OpenAI-compatible local server",
+    "llama_cpp_version": "0.6.0-dev",
+    "llama_cpp_build": 11580,
+    "llama_cpp_commit": "4413a1924",
+    "compiler": "Clang 20.1.8",
+    "platform": "Windows x86_64"
+  },
+  "analysis_gate": "Do not inspect or analyze answer content until all three frozen model-generation outputs have been completed and hashed."
+}

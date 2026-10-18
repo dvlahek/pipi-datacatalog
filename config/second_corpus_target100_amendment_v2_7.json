@@ -1,0 +1,26 @@
+{
+  "amendment_id": "C2_TARGET100_V2_7",
+  "date": "2026-10-17",
+  "base_config": "config/second_corpus_frozen_config_v2_5.json",
+  "target_per_theme": 100,
+  "total_target_datasets": 400,
+  "themes": ["ECON", "ENVI", "HEAL", "TRAN"],
+  "selection_rule": "retain the first 100 eligible datasets per theme in the already frozen candidate order",
+  "reason": "reduce corpus-construction scale while preserving a balanced stratified confirmation corpus; amendment made before C2 query generation, retrieval evaluation, answer generation, or confirmatory statistical testing",
+  "unchanged_rules": [
+    "frozen candidate universe and order",
+    "publisher cap",
+    "two eligible distributions per dataset",
+    "downloadURL-only rule",
+    "open-license eligibility",
+    "5 MiB distribution cap",
+    "512 chunks per distribution cap",
+    "format eligibility",
+    "chunking",
+    "retrieval profiles",
+    "96-query target",
+    "H1/H2/H3 definitions and Holm adjustment"
+  ],
+  "historical_source_output_policy": "read_only",
+  "recovery_output": "results/second_corpus_dataeuropa_v2_recovery_v2_7_100"
+}

@@ -1,0 +1,164 @@
+{
+  "schema_version": 2,
+  "benchmark_id": "pipi-rag-benchmark-v2",
+  "protocol_revision": 2,
+  "status": "design-frozen-before-query-authoring",
+  "purpose": "Confirm retrieval-profile quality and evidence-drift effects on a larger heterogeneous PiPi benchmark without tuning on the confirmation set.",
+  "amendments": [
+    {
+      "id": "A1",
+      "reason": "The pre-authoring corpus-capacity audit showed insufficient diversity for the original 3 x 80 allocation. Before any V2 query authoring or confirmation retrieval, the protocol was rebalanced to four source families and added harvested open-data catalogs as a first-class Data Space family.",
+      "changes": [
+        "source families: 3 -> 4",
+        "per-family total: 80 -> 60",
+        "development split: 60 -> 48",
+        "confirmation split: 180 -> 192",
+        "total remains 240",
+        "open-data-catalogs added as metadata-first family"
+      ]
+    }
+  ],
+  "pilot_exclusion": {
+    "pilot_benchmark": "rag_eval_queries-v1-pilot",
+    "pilot_case_count": 16,
+    "rule": "Pilot P1 cases may inform the design but must not appear in the V2 confirmation set."
+  },
+  "splits": {
+    "development": 48,
+    "confirmation": 192,
+    "total": 240,
+    "rules": [
+      "Development queries may be inspected during benchmark construction and implementation debugging.",
+      "Confirmation queries must not be used to tune retrieval parameters, profile definitions, query wording, relevance thresholds, or corpus composition after confirmation evaluation begins.",
+      "All confirmatory statistical claims are computed on the confirmation split only."
+    ]
+  },
+  "source_families": {
+    "structured-data": {"development": 12, "confirmation": 48, "total": 60},
+    "software-documentation": {"development": 12, "confirmation": 48, "total": 60},
+    "institutional-documents": {"development": 12, "confirmation": 48, "total": 60},
+    "open-data-catalogs": {"development": 12, "confirmation": 48, "total": 60}
+  },
+  "query_types": {
+    "exact-lookup": {"development": 8, "confirmation": 32, "total": 40},
+    "semantic-paraphrase": {"development": 8, "confirmation": 32, "total": 40},
+    "topic-discovery": {"development": 8, "confirmation": 32, "total": 40},
+    "entity-document-lookup": {"development": 8, "confirmation": 32, "total": 40},
+    "relation-comparison": {"development": 8, "confirmation": 32, "total": 40},
+    "constraint-filtered-lookup": {"development": 8, "confirmation": 32, "total": 40}
+  },
+  "source_family_by_query_type": {
+    "query_type_order": [
+      "exact-lookup",
+      "semantic-paraphrase",
+      "topic-discovery",
+      "entity-document-lookup",
+      "relation-comparison",
+      "constraint-filtered-lookup"
+    ],
+    "development": {
+      "structured-data": [2, 2, 2, 2, 2, 2],
+      "software-documentation": [2, 2, 2, 2, 2, 2],
+      "institutional-documents": [2, 2, 2, 2, 2, 2],
+      "open-data-catalogs": [2, 2, 2, 2, 2, 2]
+    },
+    "confirmation": {
+      "structured-data": [8, 8, 8, 8, 8, 8],
+      "software-documentation": [8, 8, 8, 8, 8, 8],
+      "institutional-documents": [8, 8, 8, 8, 8, 8],
+      "open-data-catalogs": [8, 8, 8, 8, 8, 8]
+    }
+  },
+  "language_relation": {
+    "development": {"cross-language": 24, "same-language": 24},
+    "confirmation": {"cross-language": 48, "same-language": 144},
+    "total": {"cross-language": 72, "same-language": 168},
+    "allocation_rule": "Each of the 24 source-family x query-type cells contains 1 cross-language query among 2 development queries and 2 cross-language queries among 8 confirmation queries. Query and target-evidence language are recorded explicitly."
+  },
+  "query_authoring_rules": [
+    "Each query must have a documented information need before retrieval results are inspected.",
+    "Confirmation query wording is frozen before confirmatory profile results are viewed.",
+    "Avoid near-duplicate queries that differ only by punctuation, trivial word order, or one copied keyword.",
+    "A single evidence target may support multiple genuinely different information needs, but no target should dominate a cell.",
+    "Queries must be answerable from the frozen PiPi corpus at the time the benchmark snapshot is locked.",
+    "Cross-language queries must express the same information need in a language different from the primary language of the target evidence.",
+    "Open-data-catalog queries target harvested metadata records, not downloaded source payloads.",
+    "Sensor Hub queries target metadata evidence unless a separately versioned structured payload corpus is explicitly introduced by protocol amendment."
+  ],
+  "relevance": {
+    "scale": {
+      "3": "directly answers the information need",
+      "2": "clearly relevant supporting evidence but incomplete on its own",
+      "1": "topically related but insufficient or weak evidence",
+      "0": "irrelevant"
+    },
+    "pooling": {
+      "depth_per_profile": 20,
+      "deduplicate_by": ["dataset_identifier", "dataset_version", "chunk_index"],
+      "profiles": [
+        "lexical-v1",
+        "vector-e5-content-v1",
+        "hybrid-e5-content-v1",
+        "vector-e5-metadata-v1",
+        "hybrid-e5-metadata-v1"
+      ]
+    },
+    "annotation": {
+      "primary_judgment": "All pooled candidates receive one human graded-relevance judgment.",
+      "double_annotation_minimum_confirmation_queries": 48,
+      "double_annotation_sampling": "Exactly 2 confirmation queries from each of the 24 source-family x query-type cells, stratified across language relation where possible.",
+      "agreement": "Report ordinal agreement on the double-annotated subset and adjudicate disagreements larger than one relevance grade."
+    }
+  },
+  "frozen_profiles": {
+    "primary_contrast": ["hybrid-e5-content-v1", "hybrid-e5-metadata-v1"],
+    "secondary_contrasts": [
+      ["vector-e5-content-v1", "vector-e5-metadata-v1"],
+      ["lexical-v1", "hybrid-e5-content-v1"],
+      ["lexical-v1", "hybrid-e5-metadata-v1"]
+    ],
+    "rule": "No profile parameter may be changed under an existing profile ID. Any new profile requires a new immutable versioned ID and is exploratory unless added by a protocol amendment before confirmation results are inspected."
+  },
+  "quality_metrics": {
+    "primary": ["nDCG@10"],
+    "secondary": ["MRR", "Recall@10", "Hit@1", "Hit@3", "Hit@10"]
+  },
+  "drift_metrics": {
+    "chunk_level": [
+      "Jaccard@10",
+      "retention@10",
+      "churn@10",
+      "top1_chunk_change_rate",
+      "mean_absolute_rank_shift_on_shared_chunks"
+    ],
+    "source_level": [
+      "source_Jaccard@10_after_versioned_dataset_collapse",
+      "source_retention@10",
+      "source_churn@10",
+      "top1_source_change_rate"
+    ],
+    "secondary_after_relevance_judging": [
+      "relevant_evidence_retention_for_grades_2_or_3",
+      "association_between_evidence_drift_and_absolute_nDCG_change"
+    ]
+  },
+  "statistics": {
+    "unit": "query",
+    "confidence_intervals": "95% paired bootstrap confidence intervals with 10000 query-level resamples",
+    "quality_profile_test": "paired Wilcoxon signed-rank test on per-query nDCG@10 for preregistered profile contrasts",
+    "effect_size": "paired rank-biserial correlation",
+    "multiple_comparisons": "Holm correction across preregistered secondary profile comparisons",
+    "subgroup_analysis": "Report descriptive estimates and bootstrap confidence intervals by source_family, query_type, and language_relation. Treat interaction modeling as exploratory unless amended before confirmation unblinding.",
+    "drift_quality_association": "Spearman correlation between chunk-level churn/Jaccard drift and absolute per-query nDCG@10 change; confirmation split only."
+  },
+  "snapshot_and_provenance": {
+    "rule": "The final V2 benchmark execution is bound to one frozen catalog_snapshot_hash, immutable retrieval profile hashes, benchmark file hashes, relevance-judgment file hash, and Git commit SHA.",
+    "corpus_capacity_gate": "Before any V2 query is authored, run the corpus-capacity audit. Each source family must meet the preregistered diversity threshold. If not, amend or expand the corpus before query authoring rather than after observing retrieval results."
+  },
+  "stopping_and_amendment_rules": [
+    "Do not alter the confirmation split after confirmatory retrieval results are inspected.",
+    "Protocol amendments must be committed with a reason before the affected confirmation results are viewed.",
+    "Implementation bug fixes that do not change profile semantics are allowed, but the fix and rerun must be documented.",
+    "Corpus changes after snapshot freeze create a new benchmark snapshot and cannot be mixed with the frozen confirmation results."
+  ]
+}

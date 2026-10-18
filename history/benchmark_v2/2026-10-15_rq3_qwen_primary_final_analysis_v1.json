@@ -1,0 +1,169 @@
+{
+  "artifact": "pipi-benchmark-v2-rq3-qwen-primary-final-analysis",
+  "schema_version": 1,
+  "status": "final-primary-analysis-after-judgment-freeze-and-unblinding",
+  "model_key": "qwen3-8b-q4km",
+  "pair_count": 192,
+  "final_judgments_sha256": "829e78d82e69989e583d82ee1ce79754bf124123cc196044f2c5f61556c3d6c0",
+  "blind_key_sha256": "f73f8f9d12f46b54a536a4b37cbc41efd1e2f59bd64c883b183b13749d8a1898",
+  "primary_endpoint": {
+    "grade_counts": {
+      "0": 110,
+      "1": 60,
+      "2": 12,
+      "3": 10
+    },
+    "mean_grade": 0.59375,
+    "bootstrap_95_ci_mean_grade": [
+      0.4791666666666667,
+      0.7135416666666666
+    ],
+    "any_change_grade_ge_1_n": 82,
+    "any_change_grade_ge_1_rate": 0.4270833333333333,
+    "material_change_grade_ge_2_n": 22,
+    "material_change_grade_ge_2_rate": 0.11458333333333333,
+    "material_change_wilson_95_ci": [
+      0.07689746970711997,
+      0.167389205386003
+    ],
+    "material_change_bootstrap_95_ci": [
+      0.07291666666666667,
+      0.16145833333333334
+    ],
+    "substantially_different_or_contradictory_grade_3_n": 10,
+    "substantially_different_or_contradictory_grade_3_rate": 0.052083333333333336
+  },
+  "deterministic_same_evidence_control": {
+    "exact_repeat_n": 48,
+    "total": 48,
+    "exact_repeat_rate": 1.0
+  },
+  "propagation_secondary": {
+    "chunk_churn_vs_ordinal_grade_spearman_rho": 0.37527076184399405,
+    "chunk_churn_vs_ordinal_grade_p": 8.173287766351587e-08,
+    "abs_ndcg_delta_vs_ordinal_grade_spearman_rho": 0.09082224628157357,
+    "abs_ndcg_delta_vs_ordinal_grade_p": 0.2102628185745758,
+    "top1_chunk_changed": {
+      "n": 49,
+      "material_n": 12,
+      "material_rate": 0.24489795918367346
+    },
+    "top1_chunk_unchanged": {
+      "n": 143,
+      "material_n": 10,
+      "material_rate": 0.06993006993006994
+    },
+    "top1_change_material_odds_ratio": 4.313513513513514,
+    "top1_change_material_fisher_p": 0.0028727824379938456,
+    "same_source_set_but_changed_chunks": {
+      "n": 64,
+      "material_n": 8,
+      "material_rate": 0.125
+    }
+  },
+  "retrieval_quality_direction_descriptive": {
+    "metadata_better": {
+      "n": 68,
+      "material_n": 14,
+      "material_rate": 0.20588235294117646,
+      "mean_grade": 0.8235294117647058
+    },
+    "metadata_worse": {
+      "n": 38,
+      "material_n": 1,
+      "material_rate": 0.02631578947368421,
+      "mean_grade": 0.3157894736842105
+    },
+    "same": {
+      "n": 86,
+      "material_n": 7,
+      "material_rate": 0.08139534883720931,
+      "mean_grade": 0.5348837209302325
+    }
+  },
+  "descriptive_subgroups": {
+    "source_family": {
+      "institutional-documents": {
+        "n": 48,
+        "mean_grade": 0.9375,
+        "material_grade_ge_2_n": 11,
+        "material_grade_ge_2_rate": 0.22916666666666666
+      },
+      "open-data-catalogs": {
+        "n": 48,
+        "mean_grade": 0.3125,
+        "material_grade_ge_2_n": 0,
+        "material_grade_ge_2_rate": 0.0
+      },
+      "software-documentation": {
+        "n": 48,
+        "mean_grade": 0.7291666666666666,
+        "material_grade_ge_2_n": 6,
+        "material_grade_ge_2_rate": 0.125
+      },
+      "structured-data": {
+        "n": 48,
+        "mean_grade": 0.3958333333333333,
+        "material_grade_ge_2_n": 5,
+        "material_grade_ge_2_rate": 0.10416666666666667
+      }
+    },
+    "query_type": {
+      "constraint-filtered-lookup": {
+        "n": 32,
+        "mean_grade": 0.5,
+        "material_grade_ge_2_n": 3,
+        "material_grade_ge_2_rate": 0.09375
+      },
+      "entity-document-lookup": {
+        "n": 32,
+        "mean_grade": 0.375,
+        "material_grade_ge_2_n": 1,
+        "material_grade_ge_2_rate": 0.03125
+      },
+      "exact-lookup": {
+        "n": 32,
+        "mean_grade": 0.8125,
+        "material_grade_ge_2_n": 5,
+        "material_grade_ge_2_rate": 0.15625
+      },
+      "relation-comparison": {
+        "n": 32,
+        "mean_grade": 0.5625,
+        "material_grade_ge_2_n": 4,
+        "material_grade_ge_2_rate": 0.125
+      },
+      "semantic-paraphrase": {
+        "n": 32,
+        "mean_grade": 0.6875,
+        "material_grade_ge_2_n": 3,
+        "material_grade_ge_2_rate": 0.09375
+      },
+      "topic-discovery": {
+        "n": 32,
+        "mean_grade": 0.625,
+        "material_grade_ge_2_n": 6,
+        "material_grade_ge_2_rate": 0.1875
+      }
+    },
+    "language_relation": {
+      "cross-language": {
+        "n": 48,
+        "mean_grade": 0.7083333333333334,
+        "material_grade_ge_2_n": 9,
+        "material_grade_ge_2_rate": 0.1875
+      },
+      "same-language": {
+        "n": 144,
+        "mean_grade": 0.5555555555555556,
+        "material_grade_ge_2_n": 13,
+        "material_grade_ge_2_rate": 0.09027777777777778
+      }
+    }
+  },
+  "analysis_notes": [
+    "Material-change grading is symmetric and does not by itself identify which retrieval profile produced the better answer.",
+    "Groundedness/support and answer-quality direction remain separate secondary analyses.",
+    "Subgroup results are descriptive."
+  ]
+}

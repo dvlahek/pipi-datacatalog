@@ -1,0 +1,13 @@
+{
+  "artifact": "pipi-benchmark-v2-confirmation-pass2-input-manifest",
+  "schema_version": 1,
+  "status": "frozen-before-replicate-pass2-judging",
+  "confirmation_cases_sha256": "c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5",
+  "augmented_pool_sha256": "04e8a7b25d0a38d8412d6e2e7ff91887848d1ce04943f6e2c20b0cea605f1a4c",
+  "pass2_blinded_input_sha256": "0c1dd9bd553e4159aa33493dd0c44383c344b7c7e232a91203c206d26481f0f9",
+  "case_count": 48,
+  "candidate_count": 2252,
+  "candidate_order_rule": "pipi-v2-confirmation-pass2-v1",
+  "pass1_grades_visible": false,
+  "quality_metrics_computed": false
+}

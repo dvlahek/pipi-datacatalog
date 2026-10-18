@@ -1,0 +1,119 @@
+{
+  "artifact": "pipi-benchmark-v2-final-results-manifest",
+  "schema_version": 1,
+  "date": "2026-10-15",
+  "status": "frozen-rq1-rq2-rq3-complete-rq4-descriptive",
+  "repository": "dvlahek/pipi-datacatalog",
+  "branch": "feature/sensor-hub-bootstrap",
+  "repository_head_before_final_artifact_packaging": "0bcac498cff8cd631b1f50bf992c6037bd2f6cd0",
+  "scientific_scope": {
+    "RQ1": "closed",
+    "RQ2": "closed",
+    "RQ3": "closed",
+    "RQ4": "descriptive-only"
+  },
+  "frozen_corpus": {
+    "datasets": 274,
+    "chunks": 3974,
+    "catalog_snapshot_sha256": "068e1b0df74acd8b91d04a5161f4413d57d07bfef5c8c9ce2b8d1100ae780419",
+    "corpus_fingerprint_sha256": "f04239fe6df52ab2604ab45a8c08cc83d5bafe79203a4b16c20a2d2a307e2dc6",
+    "source_families": {
+      "structured-data": {"datasets": 33, "chunks": 35},
+      "software-documentation": {"datasets": 1, "chunks": 1546, "files": 100},
+      "institutional-documents": {"datasets": 40, "chunks": 2163},
+      "open-data-catalogs": {"datasets": 200, "chunks": 230}
+    }
+  },
+  "benchmark": {
+    "confirmation_queries": 192,
+    "confirmation_cases_sha256": "c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5",
+    "retrieval_protocol_sha256": "d277465bb9572bf6bbff82a5d5bf6f29fd1d9ebd9a5b9940d890d87b87df2dde",
+    "retrieval_runs": 960,
+    "final_qrels_pairs": 9170,
+    "final_qrels_sha256": "a0946546b7b0109bfc8f0920b7cd8de6412c210cbe26ffb36f155f4a0a5637ad",
+    "final_judgments_sha256": "a2d742e9b685735ed40f9f26a45ab7fd5389716f68ff9620b1861ba7d19c93e4",
+    "retrieval_ledger_sha256": "335555045685798fc27f781b39092d1b1b9f17af8c53dd16d0e2f757db18a1c0",
+    "profile_hashes": {
+      "lexical-v1": "4234a9a6691d7f0c004eb7b6469662675db35f66fe04dd8eb5b053b1d7a31a54",
+      "vector-e5-content-v1": "8c00e6326839a8e0e798083197225d1fd90b60db7d6a9e974fe8667de5f0562f",
+      "hybrid-e5-content-v1": "04fd11fb3c56e9273f7b312a376d5c975a852489276f87fc796f7e0c716f7a45",
+      "vector-e5-metadata-v1": "e250344e567f85c3dc8ac36b0cd68663f570e322bed7686de99a270ffa0e1628",
+      "hybrid-e5-metadata-v1": "7b63711593b091d1c21a1548f1b672f4572c69b4fca380779114cad6163211e4"
+    }
+  },
+  "rq1": {
+    "overall_profile_metrics": {
+      "lexical-v1": {"nDCG@10": 0.4891433245155345, "MRR": 0.5468698495812466, "Recall@10": 0.5195990724531746, "Hit@1": 0.4375, "Hit@3": 0.625, "Hit@10": 0.7395833333333334},
+      "vector-e5-content-v1": {"nDCG@10": 0.7013492311861405, "MRR": 0.7902183269140991, "Recall@10": 0.6812529022619968, "Hit@1": 0.7083333333333334, "Hit@3": 0.8541666666666666, "Hit@10": 0.9322916666666666},
+      "hybrid-e5-content-v1": {"nDCG@10": 0.671218984942696, "MRR": 0.7769762572496948, "Recall@10": 0.6743334781707944, "Hit@1": 0.6770833333333334, "Hit@3": 0.8697916666666666, "Hit@10": 0.9166666666666666},
+      "vector-e5-metadata-v1": {"nDCG@10": 0.7758899253078885, "MRR": 0.8643571607181805, "Recall@10": 0.7710240320600953, "Hit@1": 0.796875, "Hit@3": 0.9270833333333334, "Hit@10": 0.9635416666666666},
+      "hybrid-e5-metadata-v1": {"nDCG@10": 0.6995775578428921, "MRR": 0.7970161900568974, "Recall@10": 0.6995581628509019, "Hit@1": 0.7083333333333334, "Hit@3": 0.8802083333333334, "Hit@10": 0.9427083333333334}
+    },
+    "primary_contrast": {
+      "left": "hybrid-e5-content-v1",
+      "right": "hybrid-e5-metadata-v1",
+      "left_mean_nDCG@10": 0.671218984942696,
+      "right_mean_nDCG@10": 0.6995775578428921,
+      "mean_delta": 0.02835857290019611,
+      "median_delta": 0.0,
+      "bootstrap_95_ci_mean_delta": [0.01339876675654978, 0.04407752150679065],
+      "wilcoxon_p": 0.0009667362806316704,
+      "rank_biserial": 0.36924704637630046,
+      "positive_queries": 68,
+      "negative_queries": 38,
+      "zero_queries": 86
+    },
+    "secondary_contrasts": [
+      {"left": "vector-e5-content-v1", "right": "vector-e5-metadata-v1", "left_mean_nDCG@10": 0.7013492311861405, "right_mean_nDCG@10": 0.7758899253078885, "mean_delta": 0.07454069412174803, "median_delta": 0.0, "bootstrap_95_ci_mean_delta": [0.04289328528149327, 0.1087163054609761], "wilcoxon_p": 1.1954022233554635e-05, "rank_biserial": 0.4513015873015873, "positive_queries": 81, "negative_queries": 44, "zero_queries": 67, "holm_adjusted_p": 1.1954022233554635e-05},
+      {"left": "lexical-v1", "right": "hybrid-e5-content-v1", "left_mean_nDCG@10": 0.4891433245155345, "right_mean_nDCG@10": 0.671218984942696, "mean_delta": 0.1820756604271616, "median_delta": 0.06220128703429251, "bootstrap_95_ci_mean_delta": [0.1434230165049406, 0.2209809590364094], "wilcoxon_p": 2.8262584360323415e-17, "rank_biserial": 0.820597342922785, "positive_queries": 120, "negative_queries": 21, "zero_queries": 51, "holm_adjusted_p": 5.652516872064683e-17},
+      {"left": "lexical-v1", "right": "hybrid-e5-metadata-v1", "left_mean_nDCG@10": 0.4891433245155345, "right_mean_nDCG@10": 0.6995775578428921, "mean_delta": 0.21043423332735775, "median_delta": 0.1177226930466633, "bootstrap_95_ci_mean_delta": [0.1705884125516255, 0.2505383662215074], "wilcoxon_p": 2.8374972825425954e-20, "rank_biserial": 0.8741157264647198, "positive_queries": 134, "negative_queries": 14, "zero_queries": 44, "holm_adjusted_p": 8.512491847627787e-20}
+    ]
+  },
+  "rq2": {
+    "strict_replay_status": "pass",
+    "evaluated_runs": 960,
+    "exact_replay_runs": 960,
+    "failures": 0,
+    "all_exact_replay": true,
+    "strict_replay_file_sha256": "15d824e5525c4c6376e69a2f58a3cfef8c8a0701984402bdbf291f1f2e229faf",
+    "retrieval_drift": {
+      "chunk_retention@10": 0.7697916666666668,
+      "chunk_churn@10": 0.23020833333333324,
+      "chunk_Jaccard@10": 0.6550051340952078,
+      "top1_chunk_change_rate": 0.2604166666666667,
+      "mean_abs_rank_shift_shared_chunks": 1.2347676917989419,
+      "source_retention@10": 0.896331431878307,
+      "source_churn@10": 0.103668568121693,
+      "source_Jaccard@10": 0.8383248406685908,
+      "top1_source_change_rate": 0.15625,
+      "relevant_evidence_retention_grade_2_or_3": 0.9583603896103896,
+      "relevant_evidence_retention_n_queries": 176,
+      "relevant_evidence_Jaccard_grade_2_or_3": 0.863367770964456
+    },
+    "drift_quality_association": {
+      "chunk_churn_vs_abs_nDCG_delta_spearman_rho": 0.31343561268325526,
+      "chunk_churn_vs_abs_nDCG_delta_p": 9.564368407614506e-06,
+      "chunk_Jaccard_vs_abs_nDCG_delta_spearman_rho": -0.31343561268325526,
+      "chunk_Jaccard_vs_abs_nDCG_delta_p": 9.564368407614506e-06
+    }
+  },
+  "rq3": {
+    "protocol_sha256": "6cbb8b07be1d759ca609260e5af5ffc708416e1e54673f135ccb859fbfd61082",
+    "input_sha256": "e554461b90cdfe8f01c944b4164984c53a1e2c088d82cb6fe30cd2d6417d8bcf",
+    "input_hash_scheme": "normalized-json-indent2-lf-final-newline",
+    "models": {
+      "qwen_primary": {"gguf_sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785", "answers_jsonl_sha256": "0c2105db2802b667d236d65ac56b4e7932bf307cb05c8d61a62f720be57a977e", "final_judgments_sha256": "829e78d82e69989e583d82ee1ce79754bf124123cc196044f2c5f61556c3d6c0", "final_analysis_sha256": "c5e63f06f2b384fb17c8097591cabae76d8b23017ae842a1f802684b00b46ea9"},
+      "ministral_replication": {"gguf_sha256": "33e7a72cf5e6e2cfc2f2847075acc013d68bba023e35310cef86b5cf8fdca761", "answers_jsonl_sha256": "b90d496cf6d44d1208345495b2ca61b552fd8832f1a310b0d5d925bf07eb837d", "judgments_sha256": "6a476c4a2f88a74dd0d38953dfbe09692b1563648d239fc962610daac1e8bdb0"},
+      "gemma_replication": {"gguf_sha256": "882e8d2db44dc554fb0ea5077cb7e4bc49e7342a1f0da57901c0802ea21a0863", "answers_jsonl_sha256": "94d59217a01d4268e4b13dee990059e95b2ec71514ef7e02ed669b5c956b7a36", "judgments_sha256": "c07fa051cf117316b8ecef2762b831fdc7816b627b0e037a9592eefd3f779cd8"}
+    },
+    "three_model_summary_sha256": "59b7341aef613566051afb05b715b6e7530f368b9e24706057ae1bfe59253a34",
+    "same_evidence_deterministic_control": {
+      "qwen": {"exact": 48, "total": 48, "rate": 1.0},
+      "ministral": {"exact": 48, "total": 48, "rate": 1.0},
+      "gemma": {"exact": 48, "total": 48, "rate": 1.0}
+    },
+    "cross_model_consensus": {"material_in_0_models": 146, "material_in_1_model": 33, "material_in_2_models": 8, "material_in_3_models": 5, "material_in_at_least_1_model": 46, "material_in_at_least_2_models": 13}
+  },
+  "known_reproducibility_limit": "The current open-data cohort is frozen and identifiable, but a future fresh upstream 'first 200' harvest is not guaranteed to recreate the same cohort if upstream ordering changes. A frozen cohort-by-ID manifest is required for full future from-scratch upstream regeneration.",
+  "claim_boundary": "RQ3 material-change grading is symmetric. It demonstrates semantic answer drift, not which retrieval profile produced the better or better-grounded answer."
+}

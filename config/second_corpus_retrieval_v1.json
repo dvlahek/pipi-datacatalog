@@ -1,0 +1,70 @@
+{
+  "artifact": "SECOND_CORPUS_C2_RETRIEVAL_CONFIG_V1",
+  "status": "FROZEN_BEFORE_FIRST_C2_RETRIEVAL",
+  "freeze_date": "2026-10-17",
+  "corpus": {
+    "revision": "V2.9-target100-final-materialization-recovery",
+    "corpus_freeze_sha256": "d3fa4e2007e348ace37e6a8666c4562bcdc3cf80c1b96b821c06ef5641581be0",
+    "selected_corpus_manifest_sha256": "a2454093e05c3308fb0b42606fc9d59b472cb0307992c21adea521c637b63a27",
+    "chunk_manifest_sha256": "fe336487e2c7cb7dd37225df13612936c7972bb24959e90b43f0a2fe47285172",
+    "physical_chunk_rows": 44520,
+    "theme_stratum_records": 400,
+    "distribution_records": 800
+  },
+  "queries": {
+    "query_count": 96,
+    "queries_sha256": "4257116b4d9ec417217b2030df58b5de3ba479fe0125f021a3ca50b7022699f7",
+    "query_audit_sha256": "40d331bcc0beb63b49ac28f2495ccba0dbd7cf635778eb899584540c1cca0410",
+    "query_status": "FROZEN_BEFORE_RETRIEVAL"
+  },
+  "primary_profiles": [
+    {
+      "profile_id": "hybrid-e5-content-v1",
+      "config_hash": "04fd11fb3c56e9273f7b312a376d5c975a852489276f87fc796f7e0c716f7a45",
+      "input_profile": "content-v1"
+    },
+    {
+      "profile_id": "hybrid-e5-metadata-v1",
+      "config_hash": "7b63711593b091d1c21a1548f1b672f4572c69b4fca380779114cad6163211e4",
+      "input_profile": "metadata-v1"
+    }
+  ],
+  "embedding": {
+    "provider": "multilingual-e5",
+    "model": "intfloat/multilingual-e5-small",
+    "declared_profile_revision": null,
+    "dimensions": 384,
+    "document_prefix": "passage",
+    "query_prefix": "query",
+    "normalize_embeddings": true,
+    "pgvector_component_serialization": ".10g_then_float32",
+    "checkpoint_rows_per_shard": 512,
+    "model_encode_batch_size": 64
+  },
+  "retrieval": {
+    "top_k": 10,
+    "candidate_limit": 50,
+    "rrf_algorithm": "rrf-v1",
+    "rrf_k": 60,
+    "diversity_algorithm": "source-file-soft-cap-v1",
+    "diversity_max_per_source": 2,
+    "logical_distribution_identity": ["dataset_id", "distribution_id", "payload_sha256"],
+    "logical_chunk_identity": ["dataset_id", "distribution_id", "payload_sha256", "chunk_index", "chunk_text_sha256"],
+    "cross_theme_exact_fine_identity_policy": "collapse_once_retain_theme_memberships",
+    "distinct_distribution_same_payload_policy": "retain_as_distinct_distribution_identity",
+    "metadata_file_path_adapter": "decoded_url_path_from_final_url_else_download_url_without_scheme_host_query_fragment",
+    "equal_score_tie_break": "logical_chunk_identity_ascending"
+  },
+  "confirmatory": {
+    "H1": "paired chunk_churn_at_10 vs dataset_churn_at_10; two-sided Wilcoxon; expected chunk > dataset",
+    "H2": "Spearman between frozen query-source mean log1p(chunks_per_dataset) and chunk-minus-dataset churn gap; expected positive",
+    "H3": "100% exact ordered-evidence replay",
+    "holm_family": ["H1", "H2"],
+    "familywise_alpha": 0.05
+  },
+  "execution_boundary": {
+    "retrieval_results_inspected_when_frozen": false,
+    "qrels_required_for_primary_confirmation": false,
+    "statistics_run_only_after_retrieval_freeze": true
+  }
+}

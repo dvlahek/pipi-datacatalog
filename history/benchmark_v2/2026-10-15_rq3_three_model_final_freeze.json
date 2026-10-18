@@ -1,0 +1,69 @@
+{
+  "artifact": "pipi-benchmark-v2-rq3-three-model-final-freeze",
+  "schema_version": 1,
+  "status": "final-rq3-freeze",
+  "date": "2026-10-15",
+  "repository": "dvlahek/pipi-datacatalog",
+  "branch": "feature/sensor-hub-bootstrap",
+  "repository_head_before_freeze": "296ed3c313b5e1b6b72ce7ecd74a9bc132d8ca24",
+  "pair_count_per_model": 192,
+  "judging_design": {
+    "qwen3-8b-q4km": "preregistered primary endpoint; two independent blinded judges plus third-judge adjudication of all disagreements",
+    "ministral3-8b-q4km": "secondary robustness replication; one fresh blinded Gemini judge",
+    "gemma3-4b-q4km": "secondary robustness replication; one fresh blinded Gemini judge"
+  },
+  "judgment_artifacts": {
+    "qwen_final_judgments_sha256": "829e78d82e69989e583d82ee1ce79754bf124123cc196044f2c5f61556c3d6c0",
+    "ministral_replication_judgments_sha256": "6a476c4a2f88a74dd0d38953dfbe09692b1563648d239fc962610daac1e8bdb0",
+    "gemma_replication_judgments_sha256": "c07fa051cf117316b8ecef2762b831fdc7816b627b0e037a9592eefd3f779cd8",
+    "ministral_freeze_manifest_sha256": "c9a47581d55ff7c2304cff029bc4593e9cd942dc436b927a843d4c7796218917",
+    "gemma_freeze_manifest_sha256": "efcce49e3160b92469e71e5f77b40d5d718f11b27e058f9a8633aed90c91f34b",
+    "three_model_summary_sha256": "59b7341aef613566051afb05b715b6e7530f368b9e24706057ae1bfe59253a34"
+  },
+  "generation_artifacts": {
+    "qwen_answers_jsonl_sha256": "0c2105db2802b667d236d65ac56b4e7932bf307cb05c8d61a62f720be57a977e",
+    "ministral_answers_jsonl_sha256": "b90d496cf6d44d1208345495b2ca61b552fd8832f1a310b0d5d925bf07eb837d",
+    "gemma_answers_jsonl_sha256": "94d59217a01d4268e4b13dee990059e95b2ec71514ef7e02ed669b5c956b7a36"
+  },
+  "material_answer_change_grade_ge_2": {
+    "qwen3-8b-q4km": {"n": 22, "rate": 0.1145833333, "grade3_n": 10},
+    "ministral3-8b-q4km": {"n": 22, "rate": 0.1145833333, "grade3_n": 8},
+    "gemma3-4b-q4km": {"n": 20, "rate": 0.1041666667, "grade3_n": 20}
+  },
+  "same_evidence_deterministic_control": {
+    "qwen3-8b-q4km": "48/48 exact",
+    "ministral3-8b-q4km": "48/48 exact",
+    "gemma3-4b-q4km": "48/48 exact"
+  },
+  "retrieval_to_answer_propagation": {
+    "qwen_chunk_churn_vs_grade_spearman": {"rho": 0.3753, "p": 8.17e-8},
+    "ministral_chunk_churn_vs_grade_spearman": {"rho": 0.303, "p": 1.95e-5},
+    "gemma_chunk_churn_vs_grade_spearman": {"rho": 0.121, "p": 0.0943},
+    "qwen_top1_changed_material_rate": 0.244898,
+    "qwen_top1_stable_material_rate": 0.069930,
+    "ministral_top1_changed_material_rate": 0.285714,
+    "ministral_top1_stable_material_rate": 0.055944,
+    "gemma_top1_changed_material_rate": 0.183673,
+    "gemma_top1_stable_material_rate": 0.076923
+  },
+  "cross_model_consensus": {
+    "material_in_0_models": 146,
+    "material_in_1_model": 33,
+    "material_in_2_models": 8,
+    "material_in_3_models": 5,
+    "material_in_at_least_1_model": 46,
+    "material_in_at_least_2_models": 13
+  },
+  "pairwise_ordinal_grade_association": {
+    "qwen_vs_ministral": {"spearman_rho": 0.357, "p": 3.58e-7},
+    "qwen_vs_gemma": {"spearman_rho": 0.101, "p": 0.164},
+    "ministral_vs_gemma": {"spearman_rho": 0.270, "p": 0.000156}
+  },
+  "interpretation_guardrails": [
+    "The primary claim is based on the Qwen preregistered endpoint. Ministral and Gemma are secondary robustness replications.",
+    "The 0-3 endpoint measures material answer change symmetrically and does not identify which retrieval profile produced the better answer.",
+    "Gemma produced no grade-2 judgments and 20 grade-3 judgments, indicating judge/model-specific calibration; absolute grade distributions should not be treated as directly exchangeable across generators.",
+    "Gemma does not show a statistically significant chunk-churn-to-grade association, although its material-change rate is similar to the other two generators and its absolute nDCG-delta association is significant.",
+    "Groundedness/support and answer-quality direction remain separate secondary analyses."
+  ]
+}

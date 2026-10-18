@@ -1,0 +1,374 @@
+from __future__ import annotations
+
+from pathlib import PurePosixPath
+from urllib.parse import urlparse
+
+from app.catalog.store import CatalogStore
+from app.config import Settings
+from app.models.catalog import (
+    CanonicalDataset,
+    CatalogDistribution,
+    CatalogProvenance,
+    CatalogSource,
+)
+from app.models.resource import ResourceCreate
+from app.resources.fetcher import ResourceFetchError, ResourceProbe, fetch_resource_probe
+from app.resources.github import (
+    GitHubRepositorySnapshot,
+    GitHubResourceError,
+    fetch_github_repository_snapshot,
+    parse_github_repository_url,
+)
+from app.security.url_policy import UnsafeResourceURL, validate_external_resource_url
+
+
+def _dataset_type(detected_type: str) -> str:
+    return {
+        "csv": "tabular-data",
+        "json": "structured-data",
+        "document": "document",
+        "text": "text-document",
+        "image": "image",
+        "audio": "audio",
+        "video": "video",
+        "github": "software-repository",
+    }.get(detected_type, "generic")
+
+
+def _format_name(detected_type: str, media_type: str, url: str) -> str | None:
+    if detected_type == "csv":
+        return "CSV"
+    if detected_type == "json":
+        return "JSON"
+    if detected_type == "document" and media_type == "application/pdf":
+        return "PDF"
+    if detected_type == "github":
+        return "GitHub"
+    if media_type in {"application/vnd.apple.mpegurl", "application/x-mpegurl"}:
+        return "HLS"
+    suffix = PurePosixPath(urlparse(url).path).suffix.lstrip(".")
+    return suffix.upper() if suffix else None
+
+
+def _is_live_hls(probe: ResourceProbe) -> bool:
+    return probe.media_type in {
+        "application/vnd.apple.mpegurl",
+        "application/x-mpegurl",
+    } or urlparse(probe.final_url).path.lower().endswith(".m3u8")
+
+
+def _sharing_metadata(resource: dict[str, object]) -> dict[str, object]:
+    metadata = dict(resource.get("metadata") or {})
+    return {
+        "access_level": str(metadata.get("access_level") or "unspecified"),
+        "commercial_model": str(metadata.get("commercial_model") or "unspecified"),
+        "price_amount": metadata.get("price_amount"),
+        "price_currency": metadata.get("price_currency"),
+        "access_note": metadata.get("access_note"),
+    }
+
+
+def dataset_from_github_resource(
+    resource: dict[str, object],
+    snapshot: GitHubRepositorySnapshot,
+) -> CanonicalDataset:
+    resource_id = int(resource["id"])
+    metadata = dict(resource.get("metadata") or {})
+    sharing = _sharing_metadata(resource)
+    title = str(resource.get("name") or snapshot.full_name)
+    publisher = str(metadata.get("publisher") or snapshot.owner)
+    license_value = str(metadata.get("license") or snapshot.license_spdx or "unknown")
+    keywords = [str(item) for item in metadata.get("keywords", [])]
+    for item in ["github", "repository", *snapshot.topics]:
+        if item and item not in keywords:
+            keywords.append(item)
+    if snapshot.language and snapshot.language not in keywords:
+        keywords.append(snapshot.language)
+
+    identifier = f"urn:pipi:dataset:resource:{resource_id}"
+    api_url = f"https://api.github.com/repos/{snapshot.full_name}"
+
+    return CanonicalDataset(
+        catalog_id=f"resource:{resource_id}",
+        identifier=identifier,
+        title=title,
+        description=(
+            snapshot.description
+            or "GitHub repository registered through the PiPi dataspace resource registry."
+        ),
+        publisher=publisher,
+        license=license_value,
+        dataset_type="software-repository",
+        source_system="github",
+        external_id=snapshot.full_name,
+        keywords=keywords,
+        provenance=CatalogProvenance(
+            source_url=snapshot.html_url,
+            last_modified=snapshot.pushed_at,
+            source_version=snapshot.head_sha,
+        ),
+        source=CatalogSource(
+            id=snapshot.full_name,
+            code=f"github-{snapshot.owner}-{snapshot.repo}",
+            name=snapshot.full_name,
+            description=snapshot.description,
+            owner=snapshot.owner,
+            provider="GitHub",
+            license=license_value,
+        ),
+        distributions=[
+            CatalogDistribution(
+                identifier=f"{identifier}:distribution:repository",
+                title="GitHub repository",
+                access_url=snapshot.html_url,
+                media_type="application/vnd.github.repository+json",
+                format="GitHub",
+                endpoint_url=api_url,
+                endpoint_description="GitHub REST API repository endpoint",
+                kind="repository",
+                is_live=False,
+            )
+        ],
+        extensions={
+            "resource_registry": {
+                "resource_id": resource_id,
+                "registered_source_url": str(resource["source_url"]),
+                "final_url": snapshot.html_url,
+                "requested_type": resource["requested_type"],
+                "detected_type": "github",
+                **sharing,
+            },
+            "github": {
+                "owner": snapshot.owner,
+                "repo": snapshot.repo,
+                "full_name": snapshot.full_name,
+                "visibility": snapshot.visibility,
+                "default_branch": snapshot.default_branch,
+                "head_sha": snapshot.head_sha,
+                "pushed_at": snapshot.pushed_at,
+                "language": snapshot.language,
+                "license_spdx": snapshot.license_spdx,
+                "topics": list(snapshot.topics),
+                "archived": snapshot.archived,
+                "size_kb": snapshot.size_kb,
+            },
+        },
+    )
+
+
+def dataset_from_registered_resource(
+    resource: dict[str, object],
+    probe: ResourceProbe,
+) -> CanonicalDataset:
+    resource_id = int(resource["id"])
+    metadata = dict(resource.get("metadata") or {})
+    title = str(resource.get("name") or probe.title_hint or f"External resource {resource_id}")
+    publisher = str(metadata.get("publisher") or "unknown")
+    license_value = str(metadata.get("license") or "unknown")
+    keywords = [str(item) for item in metadata.get("keywords", [])]
+    if probe.detected_type not in keywords:
+        keywords.append(probe.detected_type)
+
+    identifier = f"urn:pipi:dataset:resource:{resource_id}"
+    live_hls = _is_live_hls(probe)
+
+    provenance = CatalogProvenance(
+        source_url=str(resource["source_url"]),
+        etag=None if live_hls else probe.etag,
+        last_modified=None if live_hls else probe.last_modified,
+        content_sha256=None if live_hls else probe.content_sha256,
+    )
+
+    sharing = _sharing_metadata(resource)
+
+    return CanonicalDataset(
+        catalog_id=f"resource:{resource_id}",
+        identifier=identifier,
+        title=title,
+        description=(
+            "External resource registered through the PiPi dataspace resource registry. "
+            "The catalog stores normalized metadata and source provenance while the "
+            "resource content remains at its source."
+        ),
+        publisher=publisher,
+        license=license_value,
+        dataset_type=_dataset_type(probe.detected_type),
+        source_system="resource-registry",
+        external_id=str(resource_id),
+        keywords=keywords,
+        provenance=provenance,
+        source=CatalogSource(
+            id=str(resource_id),
+            code=f"resource-{resource_id}",
+            name=title,
+            provider=publisher,
+            license=license_value,
+        ),
+        distributions=[
+            CatalogDistribution(
+                identifier=f"{identifier}:distribution:source",
+                title="Source resource",
+                access_url=probe.final_url,
+                media_type=probe.media_type,
+                format=_format_name(probe.detected_type, probe.media_type, probe.final_url),
+                download_url=None if live_hls else probe.final_url,
+                endpoint_url=probe.final_url if live_hls else None,
+                kind="live-stream" if live_hls else "external-resource",
+                is_live=live_hls,
+            )
+        ],
+        extensions={
+            "resource_registry": {
+                "resource_id": resource_id,
+                "registered_source_url": str(resource["source_url"]),
+                "final_url": probe.final_url,
+                "requested_type": resource["requested_type"],
+                "detected_type": probe.detected_type,
+                "byte_size": None if live_hls else probe.byte_size,
+                **sharing,
+            }
+        },
+    )
+
+
+async def refresh_registered_resource(
+    store: CatalogStore,
+    resource_id: int,
+    settings: Settings,
+) -> dict[str, object]:
+    resource = store.get_resource(resource_id)
+    if resource is None:
+        raise KeyError(resource_id)
+    if not resource["enabled"]:
+        return {"status": "disabled", "resource": resource, "sync": None}
+
+    github_ref = parse_github_repository_url(str(resource["source_url"]))
+    if github_ref is not None:
+        try:
+            requested_type = str(resource["requested_type"])
+            # `text` and `generic` are accepted here for resources that were
+            # registered before the GitHub adapter existed and are upgraded on refresh.
+            if requested_type not in {"auto", "github", "text", "generic"}:
+                raise GitHubResourceError(
+                    f"GitHub repository URL conflicts with requested resource type {requested_type!r}."
+                )
+            snapshot = await fetch_github_repository_snapshot(str(resource["source_url"]), settings)
+            dataset = dataset_from_github_resource(resource, snapshot)
+            sync_stats = store.upsert_datasets([dataset])
+            updated_resource = store.mark_resource_success(
+                resource_id,
+                detected_type="github",
+                dataset_identifier=dataset.identifier,
+                media_type="application/vnd.github.repository+json",
+                etag=None,
+                last_modified=snapshot.pushed_at,
+                content_sha256=None,
+            )
+            return {
+                "status": "ok",
+                "resource": updated_resource,
+                "dataset": dataset.model_dump(),
+                "sync": sync_stats,
+                "github": {
+                    "full_name": snapshot.full_name,
+                    "default_branch": snapshot.default_branch,
+                    "head_sha": snapshot.head_sha,
+                },
+            }
+        except GitHubResourceError as exc:
+            failed = store.mark_resource_error(resource_id, str(exc))
+            return {"status": "error", "resource": failed, "error": str(exc), "sync": None}
+
+    try:
+        probe = await fetch_resource_probe(str(resource["source_url"]), settings)
+        requested_type = str(resource["requested_type"])
+        if requested_type != "auto" and requested_type != probe.detected_type:
+            raise ResourceFetchError(
+                f"Resource was declared as {requested_type!r} but was detected as "
+                f"{probe.detected_type!r}. Use auto-detect or correct the resource type."
+            )
+
+        dataset = dataset_from_registered_resource(resource, probe)
+        sync_stats = store.upsert_datasets([dataset])
+        updated_resource = store.mark_resource_success(
+            resource_id,
+            detected_type=probe.detected_type,
+            dataset_identifier=dataset.identifier,
+            media_type=probe.media_type,
+            etag=None if _is_live_hls(probe) else probe.etag,
+            last_modified=None if _is_live_hls(probe) else probe.last_modified,
+            content_sha256=None if _is_live_hls(probe) else probe.content_sha256,
+        )
+        return {
+            "status": "ok",
+            "resource": updated_resource,
+            "dataset": dataset.model_dump(),
+            "sync": sync_stats,
+        }
+    except (ResourceFetchError, UnsafeResourceURL, ValueError) as exc:
+        failed = store.mark_resource_error(resource_id, str(exc))
+        return {"status": "error", "resource": failed, "error": str(exc), "sync": None}
+
+
+async def refresh_enabled_resources(
+    store: CatalogStore,
+    settings: Settings,
+) -> dict[str, object]:
+    """Refresh all enabled user-registered resources and summarize catalog changes."""
+
+    enabled = [resource for resource in store.list_resources() if resource["enabled"]]
+    results: list[dict[str, object]] = []
+    totals = {
+        "checked": len(enabled),
+        "ok": 0,
+        "errors": 0,
+        "inserted": 0,
+        "updated": 0,
+        "unchanged": 0,
+        "versions_created": 0,
+    }
+
+    for resource in enabled:
+        result = await refresh_registered_resource(store, int(resource["id"]), settings)
+        results.append(result)
+        if result["status"] == "ok":
+            totals["ok"] += 1
+            sync = result.get("sync") or {}
+            for key in ("inserted", "updated", "unchanged", "versions_created"):
+                totals[key] += int(sync.get(key, 0))
+        else:
+            totals["errors"] += 1
+
+    return {
+        "status": "ok" if totals["errors"] == 0 else "partial",
+        **totals,
+        "data": results,
+    }
+
+
+async def register_resource(
+    store: CatalogStore,
+    payload: ResourceCreate,
+    settings: Settings,
+) -> dict[str, object]:
+    source_url = str(payload.source_url)
+    validate_external_resource_url(
+        source_url,
+        allowed_ports=settings.allowed_resource_ports,
+    )
+    resource = store.create_resource(
+        source_url=source_url,
+        name=payload.name,
+        requested_type=payload.resource_type,
+        metadata={
+            "publisher": payload.publisher,
+            "license": payload.license,
+            "keywords": payload.keywords,
+            "access_level": payload.access_level,
+            "commercial_model": payload.commercial_model,
+            "price_amount": payload.price_amount,
+            "price_currency": payload.price_currency,
+            "access_note": payload.access_note,
+        },
+    )
+    return await refresh_registered_resource(store, int(resource["id"]), settings)

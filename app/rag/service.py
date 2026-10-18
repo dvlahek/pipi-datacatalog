@@ -1,0 +1,410 @@
+from __future__ import annotations
+
+import hashlib
+from pathlib import Path
+from urllib.parse import unquote, urlparse
+
+from app.catalog.store import CatalogStore
+from app.config import Settings
+from app.models.catalog import CatalogDistribution, CanonicalDataset
+from app.providers.foi_documents import (
+    FoiDocumentResolutionError,
+    FoiDocumentsProvider,
+    enrich_foi_document_dataset,
+)
+from app.rag.ingest import RagExtractionError, TextChunk, chunk_text, extract_chunks, text_sha256
+from app.rag.store import RagStore
+from app.resources.fetcher import (
+    ResourceFetchError,
+    ResourceProbe,
+    detect_resource_type,
+    fetch_resource_probe,
+)
+from app.resources.github import (
+    GitHubRepositoryCorpus,
+    GitHubResourceError,
+    fetch_github_repository_corpus,
+    fetch_github_repository_snapshot,
+    parse_github_repository_url,
+)
+from app.resources.service import dataset_from_github_resource, dataset_from_registered_resource
+from app.security.url_policy import UnsafeResourceURL
+
+
+class RagIndexError(RuntimeError):
+    pass
+
+
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+_DATA_ROOT = (_REPOSITORY_ROOT / "data").resolve()
+_TEXT_MEDIA_TYPES = {
+    "text/csv",
+    "text/plain",
+    "text/html",
+    "application/xhtml+xml",
+    "application/json",
+    "application/pdf",
+}
+_TEXT_FORMATS = {"CSV", "JSON", "PDF", "TXT", "TEXT", "HTML"}
+_METADATA_FIRST_DATASET_TYPES = {"sensor-observation"}
+
+
+def select_text_distribution(dataset: CanonicalDataset) -> CatalogDistribution | None:
+    """Return the first distribution that can feed the current text RAG pipeline."""
+
+    if dataset.dataset_type in _METADATA_FIRST_DATASET_TYPES:
+        return None
+
+    for distribution in dataset.distributions:
+        if distribution.kind == "metadata-page":
+            continue
+        media_type = distribution.media_type.lower()
+        format_value = (distribution.format or "").upper()
+        if media_type.startswith("text/"):
+            return distribution
+        if media_type in _TEXT_MEDIA_TYPES or media_type.endswith("+json"):
+            return distribution
+        if format_value in _TEXT_FORMATS:
+            return distribution
+    return None
+
+
+def _dataset_by_identifier(store: CatalogStore, dataset_identifier: str) -> CanonicalDataset:
+    for dataset in store.list_datasets():
+        if dataset.identifier == dataset_identifier:
+            return dataset
+    raise RagIndexError("Catalog dataset not found.")
+
+
+def _resource_id_for_dataset(store: CatalogStore, dataset_identifier: str) -> int | None:
+    for resource in store.list_resources():
+        if resource.get("dataset_identifier") == dataset_identifier:
+            return int(resource["id"])
+    return None
+
+
+def _local_catalog_probe(
+    distribution: CatalogDistribution,
+    settings: Settings,
+) -> ResourceProbe | None:
+    """Read repository-hosted /files assets directly instead of going through SSRF checks."""
+
+    access_url = str(distribution.access_url)
+    parsed = urlparse(access_url)
+    base = urlparse(settings.catalog_public_base_url)
+    if (parsed.scheme, parsed.netloc) != (base.scheme, base.netloc):
+        return None
+    if not parsed.path.startswith("/files/"):
+        return None
+
+    relative = unquote(parsed.path[len("/files/") :]).lstrip("/")
+    path = (_DATA_ROOT / relative).resolve()
+    if not path.is_relative_to(_DATA_ROOT) or not path.is_file():
+        raise RagIndexError("Catalog-local distribution does not resolve to a valid data file.")
+
+    size = path.stat().st_size
+    if size > settings.resource_fetch_max_bytes:
+        raise RagIndexError("Dataset exceeds configured maximum indexing size.")
+
+    content = path.read_bytes()
+    digest = hashlib.sha256(content).hexdigest()
+    media_type = distribution.media_type.lower()
+    detected_type = detect_resource_type(access_url, media_type, content)
+    return ResourceProbe(
+        final_url=access_url,
+        media_type=media_type,
+        detected_type=detected_type,
+        content_sha256=digest,
+        byte_size=len(content),
+        etag=None,
+        last_modified=None,
+        title_hint=path.name,
+        content=content,
+    )
+
+
+async def _probe_catalog_distribution(
+    distribution: CatalogDistribution,
+    settings: Settings,
+) -> ResourceProbe:
+    local_probe = _local_catalog_probe(distribution, settings)
+    if local_probe is not None:
+        return local_probe
+    return await fetch_resource_probe(str(distribution.access_url), settings)
+
+
+def _ensure_version_matches_source(dataset: CanonicalDataset, probe: ResourceProbe) -> None:
+    expected_hash = dataset.provenance.content_sha256 if dataset.provenance else None
+    if expected_hash and probe.content_sha256 and expected_hash != probe.content_sha256:
+        raise RagIndexError(
+            "Dataset source content changed after the current catalog version was created. "
+            "Sync the catalog before indexing so chunks remain bound to the correct version."
+        )
+
+
+def _store_probe_as_rag_document(
+    store: CatalogStore,
+    dataset: CanonicalDataset,
+    probe: ResourceProbe,
+    settings: Settings,
+) -> dict[str, object]:
+    text, chunks = extract_chunks(
+        probe,
+        chunk_size=settings.rag_chunk_size_chars,
+        overlap=settings.rag_chunk_overlap_chars,
+    )
+
+    rag_store = RagStore(store)
+    dataset_version = rag_store.latest_dataset_version(dataset.identifier)
+    if dataset_version is None:
+        raise RagIndexError("Dataset has no catalog version. Sync the catalog before RAG indexing.")
+
+    document = rag_store.replace_document_index(
+        dataset_identifier=dataset.identifier,
+        dataset_version=dataset_version,
+        source_url=probe.final_url,
+        media_type=probe.media_type,
+        content_sha256=probe.content_sha256,
+        extracted_text_sha256=text_sha256(text),
+        character_count=len(text),
+        chunks=chunks,
+    )
+
+    return {
+        "status": "indexed",
+        "dataset_identifier": dataset.identifier,
+        "dataset_version": dataset_version,
+        "detected_type": probe.detected_type,
+        "media_type": probe.media_type,
+        "character_count": len(text),
+        "chunk_count": len(chunks),
+        "document": document,
+    }
+
+
+def _store_github_corpus_as_rag_document(
+    store: CatalogStore,
+    dataset: CanonicalDataset,
+    corpus: GitHubRepositoryCorpus,
+    settings: Settings,
+) -> dict[str, object]:
+    sections: list[str] = []
+    chunks: list[TextChunk] = []
+    cursor = 0
+    chunk_index = 0
+
+    for file in corpus.files:
+        section = f"File: {file.path}\n{file.text}"
+        file_chunks = chunk_text(
+            section,
+            chunk_size=settings.rag_chunk_size_chars,
+            overlap=settings.rag_chunk_overlap_chars,
+        )
+        for chunk in file_chunks:
+            chunks.append(
+                TextChunk(
+                    chunk_index=chunk_index,
+                    text=chunk.text,
+                    char_start=cursor + chunk.char_start,
+                    char_end=cursor + chunk.char_end,
+                    metadata={
+                        **chunk.metadata,
+                        "structure": "github-file",
+                        "file_path": file.path,
+                        "blob_sha": file.blob_sha,
+                        "source_url": file.raw_url,
+                    },
+                )
+            )
+            chunk_index += 1
+        sections.append(section)
+        cursor += len(section) + 2
+
+    text = "\n\n".join(sections)
+    if not text or not chunks:
+        raise RagIndexError("GitHub repository produced no indexable chunks.")
+
+    rag_store = RagStore(store)
+    dataset_version = rag_store.latest_dataset_version(dataset.identifier)
+    if dataset_version is None:
+        raise RagIndexError("Dataset has no catalog version. Refresh the repository before RAG indexing.")
+
+    document = rag_store.replace_document_index(
+        dataset_identifier=dataset.identifier,
+        dataset_version=dataset_version,
+        source_url=corpus.repository.html_url,
+        media_type="application/vnd.pipi.github-repository",
+        content_sha256=corpus.content_sha256,
+        extracted_text_sha256=text_sha256(text),
+        character_count=len(text),
+        chunks=chunks,
+    )
+    return {
+        "status": "indexed",
+        "dataset_identifier": dataset.identifier,
+        "dataset_version": dataset_version,
+        "detected_type": "github",
+        "media_type": "application/vnd.pipi.github-repository",
+        "character_count": len(text),
+        "chunk_count": len(chunks),
+        "document": document,
+        "github_index": {
+            "full_name": corpus.repository.full_name,
+            "head_sha": corpus.repository.head_sha,
+            "files_indexed": corpus.selected_count,
+            "candidate_files": corpus.candidate_count,
+            "fetched_bytes": corpus.fetched_bytes,
+            "tree_truncated": corpus.tree_truncated,
+            "max_files": settings.github_index_max_files,
+            "max_total_bytes": settings.github_index_max_total_bytes,
+        },
+    }
+
+
+async def _index_foi_document(
+    store: CatalogStore,
+    dataset: CanonicalDataset,
+    settings: Settings,
+) -> dict[str, object]:
+    foi_metadata = dict(dataset.extensions.get("foi_documents") or {})
+    detail_url = str(foi_metadata.get("detail_url") or "").strip()
+    if not detail_url:
+        raise RagIndexError("FOI document dataset is missing its public detail URL.")
+
+    provider = FoiDocumentsProvider(
+        settings.foi_documents_base_url,
+        settings.foi_documents_timeout_seconds,
+    )
+    detail = await provider.resolve_detail(detail_url)
+    probe = await fetch_resource_probe(detail.download_url, settings)
+    enriched = enrich_foi_document_dataset(dataset, detail, probe)
+    catalog_sync = store.upsert_datasets([enriched])
+
+    try:
+        result = _store_probe_as_rag_document(store, enriched, probe, settings)
+    except RagExtractionError as exc:
+        raise RagIndexError(
+            f"FOI source was resolved and versioned, but it is not text-indexable yet: {exc}"
+        ) from exc
+
+    return {
+        **result,
+        "index_source": "foi-document-download",
+        "catalog_sync": catalog_sync,
+        "foi_document": {
+            "detail_url": detail.detail_url,
+            "download_id": detail.download_id,
+            "download_url": probe.final_url,
+        },
+    }
+
+
+async def index_catalog_dataset(
+    store: CatalogStore,
+    dataset_identifier: str,
+    settings: Settings,
+) -> dict[str, object]:
+    dataset = _dataset_by_identifier(store, dataset_identifier)
+
+    if dataset.source_system in {"resource-registry", "github"}:
+        resource_id = _resource_id_for_dataset(store, dataset.identifier)
+        if resource_id is None:
+            raise RagIndexError("Registered-resource dataset is missing its registry entry.")
+        result = await index_registered_resource(store, resource_id, settings)
+        return {
+            **result,
+            "index_source": "github-repository" if dataset.source_system == "github" else "resource-registry",
+        }
+
+    if dataset.source_system == "foi-documents":
+        try:
+            return await _index_foi_document(store, dataset, settings)
+        except (
+            FoiDocumentResolutionError,
+            ResourceFetchError,
+            UnsafeResourceURL,
+            ValueError,
+        ) as exc:
+            raise RagIndexError(str(exc)) from exc
+
+    distribution = select_text_distribution(dataset)
+    if distribution is None:
+        raise RagIndexError(
+            "Dataset has no text-indexable source distribution yet. Its catalog metadata remains searchable."
+        )
+
+    try:
+        probe = await _probe_catalog_distribution(distribution, settings)
+        _ensure_version_matches_source(dataset, probe)
+        result = _store_probe_as_rag_document(store, dataset, probe, settings)
+        return {**result, "index_source": "catalog-distribution"}
+    except (ResourceFetchError, UnsafeResourceURL, RagExtractionError, ValueError) as exc:
+        raise RagIndexError(str(exc)) from exc
+
+
+async def index_registered_resource(
+    store: CatalogStore,
+    resource_id: int,
+    settings: Settings,
+) -> dict[str, object]:
+    resource = store.get_resource(resource_id)
+    if resource is None:
+        raise KeyError(resource_id)
+    if not resource["enabled"]:
+        raise RagIndexError("Disabled resources cannot be indexed.")
+
+    github_ref = parse_github_repository_url(str(resource["source_url"]))
+    if github_ref is not None:
+        try:
+            requested_type = str(resource["requested_type"])
+            if requested_type not in {"auto", "github", "text", "generic"}:
+                raise GitHubResourceError(
+                    f"GitHub repository URL conflicts with requested resource type {requested_type!r}."
+                )
+            snapshot = await fetch_github_repository_snapshot(str(resource["source_url"]), settings)
+            dataset = dataset_from_github_resource(resource, snapshot)
+            sync = store.upsert_datasets([dataset])
+            store.mark_resource_success(
+                resource_id,
+                detected_type="github",
+                dataset_identifier=dataset.identifier,
+                media_type="application/vnd.github.repository+json",
+                etag=None,
+                last_modified=snapshot.pushed_at,
+                content_sha256=None,
+            )
+            corpus = await fetch_github_repository_corpus(snapshot, settings)
+            result = _store_github_corpus_as_rag_document(store, dataset, corpus, settings)
+            return {
+                **result,
+                "resource_id": resource_id,
+                "catalog_sync": sync,
+                "index_source": "github-repository",
+            }
+        except GitHubResourceError as exc:
+            store.mark_resource_error(resource_id, str(exc))
+            raise RagIndexError(str(exc)) from exc
+
+    try:
+        probe = await fetch_resource_probe(str(resource["source_url"]), settings)
+        dataset = dataset_from_registered_resource(resource, probe)
+        sync = store.upsert_datasets([dataset])
+        store.mark_resource_success(
+            resource_id,
+            detected_type=probe.detected_type,
+            dataset_identifier=dataset.identifier,
+            media_type=probe.media_type,
+            etag=probe.etag,
+            last_modified=probe.last_modified,
+            content_sha256=probe.content_sha256,
+        )
+
+        result = _store_probe_as_rag_document(store, dataset, probe, settings)
+        return {
+            **result,
+            "resource_id": resource_id,
+            "catalog_sync": sync,
+        }
+    except (ResourceFetchError, UnsafeResourceURL, RagExtractionError, ValueError) as exc:
+        store.mark_resource_error(resource_id, str(exc))
+        raise RagIndexError(str(exc)) from exc

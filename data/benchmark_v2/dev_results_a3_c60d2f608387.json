@@ -1,0 +1,272 @@
+{
+  "artifact": "pipi-benchmark-v2-development-results-a3",
+  "schema_version": 1,
+  "status": "development-diagnostic-only",
+  "catalog_snapshot_hash": "068e1b0df74acd8b91d04a5161f4413d57d07bfef5c8c9ce2b8d1100ae780419",
+  "corpus_fingerprint_sha256": "f04239fe6df52ab2604ab45a8c08cc83d5bafe79203a4b16c20a2d2a307e2dc6",
+  "protocol_sha256": "d277465bb9572bf6bbff82a5d5bf6f29fd1d9ebd9a5b9940d890d87b87df2dde",
+  "development_cases_sha256": "c60d2f6083873bb76591ffdd10d19cfe32f4900c20a4117ca39ecc3d2c40b4e9",
+  "input_pool_sha256": "6c1b72beb3ce64c0e2aa61f97bf64abfd17fc5ca83a5213c414e16e6b8894ad0",
+  "judgment_artifact_sha256": "dc5cb32392c5c5fd29dbcbdffedbf1fd9735ec9867a8bfdf3d66ac686dcf41ac",
+  "qrels_tsv_sha256": "b209215c127b5a4719ca9d84071d50e275c011c047ae6beda0f2f78c67bc0c33",
+  "retrieval_ledger_sha256": "a4b0314dc5e244baf1dd02990f993afb7491cb8c2acd5837d10bf4ec8dd82ce2",
+  "frozen_query_artifact_sha256": "903f8b30ca7de399822ec3bc4f5ba207ca8922f160882b9ad5c1ff7cd632deb9",
+  "annotation_protocol_sha256": "d33d1e25732f96db7d3514e43596763a89eacc7f98d618789d4cddc9b86fbb31",
+  "protocol_amendment_3": {
+    "git_commit_sha": "1c9a839e9cba146759fa2a927bcc699e99eea89b",
+    "git_blob_sha": "7915c03685f934fb3c653596aadf505dfacfc53a",
+    "path": "docs/retrieval_benchmark_v2_amendment_3.md"
+  },
+  "judge": {
+    "type": "llm-assisted-blinded-batch-judge",
+    "model_label": "GPT-5.6 Sol",
+    "provider": "OpenAI",
+    "blinding": {
+      "retrieval_profile_identity_used": false,
+      "retrieval_rank_used": false,
+      "retrieval_score_used": false,
+      "lexical_vector_component_ranks_used": false,
+      "authoring_seed_status_used": false,
+      "frozen_target_identifiers_used": false,
+      "frozen_target_chunk_hints_used": false,
+      "candidate_order_used": false,
+      "allowed_inputs": [
+        "frozen query text",
+        "frozen information-need description",
+        "candidate source identity",
+        "candidate file path when applicable",
+        "candidate evidence text"
+      ]
+    },
+    "procedure": "GPT-5.6 Sol applied the frozen 0-3 rubric in a blinded batch procedure. For consistency across 2314 pairs, the judge first formalized case-specific semantic criteria from each frozen information need and then applied those criteria deterministically to candidate source identity/file path and evidence text. Case-level criteria and ambiguous relevance boundaries were reviewed before export. Retrieval provenance and authoring-seed fields were excluded from the grading function."
+  },
+  "case_count": 48,
+  "candidate_count": 2314,
+  "grade_counts": {
+    "0": 1918,
+    "1": 194,
+    "2": 121,
+    "3": 81
+  },
+  "metric_conventions": {
+    "nDCG@10": "graded relevance with gain 2^rel-1 and log2 discount; IDCG from all pooled/seeded qrels for the query",
+    "MRR_Recall_Hit": "binary relevance threshold rel>=2",
+    "development_statistics": "diagnostic only; not confirmatory",
+    "bootstrap": "10000 paired query-level resamples, deterministic seed 20261013"
+  },
+  "overall_profile_metrics": {
+    "lexical-v1": {
+      "nDCG@10": 0.39173969742912246,
+      "MRR": 0.4242165616246498,
+      "Recall@10": 0.4199523755230277,
+      "Hit@1": 0.375,
+      "Hit@3": 0.4375,
+      "Hit@10": 0.5625
+    },
+    "vector-e5-content-v1": {
+      "nDCG@10": 0.6736497345015305,
+      "MRR": 0.7722572362278245,
+      "Recall@10": 0.6816847102173189,
+      "Hit@1": 0.7291666666666666,
+      "Hit@3": 0.7916666666666666,
+      "Hit@10": 0.8958333333333334
+    },
+    "hybrid-e5-content-v1": {
+      "nDCG@10": 0.5907232305940787,
+      "MRR": 0.6461141748366014,
+      "Recall@10": 0.6432755122293167,
+      "Hit@1": 0.5208333333333334,
+      "Hit@3": 0.7291666666666666,
+      "Hit@10": 0.8125
+    },
+    "vector-e5-metadata-v1": {
+      "nDCG@10": 0.7248725402118973,
+      "MRR": 0.8134070972886761,
+      "Recall@10": 0.7199777426679601,
+      "Hit@1": 0.7708333333333334,
+      "Hit@3": 0.8541666666666666,
+      "Hit@10": 0.875
+    },
+    "hybrid-e5-metadata-v1": {
+      "nDCG@10": 0.6087083165645509,
+      "MRR": 0.6630050505050505,
+      "Recall@10": 0.6542715361329491,
+      "Hit@1": 0.5625,
+      "Hit@3": 0.7291666666666666,
+      "Hit@10": 0.8333333333333334
+    }
+  },
+  "primary_contrast": {
+    "left": "hybrid-e5-content-v1",
+    "right": "hybrid-e5-metadata-v1",
+    "left_mean_nDCG@10": 0.5907232305940787,
+    "right_mean_nDCG@10": 0.6087083165645509,
+    "mean_delta": 0.017985085970472235,
+    "median_delta": 0.0,
+    "bootstrap_95_ci_mean_delta": [
+      -0.010969476380450918,
+      0.05079186286131194
+    ],
+    "wilcoxon_p": 0.26909461796905,
+    "rank_biserial": 0.24338624338624337,
+    "positive_queries": 15,
+    "negative_queries": 12,
+    "zero_queries": 21
+  },
+  "secondary_contrasts": [
+    {
+      "left": "vector-e5-content-v1",
+      "right": "vector-e5-metadata-v1",
+      "left_mean_nDCG@10": 0.6736497345015305,
+      "right_mean_nDCG@10": 0.7248725402118973,
+      "mean_delta": 0.05122280571036664,
+      "median_delta": 0.0,
+      "bootstrap_95_ci_mean_delta": [
+        0.007520920575446578,
+        0.09820749352969328
+      ],
+      "wilcoxon_p": 0.025674822077048517,
+      "rank_biserial": 0.43865546218487395,
+      "positive_queries": 21,
+      "negative_queries": 13,
+      "zero_queries": 14,
+      "holm_adjusted_p": 0.025674822077048517
+    },
+    {
+      "left": "lexical-v1",
+      "right": "hybrid-e5-content-v1",
+      "left_mean_nDCG@10": 0.39173969742912246,
+      "right_mean_nDCG@10": 0.5907232305940787,
+      "mean_delta": 0.1989835331649563,
+      "median_delta": 0.06946434294584386,
+      "bootstrap_95_ci_mean_delta": [
+        0.10651280740810236,
+        0.2944984310514922
+      ],
+      "wilcoxon_p": 8.803519923028576e-05,
+      "rank_biserial": 0.7205128205128205,
+      "positive_queries": 32,
+      "negative_queries": 7,
+      "zero_queries": 9,
+      "holm_adjusted_p": 0.00017607039846057152
+    },
+    {
+      "left": "lexical-v1",
+      "right": "hybrid-e5-metadata-v1",
+      "left_mean_nDCG@10": 0.39173969742912246,
+      "right_mean_nDCG@10": 0.6087083165645509,
+      "mean_delta": 0.2169686191354285,
+      "median_delta": 0.12121204110092837,
+      "bootstrap_95_ci_mean_delta": [
+        0.12832799857852709,
+        0.3107490637586088
+      ],
+      "wilcoxon_p": 2.687315681968135e-05,
+      "rank_biserial": 0.7813765182186235,
+      "positive_queries": 33,
+      "negative_queries": 5,
+      "zero_queries": 10,
+      "holm_adjusted_p": 8.061947045904404e-05
+    }
+  ],
+  "primary_hybrid_drift": {
+    "chunk_retention@10": 0.7645833333333334,
+    "chunk_churn@10": 0.2354166666666667,
+    "chunk_Jaccard@10": 0.6465513653013653,
+    "top1_chunk_change_rate": 0.20833333333333334,
+    "mean_abs_rank_shift_shared_chunks": 1.4710234788359788,
+    "source_retention@10": 0.8460813492063494,
+    "source_churn@10": 0.15391865079365077,
+    "source_Jaccard@10": 0.7953944203944204,
+    "top1_source_change_rate": 0.125,
+    "relevant_evidence_retention_grade_2_or_3": 0.9363247863247863,
+    "relevant_evidence_retention_n_queries": 39,
+    "relevant_evidence_Jaccard_grade_2_or_3": 0.8737698412698413
+  },
+  "drift_quality_association": {
+    "chunk_churn_vs_abs_nDCG_delta_spearman_rho": 0.23959565130949273,
+    "chunk_churn_vs_abs_nDCG_delta_p": 0.10096366840437572,
+    "chunk_Jaccard_vs_abs_nDCG_delta_spearman_rho": -0.23959565130949273,
+    "chunk_Jaccard_vs_abs_nDCG_delta_p": 0.10096366840437572
+  },
+  "primary_contrast_subgroups": {
+    "source_family": {
+      "structured-data": {
+        "n": 12,
+        "hybrid_content_nDCG@10": 0.8429998696340286,
+        "hybrid_metadata_nDCG@10": 0.8426694752608482,
+        "delta": -0.0003303943731803871
+      },
+      "software-documentation": {
+        "n": 12,
+        "hybrid_content_nDCG@10": 0.41242288243491343,
+        "hybrid_metadata_nDCG@10": 0.3955824570853819,
+        "delta": -0.016840425349531507
+      },
+      "institutional-documents": {
+        "n": 12,
+        "hybrid_content_nDCG@10": 0.45061637973144314,
+        "hybrid_metadata_nDCG@10": 0.5494276299374962,
+        "delta": 0.09881125020605303
+      },
+      "open-data-catalogs": {
+        "n": 12,
+        "hybrid_content_nDCG@10": 0.6568537905759296,
+        "hybrid_metadata_nDCG@10": 0.6471537039744776,
+        "delta": -0.009700086601452051
+      }
+    },
+    "query_type": {
+      "exact-lookup": {
+        "n": 8,
+        "hybrid_content_nDCG@10": 0.6328095471755777,
+        "hybrid_metadata_nDCG@10": 0.6715427904470116,
+        "delta": 0.038733243271433904
+      },
+      "semantic-paraphrase": {
+        "n": 8,
+        "hybrid_content_nDCG@10": 0.6225533033789523,
+        "hybrid_metadata_nDCG@10": 0.6340997497982741,
+        "delta": 0.011546446419321788
+      },
+      "topic-discovery": {
+        "n": 8,
+        "hybrid_content_nDCG@10": 0.40193512930056013,
+        "hybrid_metadata_nDCG@10": 0.39763716712281444,
+        "delta": -0.0042979621777456956
+      },
+      "entity-document-lookup": {
+        "n": 8,
+        "hybrid_content_nDCG@10": 0.49339757116970195,
+        "hybrid_metadata_nDCG@10": 0.479178973171876,
+        "delta": -0.014218597997825932
+      },
+      "relation-comparison": {
+        "n": 8,
+        "hybrid_content_nDCG@10": 0.6498031340946366,
+        "hybrid_metadata_nDCG@10": 0.7428200031943599,
+        "delta": 0.09301686909972329
+      },
+      "constraint-filtered-lookup": {
+        "n": 8,
+        "hybrid_content_nDCG@10": 0.7438406984450436,
+        "hybrid_metadata_nDCG@10": 0.7269712156529697,
+        "delta": -0.016869482792073898
+      }
+    },
+    "language_relation": {
+      "cross-language": {
+        "n": 24,
+        "hybrid_content_nDCG@10": 0.4886703829566266,
+        "hybrid_metadata_nDCG@10": 0.4858055129153016,
+        "delta": -0.0028648700413250183
+      },
+      "same-language": {
+        "n": 24,
+        "hybrid_content_nDCG@10": 0.6927760782315309,
+        "hybrid_metadata_nDCG@10": 0.7316111202138004,
+        "delta": 0.0388350419822695
+      }
+    }
+  }
+}

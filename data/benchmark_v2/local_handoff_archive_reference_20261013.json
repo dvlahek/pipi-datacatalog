@@ -1,0 +1,16 @@
+{
+  "artifact": "pipi-v2-local-handoff-archive-reference",
+  "schema_version": 2,
+  "status": "local-backup-not-committed",
+  "parent_head_before_handoff_commit": "9c0493f943db131282395f81619bf5b8d274cdc1",
+  "full_archive_filename": "PIPI_V2_FULL_HANDOFF_ARCHIVE_20261013.zip",
+  "full_archive_sha256": "7bfa6e5268312d58246ad8f4eff6fdfcdac628170e660eb652299d0f5238c6cc",
+  "full_archive_size_bytes": 16482376,
+  "fresh_pass2_package_filename": "PIPI_V2_PASS2_FRESH_JUDGE_PACKAGE_20261013.zip",
+  "fresh_pass2_package_sha256": "75306663af232410d9e1ce5364ab2dfd0e26d247e1d8e1e44a33d83a01e5aa90",
+  "fresh_pass2_package_size_bytes": 863406,
+  "full_archive_contains_sealed_pass1_material": true,
+  "full_archive_must_not_be_exposed_to_pass2_judge": true,
+  "local_full_manifest_filename": "PIPI_V2_FULL_HANDOFF_ARCHIVE_MANIFEST_20261013.json",
+  "local_full_manifest_sha256": "63584a02bb08b0c03939ce6c447e5dcf958162445d134fe7f292cea880a370d6"
+}

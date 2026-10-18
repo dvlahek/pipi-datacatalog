@@ -1,0 +1,115 @@
+{
+  "answer_drift_role": "secondary_descriptive",
+  "chunking": {
+    "csv_mode": "one_nonempty_data_row_per_chunk_with_header_value_pairs",
+    "generic_chunk_size_chars": 1200,
+    "generic_overlap_chars": 200,
+    "max_chunks_per_distribution": 512
+  },
+  "confirmatory": {
+    "H1": "paired chunk_churn_at_10 vs dataset_churn_at_10; two-sided Wilcoxon; expected chunk > dataset",
+    "H2": "Spearman between query-source mean log1p(chunks_per_dataset) and chunk-minus-dataset churn gap; expected positive",
+    "H3": "100% exact ordered-evidence replay",
+    "multiplicity_adjustment": "Holm across H1 and H2, familywise alpha 0.05",
+    "primary_profile_a": "hybrid-e5-content-v1",
+    "primary_profile_b": "hybrid-e5-metadata-v1",
+    "top_k": 10
+  },
+  "dependencies": {
+    "fonttools": "4.67.0",
+    "pypdf": "6.21.0",
+    "requests": "2.34.2"
+  },
+  "distribution": {
+    "allowed_formats": ["pdf", "txt", "csv", "json", "html", "xhtml"],
+    "download_url_only": true,
+    "max_bytes": 5242880,
+    "max_chunks": 512,
+    "xml_allowed": false,
+    "download_retry_attempts": 3
+  },
+  "freeze_date": "2026-10-17",
+  "licenses": {
+    "accepted_exact_or_prefixes": [
+      "https://creativecommons.org/publicdomain/zero/1.0",
+      "http://creativecommons.org/publicdomain/zero/1.0",
+      "https://creativecommons.org/licenses/by/4.0",
+      "http://creativecommons.org/licenses/by/4.0",
+      "https://creativecommons.org/licenses/by/3.0",
+      "http://creativecommons.org/licenses/by/3.0",
+      "https://creativecommons.org/licenses/by-sa/4.0",
+      "http://creativecommons.org/licenses/by-sa/4.0",
+      "https://opendatacommons.org/licenses/by/1.0",
+      "http://opendatacommons.org/licenses/by/1.0",
+      "https://opendatacommons.org/licenses/pddl/1-0",
+      "http://opendatacommons.org/licenses/pddl/1-0",
+      "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3",
+      "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3",
+      "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/2",
+      "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/2",
+      "http://publications.europa.eu/resource/authority/licence/CC0",
+      "http://publications.europa.eu/resource/authority/licence/CC_BY_4_0",
+      "http://publications.europa.eu/resource/authority/licence/CC_BY_3_0",
+      "http://publications.europa.eu/resource/authority/licence/CC_BY_SA_4_0",
+      "http://publications.europa.eu/resource/authority/licence/ODC_BY",
+      "http://publications.europa.eu/resource/authority/licence/PDDL",
+      "http://publications.europa.eu/resource/authority/licence/OGL_3_0",
+      "http://publications.europa.eu/resource/authority/licence/OGL_2_0",
+      "http://dcat-ap.ch/vocabulary/licenses/terms_open",
+      "https://dcat-ap.ch/vocabulary/licenses/terms_open",
+      "http://dcat-ap.ch/vocabulary/licenses/terms_by",
+      "https://dcat-ap.ch/vocabulary/licenses/terms_by",
+      "http://dcat-ap.de/def/licenses/dl-by-de/2.0",
+      "http://www.dcat-ap.de/def/licenses/dl-by-de/2.0",
+      "http://dcat-ap.de/def/licenses/dl-zero-de/2.0",
+      "http://www.dcat-ap.de/def/licenses/dl-zero-de/2.0",
+      "https://www.govdata.de/dl-de/by-2-0",
+      "https://www.govdata.de/dl-de/zero-2-0"
+    ],
+    "accepted_normalized_labels": [
+      "creative commons zero 1.0", "cc0 1.0",
+      "creative commons attribution 4.0 international", "creative commons attribution 4.0", "cc by 4.0",
+      "creative commons attribution 3.0", "cc by 3.0",
+      "creative commons attribution-sharealike 4.0 international", "cc by-sa 4.0",
+      "open data commons attribution license 1.0", "odc-by 1.0",
+      "open data commons public domain dedication and license 1.0", "pddl 1.0",
+      "open government licence version 3.0", "ogl 3.0",
+      "open government licence version 2.0", "ogl 2.0",
+      "terms_open", "terms_by",
+      "datenlizenz deutschland namensnennung 2.0", "dl-by-de/2.0",
+      "datenlizenz deutschland zero version 2.0", "dl-zero-de/2.0"
+    ],
+    "inherit_dataset_license_if_distribution_license_missing": false,
+    "note": "V2.3 preserves the V2.2 explicit distribution-level open-licence rule. Swiss terms_ask/terms_by_ask and other permission-requiring or noncommercial terms are excluded."
+  },
+  "metadata_api": {
+    "frozen_candidate_universe_sha256": "a27ee40d3cacb77a1981c6fdf403affb11a9e669e6f2fbc808d7f14b1ff5d952",
+    "frozen_candidate_order_sha256": "121c3e038b65ccca663e516db9a28d5cb2e1ac9f6aaaaed43587733ad436ce18",
+    "frozen_candidate_count_per_theme": 10000,
+    "themes": ["ECON", "ENVI", "HEAL", "TRAN"]
+  },
+  "metadata_detail": {
+    "endpoint_template": "https://data.europa.eu/api/hub/search/datasets/{dataset_id}",
+    "response_object": "result",
+    "retry_attempts": 6,
+    "timeout_connect_seconds": 20,
+    "timeout_read_seconds": 120,
+    "cache_raw_json": true
+  },
+  "parser_environment": {
+    "manifest_relpath": "parser_environment_v2_3.json",
+    "manifest_sha256": "364acb942bb5ef2323a2725a849fdeb62000a80ffd4ee6bdf1208b6ccb56d5df",
+    "selector_driver_path": "scripts/second_corpus_dataeuropa_select_v2_3.py",
+    "selector_driver_sha256": "7791a661bdb26ee16a1e59f4c0db7a0a68246edf1bf138e80c1d115c70b16e87"
+  },
+  "protocol_id": "SECOND_CORPUS_DATAEUROPA_V2",
+  "transport_revision": "V2.3",
+  "query_target": 96,
+  "selection": {
+    "min_eligible_distributions": 2,
+    "publisher_cap_per_theme": 20,
+    "retained_distributions": 2,
+    "seed": "SECOND_CORPUS_DATAEUROPA_V2",
+    "target_per_theme": 200
+  }
+}
