@@ -1,0 +1,74 @@
+{
+  "paper": "Retrieval Is Part of Data Space Provenance: Evidence Granularity and Replay for RAG",
+  "provenance_granularity": {
+    "corpus_a": {
+      "dataset_churn": 0.1037,
+      "intermediate_churn": 0.1756,
+      "chunk_churn": 0.2302,
+      "top1_chunk_change": 0.2604
+    },
+    "corpus_b": {
+      "dataset_churn": 0.2089,
+      "intermediate_churn": 0.2407,
+      "chunk_churn": 0.3938,
+      "top1_chunk_change": 0.5625,
+      "dataset_to_chunk_gap_pp": 18.48,
+      "share_of_gap_below_distribution": 0.828
+    }
+  },
+  "confirmation_tests": {
+    "h1": {
+      "rank_biserial": 0.928,
+      "holm_adjusted_p": 1.08e-13
+    },
+    "h2": {
+      "spearman_rho": 0.155,
+      "holm_adjusted_p": 0.131,
+      "supported": false
+    }
+  },
+  "replay": {
+    "recorded_retrieval_runs": 1152,
+    "exact_replays": 1152,
+    "exact_replay_rate": 1.0
+  },
+  "answer_drift": {
+    "corpus_a": {
+      "qwen3_8b": {"material": 22, "n": 192, "rate": 0.1146},
+      "ministral_3_8b": {"material": 22, "n": 192, "rate": 0.1146},
+      "gemma_3_4b": {"material": 20, "n": 192, "rate": 0.1042}
+    },
+    "corpus_b": {
+      "openai_judge_material": 31,
+      "n": 81,
+      "rate": 0.3827,
+      "strict_same_dataset_set_changed_chunks": 19,
+      "strict_material_openai": 9,
+      "strict_material_human_three_rater": 7,
+      "strict_material_human_five_rater": 8
+    }
+  },
+  "same_evidence_generation": {
+    "exact": 306,
+    "n": 306,
+    "rate": 1.0
+  },
+  "human_validation": {
+    "corpus_a": {
+      "assessors": 10,
+      "pairs": 80,
+      "resolved_strict_majority": 74,
+      "model_human_agreement": 0.838,
+      "cohen_kappa": 0.542,
+      "fleiss_kappa": 0.335,
+      "chunk_churn_vs_material_votes_spearman_rho": 0.502
+    },
+    "corpus_b": {
+      "assessors": 5,
+      "pairs": 44,
+      "five_rater_vs_openai_binary_agreement": 0.955,
+      "five_rater_vs_openai_qwk": 0.905,
+      "excluding_first_author_fleiss_kappa": 0.792
+    }
+  }
+}
