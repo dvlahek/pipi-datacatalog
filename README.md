@@ -1,8 +1,8 @@
-# PiPi retrieval-provenance reproducibility release
+# PiPi retrieval-provenance reproducibility package
 
 This branch supports the paper **Retrieval Is Part of Data Space Provenance: Evidence Granularity and Replay for RAG**.
 
-The paper studies how much retrieval stability appears to change when the same execution is compared at dataset, intermediate-source, and chunk identity. It also tests whether evidence changes hidden by coarse source identity propagate to generated answers and whether the recorded retrieval execution can be replayed exactly.
+The paper studies how retrieval stability changes when the same execution is compared at dataset, intermediate-source, and chunk identity. It also tests whether evidence changes hidden by coarse source identity propagate to generated answers and whether the recorded retrieval execution can be replayed exactly.
 
 ## Headline results
 
@@ -18,7 +18,7 @@ The paper studies how much retrieval stability appears to change when the same e
 
 Start with [`reproducibility/README.md`](reproducibility/README.md).
 
-The publication-facing directory contains compact result summaries, the second-corpus sample-size amendment, citation metadata, and the files used to prepare the archival release. The implementation and analysis scripts remain in their original repository locations.
+The publication-facing directory contains compact result summaries, protocol documentation, citation metadata, and an artifact map. The implementation and analysis scripts remain in their original repository locations and are linked from the reproducibility guide.
 
 Key code paths include:
 
@@ -37,6 +37,4 @@ The second corpus is based on openly licensed public distributions and can be re
 
 ## Citation
 
-The paper release will be archived on Zenodo. After the DOI is minted, the DOI will be added to `reproducibility/CITATION.cff` and cited from the article.
-
-The development branch remains `feature/sensor-hub-bootstrap`.
+Repository citation metadata are provided in `CITATION.cff`. A separate archival DOI is not required for the current submission package.
