@@ -1,0 +1,20 @@
+{
+  "corpus_a": {
+    "condition_count": 144,
+    "exact_match_count": 144,
+    "exact_match_rate": 1.0,
+    "failure_count": 0
+  },
+  "corpus_b": {
+    "condition_count": 162,
+    "exact_match_count": 162,
+    "exact_match_rate": 1.0,
+    "failure_count": 0
+  },
+  "combined": {
+    "condition_count": 306,
+    "exact_match_count": 306,
+    "exact_match_rate": 1.0,
+    "failure_count": 0
+  }
+}
