@@ -9,7 +9,5 @@ authors:
   - family-names: Novak
     given-names: Matija
 year: 2026
-repository-code: "https://github.com/dvlahek/pipi-datacatalog"
-message: "Please cite the archival Zenodo release once its DOI is assigned."
-# doi: "10.5281/zenodo.REPLACE_WITH_DOI"
-# version: "v1.0-paper"
+repository-code: "https://github.com/dvlahek/pipi-datacatalog/tree/paper/fgcs-reproducibility"
+message: "Please cite this repository together with the associated article."
