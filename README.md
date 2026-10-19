@@ -1,5 +1,7 @@
 # PiPi Data Catalog
 
+> **Paper reproducibility package:** The material supporting *Retrieval Is Part of Data Space Provenance: Evidence Granularity and Replay for RAG* is maintained on the [`paper/fgcs-reproducibility`](https://github.com/dvlahek/pipi-datacatalog/tree/paper/fgcs-reproducibility) branch. Start with its [`reproducibility/README.md`](https://github.com/dvlahek/pipi-datacatalog/blob/paper/fgcs-reproducibility/reproducibility/README.md) for the evaluation scripts, result summaries, replay checks, protocol amendment, and artifact map used in the paper.
+
 Semantic metadata catalog for the PiPi project (*Podatkovna Infrastruktura i Proširena Inteligencija za održivi razvoj*).
 
 The catalog is intentionally separated from source systems. Sensor Hub and future providers keep their operational data, while this service harvests descriptive metadata and exposes a common catalog layer. The first provider is the PiPi Sensor Hub REST API.
