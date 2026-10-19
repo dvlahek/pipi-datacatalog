@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+title: "Reproducibility package for Retrieval Is Part of Data Space Provenance: Evidence Granularity and Replay for RAG"
+type: software
+authors:
+  - family-names: Vlahek
+    given-names: Dino
+  - family-names: Oreški
+    given-names: Dijana
+  - family-names: Novak
+    given-names: Matija
+year: 2026
+repository-code: "https://github.com/dvlahek/pipi-datacatalog"
+message: "Please cite the archival Zenodo release once its DOI is assigned."
+# doi: "10.5281/zenodo.REPLACE_WITH_DOI"
+# version: "v1.0-paper"
