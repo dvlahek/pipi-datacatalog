@@ -9,6 +9,22 @@ The goal is to keep the package small and auditable. The repository already cont
 - **Corpus A:** the sampling unit is a dataset. The corpus contains 274 sampled datasets and 274 unique dataset IDs, so there is no separate selection-record layer.
 - **Corpus B:** the sampling unit is a selection record, defined as one dataset included in one topical stratum. The design contains 400 selection records but 397 unique dataset IDs because three datasets occur in two strata. Selection records are not retrieval-provenance identities. Corpus-B provenance uses dataset, distribution, and chunk identities. Each selection record contributes two retained distributions, for 800 distributions in total.
 
+## Protocol chronology
+
+The paper reports the scientific chronology without embedding commit identifiers in the main text. The exact repository history is recorded here.
+
+### Corpus A
+
+- Initial Benchmark V2 design: `0a30e0dec255a07d99892cdf30b706132d206f9e` — **Add frozen Benchmark V2 experimental design**.
+- Pre-authoring four-family amendment: `1375cee96ecc1f3628d679226e7fcfcd80821f57` — **Amend Benchmark V2 for four source families**. This amendment added open-data catalogs as the fourth source family and rebalanced the development/confirmation allocation before confirmation query authoring and retrieval evaluation.
+
+### Corpus B
+
+- Confirmation protocol V2: `3f1e2adabe12d2697f3a3bf5c66749fc9d097274` — **Freeze second-corpus confirmation protocol V2**. It was recorded before corpus-B dataset selection.
+- The later feasibility change reduced the target from 200 to 100 selection records per topical stratum before query authoring, retrieval evaluation, or inspection of confirmatory outcomes. The change is documented in `protocols/corpus_b_amendment.md`.
+
+The protocol files and commit history provide the detailed audit trail. The article keeps only the chronology needed to interpret the study design.
+
 ## Main reproduction targets
 
 1. Provenance churn at dataset, intermediate-source, and chunk identity.
