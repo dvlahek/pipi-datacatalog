@@ -4,6 +4,11 @@ This branch supports the paper **Retrieval Is Part of Data Space Provenance: Evi
 
 The paper studies how retrieval stability changes when the same execution is compared at dataset, intermediate-source, and chunk identity. It also tests whether evidence changes hidden by coarse source identity propagate to generated answers and whether the recorded retrieval execution can be replayed exactly.
 
+## Corpus terminology
+
+- **Corpus A** samples datasets directly: 274 sampled datasets = 274 unique dataset identifiers, with 3,974 chunks and 192 confirmation queries. There is no separate selection-record layer.
+- **Corpus B** samples **selection records**, where one selection record means one source dataset included in one topical stratum. The 400 selection records correspond to 397 unique dataset identifiers because three datasets occur in two strata. Selection records are sampling units only; retrieval provenance uses dataset, distribution, and chunk identities. The corpus contains 800 retained distributions, 44,520 physical chunks, and 96 queries.
+
 ## Headline results
 
 - Corpus A: mean top-10 churn is 10.37% at dataset identity, 17.56% at file-aware identity, and 23.02% at chunk identity.
@@ -33,7 +38,7 @@ Key code paths include:
 
 ## Data boundaries
 
-The second corpus is based on openly licensed public distributions and can be represented through stable dataset/distribution identifiers, source URLs, and materialization instructions. Material from the heterogeneous corpus is redistributed only where its original access conditions and licences permit it. Publication-safe ledgers use stable identities and derived hashes rather than copying restricted evidence text.
+Corpus B is based on openly licensed public distributions and can be represented through stable dataset/distribution identifiers, source URLs, and materialization instructions. Material from corpus A is redistributed only where its original access conditions and licences permit it. Publication-safe ledgers use stable identities and derived hashes instead of copying restricted evidence text.
 
 ## Citation
 
