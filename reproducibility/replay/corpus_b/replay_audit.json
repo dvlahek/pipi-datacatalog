@@ -1,0 +1,16 @@
+{
+  "confirmation_pass": true,
+  "exact_ordered_evidence_replays": 192,
+  "exact_replay_rate": 1.0,
+  "failed_replays": 0,
+  "logical_audit_rebuilt_for_replay": {
+    "cross_theme_exact_fine_identity_collapses": 29,
+    "logical_chunk_rows": 44491,
+    "physical_chunk_rows": 44520,
+    "unique_dataset_ids_in_logical_universe": 397,
+    "unique_distribution_identities": 796
+  },
+  "mismatches": [],
+  "run_count": 192,
+  "target_rate": 1.0
+}

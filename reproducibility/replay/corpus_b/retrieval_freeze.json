@@ -1,0 +1,29 @@
+{
+  "adapter_sha256": "d315374f8b4a7eda34b2e8a181fd7c0a67349e03f3c435ff3c522dfd2ec8e4a2",
+  "artifact": "SECOND_CORPUS_C2_PRIMARY_RETRIEVAL_FREEZE_V1",
+  "candidate_limit": 50,
+  "embedding_contract_sha256": "e78e9cf2a080675a99b28f0a50cb7f481d296e925dee3eaa552d16ea6be99a44",
+  "embedding_manifest_sha256": "0abdf9adb0c3ea0e43d1ea54ab563798b6b33c6126d240656fe8617c0fb32b76",
+  "logical_chunk_count": 44491,
+  "logical_chunk_order_sha256": "05dcd6aa4cf0e23b932dc691ad5861fe2f4f5971adc66968556993e03e09e00a",
+  "ordered_evidence_slots": 1920,
+  "primary_retrieval_runs_sha256": "5138ae7d90906709b1b5f8792560c8ddde95b57a01614cafbc951e7542294383",
+  "profile_hashes": {
+    "hybrid-e5-content-v1": "04fd11fb3c56e9273f7b312a376d5c975a852489276f87fc796f7e0c716f7a45",
+    "hybrid-e5-metadata-v1": "7b63711593b091d1c21a1548f1b672f4572c69b4fca380779114cad6163211e4"
+  },
+  "profile_ids": [
+    "hybrid-e5-content-v1",
+    "hybrid-e5-metadata-v1"
+  ],
+  "queries_sha256": "4257116b4d9ec417217b2030df58b5de3ba479fe0125f021a3ca50b7022699f7",
+  "query_count": 96,
+  "retrieval_config_sha256": "55527ac1d3e8bc99c81b339bc531aba7dfef0e77f2aeb0f296e06034c77887f1",
+  "retrieval_input_freeze_sha256": "8ba8756b8896086ba52116d8ee0f849faecf65ada55c6cd84e5dbd64a133a1e1",
+  "rrf_k": 60,
+  "run_count": 192,
+  "runner_script_sha256": "baddf83f50b62894f2cc9c8237ca5218a6a5b66f7090fd51158380dfdd67edbe",
+  "statistics_executed": false,
+  "status": "FROZEN_BEFORE_CONFIRMATORY_ANALYSIS",
+  "top_k": 10
+}
