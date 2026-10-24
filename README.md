@@ -28,15 +28,15 @@ A selection record is a sampling unit only. It is not a retrieval-provenance ide
 - exact same-evidence generation repeats for 306/306 controls;
 - material answer drift of 10.4–11.5% across the three corpus-A generators and 31/81 in the context-feasible corpus-B subset.
 
-The machine-readable summary is [`reproducibility/results/main_results_summary.json`](reproducibility/results/main_results_summary.json). The compact verifier is [`reproducibility/verify_reported_results.py`](reproducibility/verify_reported_results.py).
+The machine-readable summary is [`reproducibility/results/main_results_summary.json`](reproducibility/results/main_results_summary.json). The compact verifier is [`reproducibility/verify_reported_results.py`](reproducibility/verify_reported_results.py). The published frozen replay artifacts are under [`reproducibility/replay/`](reproducibility/replay/).
 
 ## Reproducibility boundary
 
-The publication package verifies the retained numerical summaries and denominators. It does not claim that cloning this branch alone reruns every retrieval, judging, and generation experiment from the complete original inputs.
+The publication package verifies the retained numerical summaries and denominators and now exposes the frozen per-run retrieval ledgers and replay-audit artifacts used for the reported exact ordered-evidence replay endpoint. The replay files contain ordered retrieval identities, ranks, provenance identifiers, configuration hashes, and content hashes without redistributing the underlying evidence text.
 
-The replay endpoint in the paper is exact ordered-evidence replay against the recorded retrieval/index state. It is not a clean-room reconstruction of the entire runtime environment. The manuscript documents the remaining environment-level limitations.
+The replay endpoint in the paper is exact ordered-evidence replay against the recorded retrieval/index state. The public package supports inspection and cryptographic verification of that recorded replay chain for all 1,152 runs. It does not claim that cloning this branch alone reconstructs the complete original runtime or reruns every retrieval, judging, and generation experiment from all original inputs.
 
-The full 192-query corpus-A confirmation artifact and complete per-run retrieval ledgers are not currently redistributed on this branch. Source/chunk text and raw answer/evidence material are also omitted where redistribution rights or privacy do not permit publication. Stable identities, hashes, configurations, and aggregate results are retained instead.
+The full 192-query corpus-A confirmation JSON and selected original runtime/index-construction inputs are not redistributed in the compact publication package. Source/chunk text and raw answer/evidence material are also omitted where redistribution rights or privacy do not permit publication. The manuscript documents these remaining clean-room reconstruction limits.
 
 ## Code
 
