@@ -8,6 +8,8 @@ authors:
     given-names: Dijana
   - family-names: Novak
     given-names: Matija
+  - family-names: Picek
+    given-names: Ruben
 year: 2026
 repository-code: "https://github.com/dvlahek/pipi-datacatalog/tree/paper/fgcs-reproducibility"
 message: "Please cite this repository together with the associated article."
