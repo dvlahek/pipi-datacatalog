@@ -38,9 +38,9 @@ The compact files in this directory are sufficient to verify the published numer
 
 The exact ordered-evidence replay reported in the paper was evaluated against the recorded retrieval/index state. The repository does not claim a clean-room rebuild of the complete runtime environment. In particular, the manuscript documents the unpinned corpus-A E5 revision and the environment components that were not separately hashed.
 
-The full corpus-A confirmation query set is cryptographically identified by SHA-256 `c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5`. The current branch contains its freeze manifest, but not the complete 192-query JSON artifact. Likewise, the compact package does not contain the complete per-run retrieval ledgers or raw answer/evidence text. Those omissions mean that cloning this branch alone does **not** rerun all retrieval, judging, and generation experiments from their original inputs.
+The full corpus-A confirmation query set is cryptographically identified by SHA-256 `c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5`. The current branch contains its freeze manifest, but not the complete 192-query JSON artifact. The compact package also does not currently contain the complete per-run retrieval ledgers. These frozen inputs exist outside this compact publication surface, but without them a fresh clone cannot rerun all retrieval analyses from their original inputs.
 
-This boundary is deliberate: source and chunk text, answer/evidence material, and some experiment inputs have redistribution or privacy constraints. Public artifacts retain stable identities, hashes, configurations, and aggregate results where the underlying material is not redistributed.
+Raw source/chunk text and raw answer/evidence material are a separate case: they are not redistributed where licensing or privacy constraints do not permit publication. Stable identities, hashes, configurations, and aggregate results are retained instead.
 
 ## Broader repository
 
