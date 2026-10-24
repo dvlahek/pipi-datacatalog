@@ -1,61 +1,50 @@
-# PiPi documentation map
+# Research documentation
 
-This directory contains both frozen research records and implementation notes. The files below are the shortest path into the current project state.
+This directory contains the dated protocol records and analysis notes used during development of the retrieval-provenance study. The files are kept so that the sequence of design decisions can be checked against the final paper.
 
-## Current retrieval-provenance paper line
+For a shorter publication-facing guide, start with [`../reproducibility/README.md`](../reproducibility/README.md).
 
-Start here:
+## Corpus A
 
-1. `benchmark_v2_results_ready_synthesis_20261015.md` — C1 results synthesis, including answer drift and BGE-M3 robustness.
-2. `benchmark_v2_reproducibility_20261015.md` — frozen C1 identifiers, result anchors and publication boundary.
-3. `second_corpus_confirmation_results_20261018.md` — C2 independent-corpus confirmatory retrieval results and C1–C2 comparison.
-4. `second_corpus_answer_drift_results_20261018.md` — final C2 Qwen answer-drift extension, context-feasible coverage, blinded judging and hidden-drift answer propagation.
-5. `second_corpus_c2_secondary_judge_results_20261018.md` — independent Gemini/Claude judging robustness over the same 81 blinded C2 answer pairs.
-6. `second_corpus_confirmation_protocol_v2.md` — prospective C2 confirmation protocol.
-7. `second_corpus_v2_preretrieval_adapter_10_distribution_identity.md` — C2 dataset/distribution/chunk identity adapter frozen before retrieval.
-8. `second_corpus_c2_answer_drift_extension_v1.md` — original post-confirmatory Qwen answer-drift extension boundary.
-9. `second_corpus_c2_answer_drift_context_feasible_amendment_v2.md` — frozen technical amendment after the 16,384-token feasibility audit.
-10. `second_corpus_c2_secondary_judge_replication_protocol_v1.md` — frozen secondary-judge protocol and analysis rules.
+The main corpus-A records are:
 
-## C1 benchmark support records
+- `retrieval_benchmark_v2_protocol.md` — benchmark design and evaluation plan;
+- `retrieval_benchmark_v2_amendment_*.md` — changes made during benchmark construction;
+- `benchmark_v2_reproducibility_20261015.md` — identifiers, profile hashes, and result anchors;
+- `benchmark_v2_results_ready_synthesis_20261015.md` — final corpus-A result summary;
+- `benchmark_v2_bge_m3_robustness_20261015.md` — BGE-M3 second-backbone analysis;
+- `benchmark_v2_retrieval_provenance_negative_controls_20261015.md` — provenance mutation controls;
+- `benchmark_v2_rq4_descriptive_synthesis_20261015.md` — source/query sensitivity analysis;
+- `rq3_answer_drift_protocol_frozen_20261014.md` — answer-drift generation and judging protocol.
 
-- `benchmark_v2_bge_m3_robustness_20261015.md`
-- `benchmark_v2_retrieval_provenance_negative_controls_20261015.md`
-- `benchmark_v2_rq4_descriptive_synthesis_20261015.md`
-- `retrieval_benchmark_v2_confirmation_authoring_audit.md`
-- `retrieval_benchmark_v2_amendment_*.md`
+Corpus A contains 274 sampled datasets and 192 confirmation queries. Its provenance hierarchy is dataset → file-aware intermediate identity → chunk.
 
-These records preserve protocol changes, robustness analyses and audit decisions. They should not be silently merged into one evidential category.
+## Corpus B
 
-## C2 evidence status
+The main corpus-B records are:
 
-The C2 confirmatory retrieval result is frozen:
+- `second_corpus_confirmation_protocol_v2.md` — confirmation protocol;
+- `second_corpus_confirmation_results_20261018.md` — confirmatory retrieval results;
+- `second_corpus_v2_preretrieval_adapter_10_distribution_identity.md` — dataset/distribution/chunk identity definition used for retrieval;
+- `second_corpus_c2_answer_drift_extension_v1.md` — answer-drift extension;
+- `second_corpus_c2_answer_drift_context_feasible_amendment_v2.md` — context-window feasibility amendment;
+- `second_corpus_answer_drift_results_20261018.md` — answer-drift results;
+- `second_corpus_c2_secondary_judge_replication_protocol_v1.md` — secondary blinded judging protocol;
+- `second_corpus_c2_secondary_judge_results_20261018.md` — multi-judge sensitivity results;
+- `second_corpus_posthoc_validation_protocol_v1.md` — additional diagnostic analysis.
 
-- H1 granularity effect: supported
-- H2 frozen multiplicity mechanism: positive direction, not statistically supported
-- H3 exact ordered-evidence replay: 192/192
+Corpus B contains 400 selection records corresponding to 397 unique dataset IDs, 800 retained distributions, and 96 queries. A selection record is a sampling unit, not a provenance identity.
 
-The Qwen C2 answer-drift result is a separate post-confirmatory descriptive extension. The unchanged 16,384-token C1 generation contract was feasible for 81/96 complete query pairs. Within that context-feasible subset, material answer drift occurred in 31/81 pairs (38.27%). Under the strict hidden-drift condition of an identical retrieved dataset set with changed chunk evidence, 9/19 pairs (47.37%) produced material answer drift.
+The corpus-B confirmation analysis supports H1, does not support the pre-specified H2 multiplicity association, and reproduces the exact ordered evidence for all 192 recorded corpus-B retrieval runs used for H3.
 
-Two additional independent blinded judges were then applied as post-hoc judging robustness, without access to the original grades or aggregate answer results. Material rates were 32/81 (39.51%) for Gemini and 33/81 (40.74%) for Claude. The pre-specified three-judge median/majority sensitivity was 32/81 (39.51%), and binary material/non-material unanimity across all three judges was 75/81 (92.59%).
+## Judging records
 
-These answer-level values must not be relabeled as prospectively confirmatory or generalized to all 96 C2 queries without the context-feasible qualification.
+The relevance and answer-drift experiments used blinded model-based judging, with human validation for the downstream semantic-change endpoint. Provider-specific prompt files are retained because they are part of the recorded experimental procedure. They should be read as judge instructions, not as manuscript source text.
 
-## Publication-safe answer-drift reproduction
+The primary paper results do not depend on model-based labels for the provenance-resolution or replay endpoints. Those endpoints are computed directly from recorded retrieval identities.
 
-`../scripts/second_corpus_answer_drift_reporting_v2.py` verifies the frozen local input hashes and recomputes aggregate C2 answer-drift results without emitting answer text, evidence text or the private A/B orientation.
+## Historical records
 
-`../scripts/second_corpus_secondary_judge_analysis_v1.py` verifies the three local blinded judgment files and recomputes publication-safe judge agreement and median/majority sensitivity results.
+Some filenames contain earlier terminology such as `audit`, `replication`, or version-specific labels. These names are kept because they identify frozen scripts and dated records used during the experiment. The manuscript uses the final terminology consistently.
 
-The raw local answer/evidence and external-judge artifacts are intentionally outside the publication surface because publicly accessible source material does not automatically imply redistribution rights.
-
-## Implementation / deployment notes
-
-- `online_mvp.md` — deployment-facing MVP notes
-- DCAT, retrieval, replay and benchmark implementation details are primarily documented alongside their configs and scripts under `config/` and `scripts/`.
-
-## Publication boundary
-
-Some local benchmark artifacts contain third-party source or chunk text. The public repository should prefer publication-safe manifests, hashes, aggregate results, configs and replay/audit code. Raw third-party content should only be redistributed when its licence explicitly permits that redistribution.
-
-The frozen C1 reproducibility record is itself used as a hashed source in later C2 reporting. Do not edit historical frozen records merely to make documentation wording more current. Add a new dated record instead.
+Implementation and deployment notes that are not specific to the paper remain in this directory as part of the underlying PiPi data-catalog project.
