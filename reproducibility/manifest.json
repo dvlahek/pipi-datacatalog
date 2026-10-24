@@ -1,11 +1,12 @@
 {
-  "artifact": "pipi-paper-reproducibility-package",
+  "artifact": "pipi-retrieval-provenance-reproducibility-package",
   "paper": "Retrieval Is Part of Data Space Provenance: Evidence Granularity and Replay for RAG",
   "repository": "https://github.com/dvlahek/pipi-datacatalog/tree/paper/fgcs-reproducibility",
   "files": [
-    {"path": "results/main_results_summary.json", "role": "headline results"},
+    {"path": "README.md", "role": "publication-facing reproduction guide"},
+    {"path": "results/main_results_summary.json", "role": "main numerical result checks"},
     {"path": "results/same_evidence_summary.json", "role": "same-evidence generation controls"},
-    {"path": "protocols/corpus_b_amendment.md", "role": "second-corpus sample-size amendment"},
+    {"path": "protocols/corpus_b_amendment.md", "role": "corpus-B sample-size amendment"},
     {"path": "CITATION.cff", "role": "citation metadata"}
   ]
 }
