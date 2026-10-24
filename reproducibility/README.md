@@ -1,54 +1,49 @@
-# Reproducing the paper results
+# Publication verification package
 
-This directory is the publication-facing index for **Retrieval Is Part of Data Space Provenance: Evidence Granularity and Replay for RAG**.
+This directory is the paper-facing package for **Retrieval Is Part of Data Space Provenance: Evidence Granularity and Replay for RAG**.
 
-The full repository contains the data-catalog service, benchmark construction code, historical protocol records, retrieval analyses, and provenance utilities. This directory points to the artifacts needed to check the values reported in the paper without requiring a reader to reconstruct the project history first.
+It is intentionally small. The rest of the repository contains the PiPi data-catalog implementation and historical experiment-development records. Those files are useful for project provenance, but they are not required to read the paper or to check its headline numerical claims.
+
+## What is included here
+
+- [`results/main_results_summary.json`](results/main_results_summary.json) — compact numerical summary of the corpus sizes, provenance-granularity results, H1/H2 outcomes, replay count, answer-drift endpoints, and human-validation statistics reported in the manuscript.
+- [`results/same_evidence_summary.json`](results/same_evidence_summary.json) — the 306 same-evidence generation controls.
+- [`protocols/corpus_b_amendment.md`](protocols/corpus_b_amendment.md) — the corpus-B sample-size amendment and its timing.
+- [`verify_reported_results.py`](verify_reported_results.py) — a standard-library check that the retained summaries match the manuscript headline values.
+- [`manifest.json`](manifest.json) — index of this compact package.
+- [`CITATION.cff`](CITATION.cff) — citation metadata.
+
+Run the compact check from the repository root:
+
+```bash
+python reproducibility/verify_reported_results.py
+```
+
+A successful run prints:
+
+```text
+OK: compact publication summaries match the manuscript headline values.
+NOTE: this verifies archived summaries; it does not rerun retrieval or generation.
+```
 
 ## Corpus conventions
 
-**Corpus A** uses datasets as its sampling units. It contains 274 sampled datasets and 274 unique dataset IDs. There is no separate selection-record layer. The provenance levels used in the paper are dataset, file-aware intermediate identity, and chunk.
+**Corpus A** uses datasets as sampling units: 274 sampled datasets, 274 unique dataset IDs, 3,974 chunk occurrences, and 192 confirmation queries. Its provenance levels are dataset, file-aware intermediate identity, and chunk.
 
-**Corpus B** uses selection records as its sampling units. One selection record is one source dataset included in one topical stratum. The design contains 400 selection records but 397 unique dataset IDs because three datasets occur in two strata. Each selection record contributes two retained distributions, giving 800 distributions. The provenance levels are dataset, distribution, and chunk. Selection records are not retrieval-provenance identities.
+**Corpus B** uses selection records as sampling units. The 400 selection records correspond to 397 unique dataset IDs because three datasets occur in two topical strata. Each selection record contributes two retained distributions, giving 800 distributions. The retained material contains 44,520 chunk occurrences before exact cross-stratum deduplication and 44,491 distinct retrieval rows after deduplication. Corpus B contains 96 queries. Its provenance levels are dataset, distribution, and chunk. A selection record is not a retrieval-provenance identity.
 
-## Publication artifacts
+## Scope of verification
 
-- [`results/main_results_summary.json`](results/main_results_summary.json) contains the numerical values used to check the main tables and headline results.
-- [`results/same_evidence_summary.json`](results/same_evidence_summary.json) records the 306 same-evidence generation controls.
-- [`protocols/corpus_b_amendment.md`](protocols/corpus_b_amendment.md) documents the corpus-B sample-size change and its timing.
-- [`manifest.json`](manifest.json) lists the compact files kept in this directory.
-- [`CITATION.cff`](CITATION.cff) provides citation metadata.
+The compact files in this directory are sufficient to verify the published numerical summaries and their denominators. They are not a substitute for every original experiment input.
 
-## Main code paths
+The exact ordered-evidence replay reported in the paper was evaluated against the recorded retrieval/index state. The repository does not claim a clean-room rebuild of the complete runtime environment. In particular, the manuscript documents the unpinned corpus-A E5 revision and the environment components that were not separately hashed.
 
-The analyses use code already present in the repository. The most relevant scripts are:
+The full corpus-A confirmation query set is cryptographically identified by SHA-256 `c725fba20382b6d7707b0f1b9bfaba8ac131ebb9c0a461ce7ab4a8988bc26ed5`. The current branch contains its freeze manifest, but not the complete 192-query JSON artifact. Likewise, the compact package does not contain the complete per-run retrieval ledgers or raw answer/evidence text. Those omissions mean that cloning this branch alone does **not** rerun all retrieval, judging, and generation experiments from their original inputs.
 
-- `scripts/compare_retrieval_evidence.py`
-- `scripts/analyze_retrieval_drift_taxonomy.py`
-- `scripts/evaluate_rag_profiles.py`
-- `scripts/audit_retrieval_provenance_negative_controls.py`
-- `scripts/second_corpus_confirmatory_analysis_v1.py`
-- `scripts/second_corpus_reporting_v1.py`
-- `scripts/second_corpus_answer_drift_reporting_v2.py`
-- `scripts/second_corpus_secondary_judge_analysis_v1.py`
+This boundary is deliberate: source and chunk text, answer/evidence material, and some experiment inputs have redistribution or privacy constraints. Public artifacts retain stable identities, hashes, configurations, and aggregate results where the underlying material is not redistributed.
 
-The dated records under `docs/` preserve the protocol and analysis chronology. They include the corpus-A benchmark development, corpus-B confirmation protocol, answer-drift extension, secondary judging protocol, and the amendments made before the corresponding analyses. They are retained as historical research records, so older filenames and terminology are not retroactively rewritten.
+## Broader repository
 
-## Protocol chronology
+The application code under `app/`, database code, tests, and experiment scripts remain in the repository because the paper was produced from the PiPi system rather than from a separate toy implementation. The dated files under `docs/` and `history/` are historical project records. They preserve development chronology and may contain superseded terminology or intermediate analyses; they are **not** an extension of the manuscript claims.
 
-For corpus A, the benchmark design was recorded before the confirmation evaluation. A later pre-authoring amendment added open-data catalogs as the fourth source family and rebalanced the query allocation before confirmation-query authoring and retrieval evaluation.
-
-For corpus B, the confirmation protocol was recorded before dataset selection. Corpus-construction feasibility testing later reduced the target from 200 to 100 selection records per topical stratum. That change occurred before query authoring, retrieval evaluation, or inspection of confirmatory outcomes. The amendment is documented in [`protocols/corpus_b_amendment.md`](protocols/corpus_b_amendment.md).
-
-The exact commit identifiers and the longer protocol history remain available in the dated records under `docs/` and in the repository history. They are not required to interpret the main manuscript.
-
-## What can be reproduced from the public branch
-
-The publication branch provides the code and retained artifacts needed to recompute the reported aggregate analyses from the archived experiment outputs, including provenance churn, corpus-B H1/H2 statistics, answer-drift summaries, judge-agreement summaries, and same-evidence controls.
-
-The exact ordered-evidence replay reported in the paper is evaluated against the recorded retrieval/index state. This branch does not claim a clean-room rebuild of every dependency or the complete original runtime environment. The manuscript states the remaining environment-level gaps explicitly.
-
-## Data boundaries
-
-Corpus B is based on openly licensed public distributions and can be reconstructed from stable dataset/distribution identifiers, source URLs, and the documented materialization rules. Corpus A contains source families with different redistribution conditions. When source or chunk text cannot be redistributed, the publication artifacts retain identifiers, hashes, configurations, and aggregate results instead.
-
-Human-validation summaries are pseudonymized. Raw answer/evidence material and any third-party content whose redistribution rights are unclear are not copied into the publication package.
+For the paper itself, use this directory and the manuscript as the authoritative publication surface.
