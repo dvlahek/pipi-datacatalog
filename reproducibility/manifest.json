@@ -2,19 +2,26 @@
   "artifact": "pipi-retrieval-provenance-publication-verification-package",
   "paper": "Retrieval Is Part of Data Space Provenance: Evidence Granularity and Replay for RAG",
   "repository": "https://github.com/dvlahek/pipi-datacatalog/tree/paper/fgcs-reproducibility",
-  "scope": "verification of retained publication summaries; not a clean-room rerun of all experiments",
+  "scope": "verification of retained publication summaries and recorded exact ordered-evidence replay; not a clean-room rerun of all experiments",
   "files": [
     {"path": "README.md", "role": "publication-package scope and verification guide"},
-    {"path": "verify_reported_results.py", "role": "executable headline-value and denominator checks"},
+    {"path": "verify_reported_results.py", "role": "executable headline-value, replay-hash, linkage, and denominator checks"},
     {"path": "results/main_results_summary.json", "role": "main numerical result checks"},
     {"path": "results/same_evidence_summary.json", "role": "same-evidence generation controls"},
     {"path": "protocols/corpus_b_amendment.md", "role": "corpus-B sample-size amendment"},
+    {"path": "replay/README.md", "role": "guide to the published replay-verification artifacts"},
+    {"path": "replay/SHA256SUMS.txt", "role": "checksums for the frozen replay-verification artifacts"},
+    {"path": "replay/corpus_a/benchmark_v2_confirmation_retrieval_ledger_c725fba20382.json", "role": "complete frozen corpus-A 20-result retrieval ledger for 960 recorded runs"},
+    {"path": "replay/corpus_a/benchmark_v2_confirmation_strict_replay_c725fba20382.json", "role": "corpus-A strict replay audit: 960/960 exact ordered-evidence replay"},
+    {"path": "replay/corpus_b/primary_retrieval_runs.jsonl", "role": "frozen corpus-B ordered top-10 retrieval identities for 192 runs"},
+    {"path": "replay/corpus_b/retrieval_freeze.json", "role": "corpus-B retrieval freeze and ledger SHA-256 linkage"},
+    {"path": "replay/corpus_b/replay_audit.json", "role": "corpus-B replay audit: 192/192 exact ordered-evidence replay"},
     {"path": "CITATION.cff", "role": "citation metadata"}
   ],
   "not_in_compact_package": [
     "complete 192-query corpus-A confirmation JSON",
-    "complete per-run retrieval ledgers",
-    "raw answer and evidence text",
-    "complete original runtime environment"
+    "source and chunk text where redistribution is restricted",
+    "raw answer and evidence text where redistribution is restricted",
+    "selected original runtime and index-construction inputs required for a complete clean-room rerun"
   ]
 }
