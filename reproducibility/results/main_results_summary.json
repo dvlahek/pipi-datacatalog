@@ -6,7 +6,7 @@
       "selected_datasets": 274,
       "unique_dataset_ids": 274,
       "separate_selection_record_layer": false,
-      "chunks": 3974,
+      "chunk_occurrences": 3974,
       "confirmation_queries": 192
     },
     "corpus_b": {
@@ -15,8 +15,8 @@
       "unique_dataset_ids": 397,
       "dataset_ids_repeated_across_strata": 3,
       "retained_distributions": 800,
-      "physical_chunks": 44520,
-      "logical_retrieval_rows": 44491,
+      "chunk_occurrences_before_exact_cross_stratum_deduplication": 44520,
+      "distinct_retrieval_rows_after_exact_cross_stratum_deduplication": 44491,
       "queries": 96,
       "selection_record_is_retrieval_identity": false
     }
@@ -50,8 +50,8 @@
   },
   "replay": {
     "recorded_retrieval_runs": 1152,
-    "exact_replays": 1152,
-    "exact_replay_rate": 1.0
+    "exact_ordered_evidence_replays": 1152,
+    "exact_ordered_evidence_replay_rate": 1.0
   },
   "answer_drift": {
     "corpus_a": {
