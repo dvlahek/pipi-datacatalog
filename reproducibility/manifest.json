@@ -1,12 +1,20 @@
 {
-  "artifact": "pipi-retrieval-provenance-reproducibility-package",
+  "artifact": "pipi-retrieval-provenance-publication-verification-package",
   "paper": "Retrieval Is Part of Data Space Provenance: Evidence Granularity and Replay for RAG",
   "repository": "https://github.com/dvlahek/pipi-datacatalog/tree/paper/fgcs-reproducibility",
+  "scope": "verification of retained publication summaries; not a clean-room rerun of all experiments",
   "files": [
-    {"path": "README.md", "role": "publication-facing reproduction guide"},
+    {"path": "README.md", "role": "publication-package scope and verification guide"},
+    {"path": "verify_reported_results.py", "role": "executable headline-value and denominator checks"},
     {"path": "results/main_results_summary.json", "role": "main numerical result checks"},
     {"path": "results/same_evidence_summary.json", "role": "same-evidence generation controls"},
     {"path": "protocols/corpus_b_amendment.md", "role": "corpus-B sample-size amendment"},
     {"path": "CITATION.cff", "role": "citation metadata"}
+  ],
+  "not_in_compact_package": [
+    "complete 192-query corpus-A confirmation JSON",
+    "complete per-run retrieval ledgers",
+    "raw answer and evidence text",
+    "complete original runtime environment"
   ]
 }
