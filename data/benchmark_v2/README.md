@@ -1,14 +1,14 @@
-# PiPi Benchmark V2 data artifacts
+# PiPi Benchmark V2 artifacts
 
-This directory contains frozen manifests and publication-safe result artifacts for PiPi Benchmark V2.
+This directory contains publication-safe manifests and retained result artifacts for the corpus-A benchmark.
 
-Primary confirmation artifacts use the frozen confirmation query-set identifier `c725fba20382` and preserve the original E5 experiment as the confirmatory analysis.
+The confirmation query set is identified by `c725fba20382`. The E5 retrieval experiment is the primary confirmation analysis reported in the paper. BGE-M3 was evaluated later as a second-backbone robustness analysis and does not replace the primary E5 judgments.
 
-BGE-M3 files are a separate post-hoc second-backbone robustness layer:
+The BGE-M3 files are:
 
-- `bge_m3_robustness_results_final_v1.json` — aggregate metrics, paired contrasts, subgroup summaries and drift statistics
-- `bge_m3_robustness_final_manifest_v1.json` — SHA-256 chain for the retrieval ledger, blinded judging inputs and frozen outputs
+- `bge_m3_robustness_results_final_v1.json` — aggregate retrieval metrics, paired contrasts, subgroup summaries, and drift statistics;
+- `bge_m3_robustness_final_manifest_v1.json` — hashes for the retrieval ledger, blinded judging inputs, and retained outputs.
 
-The complete retrieved chunk text and local LLM answer artifacts are intentionally not committed here. The repository keeps hashes and publication-safe summaries so the primary experiment and later robustness analysis remain distinguishable.
+The complete retrieved chunk text and local generator outputs are not committed here. Publication-safe artifacts retain hashes, identifiers, and aggregate results so that the primary experiment and the later robustness analysis remain distinguishable without redistributing source material unnecessarily.
 
-See `../../docs/benchmark_v2_reproducibility_20261015.md` for the frozen identifiers, profile hashes and rerun commands.
+See `../../docs/benchmark_v2_reproducibility_20261015.md` for the recorded identifiers, profile hashes, and analysis notes.
