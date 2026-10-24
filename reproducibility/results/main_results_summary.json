@@ -77,9 +77,6 @@
   "human_validation": {
     "corpus_a": {
       "assessors": 10,
-      "author_assessors": 3,
-      "non_author_assessors": 7,
-      "all_assessors_blinded": true,
       "pairs": 80,
       "resolved_strict_majority": 74,
       "model_human_agreement": 0.838,
@@ -89,11 +86,6 @@
     },
     "corpus_b": {
       "assessors": 5,
-      "author_assessors": 1,
-      "non_author_assessors": 4,
-      "all_assessors_blinded": true,
-      "primary_three_rater_panel": "first author plus two non-author workplace colleagues",
-      "expanded_five_rater_panel": "first author plus four non-author workplace colleagues",
       "pairs": 44,
       "five_rater_vs_openai_binary_agreement": 0.955,
       "five_rater_vs_openai_qwk": 0.905,
