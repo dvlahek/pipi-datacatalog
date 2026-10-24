@@ -1,10 +1,14 @@
 # PiPi data catalog and retrieval-provenance experiments
 
-This repository contains the semantic data-catalog implementation and the experimental material used in the paper **Retrieval Is Part of Data Space Provenance: Evidence Granularity and Replay for RAG**.
+This repository contains the PiPi semantic data-catalog implementation and the experimental code used in the paper **Retrieval Is Part of Data Space Provenance: Evidence Granularity and Replay for RAG**.
 
-The paper studies a simple reproducibility problem: two retrieval executions can refer to the same source dataset while supplying different evidence to a downstream generator. The experiments therefore compare retrieval change at dataset, intermediate-source, and chunk identity, and record enough execution state to replay the ordered evidence.
+The paper studies a reproducibility problem: two retrieval executions can refer to the same source dataset while supplying different evidence to a downstream generator. The experiments therefore compare change at dataset, intermediate-source, and chunk identity and record the execution state needed to identify the ordered evidence.
 
-This branch (`paper/fgcs-reproducibility`) is the publication branch used by the manuscript. Development code lives in the same repository, but the paper-facing entry point is [`reproducibility/README.md`](reproducibility/README.md).
+## Paper materials
+
+The compact paper-facing package is [`reproducibility/`](reproducibility/). Start there if you are checking the manuscript.
+
+The rest of this repository is the broader PiPi implementation and research history. It is retained because the experiments were run on the project system, but it is not an additional set of paper claims. In particular, dated files under `docs/` and `history/` may contain intermediate analyses, older terminology, or superseded protocol versions.
 
 ## Corpus overview
 
@@ -14,40 +18,29 @@ This branch (`paper/fgcs-reproducibility`) is the publication branch used by the
 
 A selection record is a sampling unit only. It is not a retrieval-provenance identity.
 
-## Results represented in this branch
+## Headline results represented in the publication package
 
-The publication artifacts reproduce the numerical summaries reported in the manuscript, including:
-
-- corpus-A mean top-10 churn of 10.37% at dataset identity, 17.56% at file-aware identity, and 23.02% at chunk identity;
-- corpus-B mean top-10 churn of 20.89% at dataset identity, 24.07% at distribution identity, and 39.38% at chunk identity;
-- 82.8% of the mean corpus-B dataset-to-chunk gap remaining below distribution identity;
-- dataset-level mean churn equal to 41–53% of chunk-level mean churn across six controlled retrieval changes;
+- corpus-A mean top-10 churn: 10.37% at dataset identity, 17.56% at file-aware identity, and 23.02% at chunk identity;
+- corpus-B mean top-10 churn: 20.89% at dataset identity, 24.07% at distribution identity, and 39.38% at chunk identity;
+- 82.8% of the mean corpus-B dataset-to-chunk gap remains below distribution identity;
+- dataset-level mean churn is 41–53% of chunk-level mean churn across six controlled retrieval changes;
 - exact ordered-evidence replay for 1,152/1,152 recorded retrieval runs;
 - exact same-evidence generation repeats for 306/306 controls;
-- material answer drift of 10.4–11.5% across three local generators in corpus A and 31/81 in the context-feasible corpus-B subset.
+- material answer drift of 10.4–11.5% across the three corpus-A generators and 31/81 in the context-feasible corpus-B subset.
 
-The compact machine-readable summary is in [`reproducibility/results/main_results_summary.json`](reproducibility/results/main_results_summary.json).
+The machine-readable summary is [`reproducibility/results/main_results_summary.json`](reproducibility/results/main_results_summary.json). The compact verifier is [`reproducibility/verify_reported_results.py`](reproducibility/verify_reported_results.py).
 
-## Main analysis code
+## Reproducibility boundary
 
-The paper uses the existing project implementation together with analysis scripts in `scripts/`. The main entry points are:
+The publication package verifies the retained numerical summaries and denominators. It does not claim that cloning this branch alone reruns every retrieval, judging, and generation experiment from the complete original inputs.
 
-- `scripts/compare_retrieval_evidence.py` — compares evidence identities between recorded executions;
-- `scripts/analyze_retrieval_drift_taxonomy.py` — summarizes drift by provenance level;
-- `scripts/evaluate_rag_profiles.py` — computes corpus-A retrieval metrics;
-- `scripts/audit_retrieval_provenance_negative_controls.py` — checks one-at-a-time provenance mutations;
-- `scripts/second_corpus_confirmatory_analysis_v1.py` — computes the corpus-B confirmation statistics;
-- `scripts/second_corpus_reporting_v1.py` — produces the corpus-B reporting summaries;
-- `scripts/second_corpus_answer_drift_reporting_v2.py` — recomputes publication-safe answer-drift summaries;
-- `scripts/second_corpus_secondary_judge_analysis_v1.py` — recomputes the multi-judge sensitivity results.
+The replay endpoint in the paper is exact ordered-evidence replay against the recorded retrieval/index state. It is not a clean-room reconstruction of the entire runtime environment. The manuscript documents the remaining environment-level limitations.
 
-Historical protocol records and dated analysis notes are kept under `docs/`. They are useful for tracing the order in which the benchmark and confirmation analyses were defined, but [`reproducibility/README.md`](reproducibility/README.md) is the shorter guide for reproducing the paper results.
+The full 192-query corpus-A confirmation artifact and complete per-run retrieval ledgers are not currently redistributed on this branch. Source/chunk text and raw answer/evidence material are also omitted where redistribution rights or privacy do not permit publication. Stable identities, hashes, configurations, and aggregate results are retained instead.
 
-## Data and redistribution
+## Code
 
-Corpus B is based on openly licensed public distributions and is represented by stable dataset/distribution identifiers, source URLs, and documented materialization rules. Corpus A combines source families with different redistribution conditions. Where source text cannot be republished, the public artifacts retain stable identities, hashes, configurations, and aggregate results instead of copying the original content.
-
-The repository does not claim a clean-room reconstruction of every software dependency used in the experiments. The replay results in the paper are against the recorded index and execution state; the manuscript lists the remaining environment-level limitations explicitly.
+The application and experiment code remain available in `app/`, `scripts/`, `config/`, `database/`, and `tests/`. These directories are the broader project implementation, not the minimal paper package.
 
 ## Citation
 
